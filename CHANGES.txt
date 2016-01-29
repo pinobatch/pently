@@ -1,0 +1,35 @@
+0.05 (2015-12)
+* for NESdev BBS proofs of concept and a Famicompo entry
+* added grace note
+* renamed to Pently in preparation for separate packaging
+* macros give names to sound effects, drums, instruments, songs,
+  and patterns.  No more magic numbers!
+* fleshed out the manual
+* added beat fraction display to NES shell
+
+0.04 (2014-05)
+* for RHDE: Furniture Fight
+* arpeggio, legato, and transpose effects
+* attack envelopes and attack injection track
+* added rows per beat for an aborted rhythm game
+* change to permissive license
+* NSF and NES shells
+* began work on manual (privately distributed)
+
+0.03 (2011-11)
+* for Thwaite, Zap Ruder, Action 53 menu, DABG, and Sliding Blaster
+* adapts to NTSC and PAL at runtime
+* two sound effects per drum, for triangle drums
+* moved sound effects table to music data file
+* change instrument during pattern
+* conductor track macros
+* row and loop callbacks
+
+0.02 (2009-11)
+* for Concentration Room and Sprite Cans 2011
+* allow interrupting a pattern
+
+0.01 (2009-06)
+* initial release for LJ65
+* dynamic allocation of pulse channels
+* volume-based interruption

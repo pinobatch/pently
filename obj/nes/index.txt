@@ -1,0 +1,1 @@
+This file forces the creation of the folder for object files. You may delete it.
