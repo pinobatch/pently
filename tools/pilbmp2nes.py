@@ -1,8 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
-# Bitmap to multi-console CHR converter using PIL or Pillow
+# Bitmap to multi-console CHR converter using Pillow, the
+# Python Imaging Library
 #
-# Copyright 2014 Damian Yerrick
+# Copyright 2014-2015 Damian Yerrick
 # Copying and distribution of this file, with or without
 # modification, are permitted in any medium without royalty
 # provided the copyright notice and this notice are preserved.
@@ -11,26 +12,6 @@
 from __future__ import with_statement, print_function, unicode_literals
 from PIL import Image
 from time import sleep
-import array
-
-# python 2/3 cross compatibility fixes
-try:
-    xrange
-except NameError:
-    xrange = range
-try:
-    raw_input
-except NameError:
-    raw_input = input
-try:
-    next
-except NameError:
-    next = lambda x: x.next()
-def blank_byte_array():
-    try:
-        return array.array('B')
-    except TypeError:
-        return array.array(b'B')
 
 def formatTilePlanar(tile, planemap, hflip=False, little=False):
     """Turn a tile into bitplanes.
@@ -46,11 +27,11 @@ Planemap opcodes:
     if (tile.size != (8, 8)):
         return None
     pixels = list(tile.getdata())
-    pixelrows = [pixels[i:i + 8] for i in xrange(0, 64, 8)]
+    pixelrows = [pixels[i:i + 8] for i in range(0, 64, 8)]
     if hflip:
         for row in pixelrows:
             row.reverse()
-    out = blank_byte_array()
+    out = bytearray()
 
     planemap = [[[int(c) for c in row]
                  for row in plane.split(',')]
@@ -67,16 +48,15 @@ Planemap opcodes:
         for pxrow in pixelrows:
             for rowplane in plane:
                 rowbits = 1
-                thisrow = blank_byte_array()
+                thisrow = bytearray()
                 for px in pxrow:
                     for bitnum in rowplane:
                         rowbits = (rowbits << 1) | ((px >> bitnum) & 1)
                         if rowbits >= 0x100:
                             thisrow.append(rowbits & 0xFF)
                             rowbits = 1
-                if little: thisrow.reverse()
-                out.extend(thisrow)
-    return out.tostring()
+                out.extend(thisrow[::-1] if little else thisrow)
+    return bytes(out)
 
 def pilbmp2chr(im, tileWidth=8, tileHeight=8,
                formatTile=lambda im: formatTilePlanar(im, "0;1")):
@@ -174,7 +154,7 @@ def main(argv=None):
         argv = sys.argv
         if (argvTestingMode and len(argv) < 2
             and sys.stdin.isatty() and sys.stdout.isatty()):
-            argv.extend(raw_input('args:').split())
+            argv.extend(input('args:').split())
     try:
         (infilename, outfilename, tileWidth, tileHeight,
          usePackBits, planes, hflip, little) = parse_argv(argv)

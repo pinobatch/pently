@@ -1,14 +1,18 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
-# Lookup table generator for Concentration Room
-# Copyright 2010 Damian Yerrick
+# Lookup table generator for Pently music engine
+# Copyright 2010-2015 Damian Yerrick
 #
 # Copying and distribution of this file, with or without
 # modification, are permitted in any medium without royalty
 # provided the copyright notice and this notice are preserved.
 # This file is offered as-is, without any warranty.
 #
-from __future__ import with_statement, division
+
+#
+# 2015-12: DY ported to Python 3
+#
+from __future__ import with_statement, division, print_function
 import sys
 
 baseNoteFreq = 55.0
@@ -19,7 +23,7 @@ def getPeriodValues(maxNote=64, pal=False):
     semitone = 2.0**(1./12)
     octaveBase = (palFreq if pal else ntscFreq) / baseNoteFreq
     relFreqs = [(1 << (i // 12)) * semitone**(i % 12)
-                for i in xrange(maxNote)]
+                for i in range(maxNote)]
     periods = [int(round(octaveBase / freq)) - 1 for freq in relFreqs]
     return periods
 
@@ -99,14 +103,16 @@ tableNames = {
 
 def main(argv):
     if len(argv) >= 2 and argv[1] in ('/?', '-?', '-h', '--help'):
-        print "usage: %s TABLENAME FILENAME" % argv[0]
-        print "known tables:", ' '.join(sorted(tableNames))
+        print("usage: %s TABLENAME FILENAME" % argv[0])
+        print("known tables:", ' '.join(sorted(tableNames)))
     elif len(argv) < 3:
-        print "mktables: too few arguments; try %s --help" % argv[0]
+        print("mktables: too few arguments; try %s --help" % argv[0],
+              file=sys.stderr)
     elif argv[1] in tableNames:
         tableNames[argv[1]](argv[2])
     else:
-        print "mktables: no such table %s; try %s --help" % (argv[1], argv[0])
+        print("mktables: no such table %s; try %s --help" % (argv[1], argv[0]),
+              file=sys.stderr)
 
 if __name__=='__main__':
     main(sys.argv)

@@ -1,11 +1,18 @@
-0.05 (2015-12)
+0.05wip2 (2015-12)
+* Experimental music assembler
+* Converted all data conversion tools to Python 3
+* NES shell: Hold Select to speed up by factor of 4
+
+0.05wip1 (2015-12)
 * for NESdev BBS proofs of concept and a Famicompo entry
 * added grace note
 * renamed to Pently in preparation for separate packaging
-* macros give names to sound effects, drums, instruments, songs,
-  and patterns.  No more magic numbers!
+* macros give names to sound effects, drums, instruments,
+  songs, and patterns.  No more magic numbers!
 * fleshed out the manual
 * added beat fraction display to NES shell
+* rate of last frame of sound effect isn't forced to
+  1 frame/row
 
 0.04 (2014-05)
 * for RHDE: Furniture Fight

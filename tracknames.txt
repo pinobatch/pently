@@ -1,8 +1,9 @@
+The Naive Confidence
 Canon in D
 Happy Flappy Crappy
 Individual features
 Stairs
 Attack channel (no pulse!)
 
-Pently demo 0.05
+Pently demo 0.05wip2
 Copr. 2015 Damian Yerrick

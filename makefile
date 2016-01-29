@@ -11,7 +11,7 @@
 
 # These are used in the title of the NES program and the zip file.
 title = pently
-version = 0.05wip
+version = 0.05wip2
 
 # Space-separated list of assembly language files that make up the
 # PRG ROM.  If it gets too long for one line, you can add a backslash
@@ -79,10 +79,10 @@ $(objdir)/index.txt: makefile
 objlistntsc := $(foreach o,$(objlist),$(objdir)/$(o).o)
 objlistnsf := $(foreach o,$(objlistnsf),$(objdir)/$(o).o)
 
-map.txt $(title).nes: nes.ini $(objlistntsc)
+map.txt $(title).nes: nrom128.cfg $(objlistntsc)
 	$(LD65) -o $(title).nes -C $^ -m map.txt
 
-nsfmap.txt $(title).nsf: nsf.ini $(objlistnsf)
+nsfmap.txt $(title).nsf: nsf.cfg $(objlistnsf)
 	$(LD65) -o $(title).nsf -C $^ -m nsfmap.txt
 
 $(objdir)/%.o: $(srcdir)/%.s $(srcdir)/nes.inc $(srcdir)/shell.inc
@@ -100,6 +100,10 @@ $(objdir)/main.o: tracknames.txt $(objdir)/bggfx.chr
 # Generate lookup tables at build time
 $(objdir)/ntscPeriods.s: tools/mktables.py
 	$< period $@
+
+# Translate music project
+$(objdir)/%.s: src/%.pently
+	tools/pentlyas.py $< > $@
 
 # Rules for CHR ROM
 

@@ -171,6 +171,13 @@ forever:
 
   jsr pently_update
   jsr read_pads
+  lda cur_keys
+  and #KEY_SELECT
+  beq notFastForward
+  jsr pently_update
+  jsr pently_update
+  jsr pently_update
+notFastForward:
   
   lda new_keys
   and #KEY_DOWN

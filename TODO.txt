@@ -1,8 +1,5 @@
 Actual things to do:
+pentlyas: Cymbals
 More original music and classical covers
 Benchmark
-Make minimal example musicseq file
-Make a Python preprocessor that type-checks everything and provides
-an MML-like or LilyPond-like syntax for pattern data
 Make a graphical tracker
-
