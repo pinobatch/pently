@@ -1,6 +1,18 @@
+0.05wip3 (2016-01)
+* Corrected namespacing of pently_stop_music and pently_resume_music
+  (reported by 43110)
+* Allows relocating temporary zero page space (requested by 43110)
+* pentlyas.py: Refactored without "god object"
+* pentlyas.py: Changed syntax for arpeggio effect; the original
+  was based on a misreading of MCK Beginner's Guide
+* pentlyas.py: Optimizes out data of combined envelopes (instrument
+  attacks and sound effects) that are a subsequence of a longer one.
+  This improves handling of the "latebanjo" and "bf98flute2"
+  instruments in the example songs.
+
 0.05wip2 (2015-12)
 * Experimental music assembler
-* Converted all data conversion tools to Python 3
+* Ported all data conversion tools to Python 3
 * NES shell: Hold Select to speed up by factor of 4
 
 0.05wip1 (2015-12)

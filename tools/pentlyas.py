@@ -5,6 +5,42 @@ from __future__ import with_statement, division, print_function
 # is the default IDLE in a lot of Windows PCs
 import sys, json, re
 
+scaledegrees = {
+    'c': 0, 'd': 1, 'e': 2, 'f': 3, 'g': 4, 'a': 5, 'h': 6, 'b': 6
+}
+notenamesemis = {
+    'c': 0, 'd': 2, 'e': 4, 'f': 5, 'g': 7, 'a': 9, 'h': 11
+}
+accidentalmeanings = {
+    '': 0, 'b': -1, 'bb': -2, '-': -1, '--': -2, 'es': -1, 'eses': -2,
+    '#': 1, '##': 2, '+': 1, '++': 2, 's': 1, 'ss': 2, 'x': 2,
+    'is': 1, 'isis': 2,
+}
+duraugmentnums = {
+    '': 4, '.': 6, '..': 7, 'g': 0
+}
+dotted_names = {4: '', 6: 'dotted ', 7: 'double dotted '}
+timesignames = {
+    'c': (4, 4),   # common time
+    '¢': (2, 2),   # cut time
+    'o': (3, 4),   # perfect time
+}
+channeltypes = {'pulse': 0, 'triangle': 2, 'noise': 3}
+durcodes = {
+    1: '0', 2: 'D_8', 3: 'D_D8', 4: 'D_4',
+    6: 'D_D4', 8: 'D_2', 12: 'D_D2', 16: 'D_1'
+}
+pitched_tracks = {'pulse1': 0, 'pulse2': 1, 'triangle': 2, 'attack': 4}
+track_suffixes = ['Sq1', 'Sq2', 'Tri', 'Noise', 'Attack']
+pattern_pitchoffsets = [
+    'N_C', 'N_CS', 'N_D', 'N_DS', 'N_E', 'N_F',
+    'N_FS', 'N_G', 'N_GS', 'N_A', 'N_AS', 'N_B',
+    'N_CH', 'N_CSH', 'N_DH', 'N_DSH', 'N_EH', 'N_FH',
+    'N_FSH', 'N_GH', 'N_GSH', 'N_AH', 'N_ASH', 'N_BH',
+    'N_CHH'
+]
+
+
 class PentlyPitchContext(object):
     """
 
@@ -22,9 +58,14 @@ None: Wait for the first thing that looks like a pitch or drum.
 
 """
 
-    def __init__(self, language='english'):
-        self.set_language(language)
-        self.reset_octave()
+    def __init__(self, other=None, language='english'):
+        if other is None:
+            self.set_language(language)
+            self.reset_octave(octave_mode=None)
+        else:
+            self.set_language(other.language)
+            self.last_octave = other.last_octave
+            self.octave_mode = other.octave_mode
 
     def set_language(self, language):
         language = language.lower()
@@ -40,18 +81,6 @@ None: Wait for the first thing that looks like a pitch or drum.
     def set_pitched_mode(self):
         """Set the octave mode to absolute if None."""
         if self.octave_mode is None: self.octave_mode = 'absolute'
-
-    scaledegrees = {
-        'c': 0, 'd': 1, 'e': 2, 'f': 3, 'g': 4, 'a': 5, 'h': 6, 'b': 6
-    }
-    notenamesemis = {
-        'c': 0, 'd': 2, 'e': 4, 'f': 5, 'g': 7, 'a': 9, 'h': 11
-    }
-    accidentalmeanings = {
-        '': 0, 'b': -1, 'bb': -2, '-': -1, '--': -2, 'es': -1, 'eses': -2,
-        '#': 1, '##': 2, '+': 1, '++': 2, 's': 1, 'ss': 2, 'x': 2,
-        'is': 1, 'isis': 2,
-    }
 
     def parse_pitch(self, preoctave, notename, accidental, postoctave):
         if notename in ('r','w','l'):
@@ -78,7 +107,7 @@ None: Wait for the first thing that looks like a pitch or drum.
 
         if self.octave_mode in ('orelative', 'relative'):
             octave += self.last_octave[1]
-        scaledegree = self.scaledegrees[notename]
+        scaledegree = scaledegrees[notename]
         if self.octave_mode == 'relative':
             # Process LilyPond style relative mode
             degreediff = scaledegree - self.last_octave[0]
@@ -90,10 +119,10 @@ None: Wait for the first thing that looks like a pitch or drum.
         if notename == 'b':
             semi = self.b_means
         else:
-            semi = self.notenamesemis[notename]
+            semi = notenamesemis[notename]
 
         self.last_octave = scaledegree, octave
-        return semi + self.accidentalmeanings[accidental] + 12 * octave + 15
+        return semi + accidentalmeanings[accidental] + 12 * octave + 15
 
     pitchRE = re.compile(r"""
 (>*|<*)       # MML style octave
@@ -112,371 +141,49 @@ None: Wait for the first thing that looks like a pitch or drum.
 
         m = self.pitchRE.match(pitch)
         if not m:
-            raise ValueError("%s doesn't look like a pitch" % pitch)
+            raise ValueError("%s doesn't look like a pitch in %s mode"
+                             % (pitch, self.octave_mode))
         return self.parse_pitch(*m.groups())
 
-    def reset_octave(self):
+    def reset_octave(self, octave_mode='unchanged'):
         self.last_octave = (3, 0)
+        if octave_mode != 'unchanged':
+            self.octave_mode = octave_mode
 
-# Pass 1: Load
-class PentlyInputParser(object):
+class PentlyRhythmContext(object):
 
-    def __init__(self):
-        self.sfxs = {}
-        self.drums = {}
-        self.instruments = {}
-        self.patterns = {}
-        self.songs = {}
-        self.scale = self.global_scale = 16
-        self.timenum = self.global_timenum = 16
-        self.timeden = self.global_timeden = 16
-        self.cur_obj = self.cur_song = None
-        self.linenum = 0
-        self.pitchctx = PentlyPitchContext()
-        self.last_duration = (4, 4)
-        self.durations_stick = False
-        self.unk_keywords = 0
-
-    def append(self, s):
-        """Parse one line of code."""
-        self.linenum += 1
-        s = s.strip()
-        if not s or s.startswith(('#', '//')):
-            return
-        self.dokeyword(s.split())
-
-    def extend(self, iterable):
-        """Parse an iterable of lines."""
-        for line in iterable:
-            self.append(line)
-
-    def add_notenames(self, words):
-        if len(words) != 2:
-            raise ValueError("must have 2 words: notenames LANGUAGE")
-        self.pitchctx.set_language(words[1])
-
-    def add_durations(self, words):
-        if len(words) != 2:
-            raise ValueError("must have 2 words: durations BEHAVIOR")
-        language = words[1].lower()
-        if language == 'temporary':
-            self.durations_stick = False 
-        elif language == 'stick':
-            self.durations_stick = True
+    def __init__(self, other=None):
+        if other is None:
+            self.durations_stick = False
+            self.set_scale(16)
+            self.set_time_signature(4, 4)
+            self.last_duration = None
+            self.cur_measure, self.row_in_measure = 1, 0
         else:
-            raise ValueError("unknown durations behavior %s; try temporary or stick"
-                             % language)
+            self.durations_stick = other.durations_stick
+            self.set_scale(other.scale)
+            self.set_time_signature(other.timenum, other.timeden)
+            self.last_duration = other.last_duration
+            self.cur_measure = other.cur_measure
+            self.row_in_measure = other.row_in_measure
 
-    sfxchannels = {'pulse': 0, 'triangle': 2, 'noise': 3}
-
-    def add_sfx(self, words):
-        if len(words) != 4 or words[2] != 'on':
-            raise ValueError("must have 4 words: sfx SFXNAME on CHANNELTYPE")
-        _, sfxname, _, channel = words
-        try:
-            channel = self.sfxchannels[channel]
-        except KeyError:
-            raise ValueError("unknown channel; try pulse, triangle, or noise")
-        if self.cur_song is not None:
-            sfxname = '::'.join((self.cur_song, sfxname))
-        if sfxname in self.sfxs:
-            raise ValueError("sfx %s  was already defined on line %d"
-                             % (sfxname, self.sfxs[sfxname]['linenum']))
-        self.sfxs[sfxname] = {
-            'timbre': None, 'volume': None, 'pitch': None, 'channel': channel,
-            'rate': None, 'linenum': self.linenum
-        }
-        self.cur_obj = ('sfx', sfxname)
-        self.pitchctx.reset_octave()
-        self.pitchctx.octave_mode = 'noise' if channel == 3 else 'absolute'
-
-    def add_instrument(self, words):
-        if len(words) != 2:
-            raise ValueError("must have 2 words: instrument INSTNAME")
-        instname = words[1]
-        if self.cur_song is not None:
-            instname = '::'.join((self.cur_song, instname))
-        if instname in self.instruments:
-            raise ValueError("instrument %s was already defined on line %d"
-                             % (instname, self.instruments[instname]['linenum']))
-        self.instruments[instname] = {
-            'timbre': None, 'volume': None, 'pitch': None,
-            'detached': False, 'decay': None, 'rate': None,
-            'linenum': self.linenum
-        }
-        self.cur_obj = ('instrument', instname)
-        self.pitchctx.octave_mode = 'absolute'
-        self.pitchctx.reset_octave()
-
-    def cur_obj_type(self):
-        return (self.cur_obj[0] if self.cur_obj
-                else 'song' if self.cur_song
-                else 'top level')
-
-    def add_rate(self, words):
-        if not self.cur_obj or self.cur_obj[0] != 'sfx':
-            raise ValueError("rate must be inside an sfx, not "
-                             + self.cur_obj_type())
-        if len(words) != 2:
-            raise ValueError("must have 2 words: rate FRAMESPERSTEP")
-        rate = int(words[1])
-        if not 1 <= rate <= 16:
-            raise ValueError("rate must be 1 to 16 frames per step, not %d"
-                             % rate)
-        rated_sfx = self.sfxs[self.cur_obj[1]]
-        if rated_sfx['rate'] is not None:
-            raise ValueError("rate for sfx %s was already set on line %d"
-                             % (self.cur_obj[1],
-                                rated_sfx['rate_linenum']))
-        rated_sfx['rate'], rated_sfx['rate_linenum'] = rate, self.linenum
-
-    def add_volume(self, words):
-        if not self.cur_obj or self.cur_obj[0] not in ('sfx', 'instrument'):
-            raise ValueError("volume must be inside an instrument or sfx, not "
-                             + self.cur_obj_type())
-        if len(words) < 2:
-            raise ValueError("volume requires at least one step")
-        volumedthing = (self.sfxs[self.cur_obj[1]]
-                        if self.cur_obj[0] == 'sfx'
-                        else self.instruments[self.cur_obj[1]])
-        if volumedthing['volume'] is not None:
-            raise ValueError("volume for %s %s was already set on line %d"
-                             % (self.cur_obj[0], self.cur_obj[1],
-                                volumedthing['volume_linenum']))
-        volumes = [int(x) for x in words[1:]]
-        if not all(0 <= x <= 15 for x in volumes):
-            raise ValueError("volume steps must be 0 to 15")
-        volumedthing['volume'] = volumes
-        volumedthing['volume_linenum'] = self.linenum
-
-    def add_decay(self, words):
-        if not self.cur_obj or self.cur_obj[0] != 'instrument':
-            raise ValueError("rate must be inside an instrument, not "
-                             + self.cur_obj_type())
-        if len(words) != 2:
-            raise ValueError("must have 2 words: decay UNITSPER16FRAMES")
-        rate = int(words[1])
-        if not 0 <= rate <= 127:
-            raise ValueError("decay must be 1 to 127 units per 16 frames, not %d"
-                             % rate)
-        rated_inst = self.instruments[self.cur_obj[1]]
-        if rated_inst['decay'] is not None:
-            raise ValueError("decay for instrument %s was already set on line %d"
-                             % (self.cur_obj[1],
-                                rated_inst['decay_linenum']))
-        rated_inst['decay'], rated_inst['decay_linenum'] = rate, self.linenum
-
-    @staticmethod
-    def pipesplit(words):
-        pipesplit = ' '.join(words).split('|', 1)
-        out = pipesplit[0].split()
-        if len(pipesplit) > 1:
-            afterloop = pipesplit[1].split()
-            looplen = len(afterloop)
-            out.extend(afterloop)
-        else:
-            looplen = None
-        return out, looplen
-
-    def add_timbre(self, words):
-        if not self.cur_obj or self.cur_obj[0] not in ('sfx', 'instrument'):
-            raise ValueError("timbre must be inside an instrument or sfx, not "
-                             + self.cur_obj_type())
-        if len(words) < 2:
-            raise ValueError("timbre requires at least one step")
-        timbredthing = (self.sfxs[self.cur_obj[1]]
-                        if self.cur_obj[0] == 'sfx'
-                        else self.instruments[self.cur_obj[1]])
-        if timbredthing['timbre'] is not None:
-            raise ValueError("timbre for %s %s was already set on line %d"
-                             % (self.cur_obj[0], self.cur_obj[1],
-                                volumedthing['timbre_linenum']))
-        timbres, looplen = self.pipesplit(words[1:])
-        timbres = [int(x) for x in timbres]
-        maxduty = 1 if timbredthing.get('channel') == 3 else 3
-        if not all(0 <= x <= maxduty for x in timbres):
-            raise ValueError("timbre steps must be 0 to %d" % maxduty)
-        timbredthing['timbre'] = timbres
-        timbredthing['timbre_looplen'] = looplen or 1
-        timbredthing['timbre_linenum'] = self.linenum
-
-    duraugmentnums = {
-        '': 4, '.': 6, '..': 7, 'g': 0
-    }
     def parse_duration(self, duration, duraugment):
         if duration:
             duration = int(duration)
             if not 1 <= duration <= 64:
-                raise ValueError("%s: only whole to 64th notes are valid, not %d"
-                                 % (pitch, duration))
-            duraugment = self.duraugmentnums[duraugment]
+                raise ValueError("only whole to 64th notes are valid, not %d"
+                                 % duration)
+            duraugment = duraugmentnums[duraugment]
             if duraugment and (duration & (duration - 1)):
-                raise ValueError("%s: only powers of 2 are valid, not %d"
-                                 % (pitch, duration))
+                raise ValueError("only powers of 2 are valid, not %d"
+                                 % duration)
             return duration, duraugment
         elif duraugment:
-            raise ValueError("%s: augment dots are valid only with numeric duration"
-                             % pitch)
+            raise ValueError("augment dots are valid only with numeric duration")
         else:
             return None, None
 
-    noteRE = re.compile(r"""
-(>*|<*)       # MML style octave
-([a-hrwl])    # note name
-(b|bb|-|--|es|eses|s|ss|is|isis|\#|\#\#|\+|\+\+|x|)  # accidental
-(,*|'*)       # LilyPond style octave
-([0-9]*)      # duration
-(|\.|\.\.|g)  # duration augment
-(\~?)$        # slur?
-""", re.VERBOSE)
-
-    def parse_note(self, pitch):
-        m = self.noteRE.match(pitch)
-        if not m:
-            return None, None, None, None
-        (preoctave, notename, accidental, postoctave,
-         duration, duraugment, slur) = m.groups()
-        semi = self.pitchctx.parse_pitch(preoctave, notename, accidental, postoctave)
-        duration, duraugment = self.parse_duration(duration, duraugment)
-        slur = slur != ''
-        return semi, duration, duraugment, slur
-
-    drumnoteRE = re.compile(r"""
-([a-zA-Z_].*[a-zA-Z_]|l|r)  # drum name, length, or rest
-([0-9]*)       # duration
-(|\.|\.\.|g)$  # duration augment
-""", re.VERBOSE)
-
-    def parse_drum_note(self, pitch):
-        m = self.drumnoteRE.match(pitch)
-        if not m:
-            print("%s is not a note" % pitch)
-            return None, None, None, None
-        (notename, duration, duraugment) = m.groups()
-        duration, duraugment = self.parse_duration(duration, duraugment)
-        return notename, duration, duraugment, False
-
-    def parse_pitchenv(self, pitch):
-        """Parse an element of the pitch envelope in a sfx or instrument."""
-
-        # Instrument: relative pitch (FT "Absolute" arpeggio)
-        if self.cur_obj[0] == 'instrument':
-            pitch = int(pitch)
-            if not -60 <= pitch <= 60:
-                raise ValueError("noise pitches must be within five octaves")
-            return pitch
-
-        # Otherwise it's a sound effect; use pitch numbers for
-        # noise or absolute pitches for other channels
-        return self.pitchctx.parse_pitch_str(pitch)
-
-    def add_pitch(self, words):
-        if not self.cur_obj or self.cur_obj[0] not in ('sfx', 'instrument'):
-            raise ValueError("pitch must be inside an instrument or sfx, not "
-                             + self.cur_obj_type())
-        if len(words) < 2:
-            raise ValueError("pitch requires at least one step")
-        pitchedthing = (self.sfxs[self.cur_obj[1]]
-                        if self.cur_obj[0] == 'sfx'
-                        else self.instruments[self.cur_obj[1]])
-        if pitchedthing['pitch'] is not None:
-            raise ValueError("pitch for %s %s was already set on line %d"
-                             % (self.cur_obj[0], self.cur_obj[1],
-                                volumedthing['pitch_linenum']))
-        pitches, looplen = self.pipesplit(words[1:])
-        pitches = [self.parse_pitchenv(pitch) for pitch in pitches]
-        pitchedthing['pitch'] = pitches
-        pitchedthing['pitch_looplen'] = looplen or 1
-        pitchedthing['pitch_linenum'] = self.linenum
-
-    drumnameRE = re.compile('([a-zA-Z_].*[a-zA-Z_])$')
-    def add_drum(self, words):
-        if len(words) not in (3, 4):
-            raise ValueError("must have 3 words: drum DRUMNAME")
-        self.cur_obj = None
-        sfxnames = words[2:]
-        drumname = words[1]
-        if not self.drumnameRE.match(drumname):
-            raise ValueError("drum names must begin and end with letter or '_'")
-        if self.cur_song is not None:
-            drumname = '::'.join((self.cur_song, drumname))
-        if drumname in self.drums:
-            raise ValueError("drum %s was already defined" % drumname)
-        self.drums[drumname] = sfxnames
-
-    def add_detached(self, words):
-        if not self.cur_obj or self.cur_obj[0] != 'instrument':
-            raise ValueError("detached must be inside an instrument, not "
-                             + self.cur_obj_type())
-        if len(words) > 1:
-            raise ValueError("detached in instrument takes no arguments")
-        self.instruments[self.cur_obj[1]]['detached'] = True
-
-    def add_song(self, words):
-        if len(words) != 2:
-            raise ValueError("must have 2 words: song SONGNAME")
-        if self.cur_song:
-            raise ValueError("song %s began on line %d and was not ended with fine or dal segno"
-                             % (songname, self.songs['linenum']))
-        self.cur_obj = None
-        songname = words[1]
-        if songname in self.songs:
-            raise ValueError("song %s was already defined on line %d"
-                             % (songname, self.songs['linenum']))
-        self.cur_song = songname
-        self.cur_measure = 1
-        self.row_in_measure = 0
-        self.tempo = 100.0
-        self.last_rowtempo = self.segno_linenum = self.last_beatlen = None
-        self.songs[songname] = {
-            'linenum': self.linenum,
-            'conductor': []
-        }
-
-    def end_song(self, words):
-        if not self.cur_song:
-            raise ValueError("no song is open")
-        words = ' '.join(words).lower()
-        if words == 'fine':
-            endcmd = 'fine'
-        elif words in ('dal segno', 'dalsegno'):
-            endcmd = 'dalSegno'
-        elif words in ('da capo', 'dacapo'):
-            if self.segno_linenum is not None:
-                raise ValueError("cannot loop to start because segno was set on line %d"
-                                 % self.segno_linenum)
-            endcmd = 'dalSegno'
-        else:
-            raise ValueError('song end must be "fine" or "dal segno" or "da capo, not '
-                             + end)
-        self.songs[self.cur_song]['conductor'].append(endcmd)
-        self.cur_song = self.cur_obj = None
-        self.scale = self.global_scale
-        self.timenum = self.global_timenum
-        self.timeden = self.global_timeden
-
-    def add_segno(self, words):
-        if len(words) > 1:
-            raise ValueError('segno takes no arguments')
-        if not self.cur_song:
-            raise ValueError("no song is open")
-        if self.segno_linenum is not None:
-            raise ValueError('loop point for song %s was already set at line %d'
-                             % (self.cur_song, self.segno_linenum))
-        self.segno_linenum = self.linenum
-        self.cur_obj = None
-        self.songs[self.cur_song]['conductor'].append('segno')
-
-    def add_time(self, words):
-        if len(words) not in (2, 4):
-            raise ValueError('no time signature given')
-        if len(words) > 2 and words[2] != 'scale':
-            raise ValueError("time with scale must have 4 words: time N/D scale D")
-        sp = words[1].split('/', 1)
-        if len(sp) != 2:
-            raise ValueError("time signature must be a fraction separated by /")
-        timenum = int(sp[0])
-        timeden = int(sp[1])
+    def set_time_signature(self, timenum, timeden):
         if timenum < 2:
             raise ValueError("beats per measure must be at least 2")
         if not 2 <= timeden <= 64:
@@ -484,23 +191,13 @@ class PentlyInputParser(object):
         if timeden & (timeden - 1):
             raise ValueError("beat duration must be a power of 2")
         self.timenum, self.timeden = timenum, timeden
-        if not self.cur_song:
-            self.global_timenum = self.timenum
-            self.global_timeden = self.timeden
-        if len(words) > 2:
-            self.dokeyword(words[2:])
-
-    def add_scale(self, words):
-        if len(words) != 2:
-            raise ValueError("must have 2 words: scale ROWVALUE")
-        rowvalue = int(words[1])
+    
+    def set_scale(self, rowvalue):
         if not 2 <= rowvalue <= 64:
             raise ValueError("row duration must be a half (2) to 64th (64) note")
         if rowvalue & (rowvalue - 1):
             raise ValueError("beat duration must be a power of 2")
         self.scale = rowvalue
-        if not self.cur_song:
-            self.global_scale = self.scale
 
     def get_measure_length(self):
         if self.scale % self.timeden != 0:
@@ -516,225 +213,8 @@ class PentlyInputParser(object):
             rows_per_beat *= 3
         return rows_per_beat
 
-    def add_tempo(self, words):
-        if not self.cur_song:
-            raise ValueError("tempo must be used in a song")
-        if len(words) != 2:
-            raise ValueError("must have 2 words: pickup MEASURE[:BEAT[:ROW]]")
-        tempo = float(words[1])
-        if not 1.0 <= tempo <= 1500.0:
-            raise ValueError("tempo must be positive and no more than 1500 rows per minute")
-        self.tempo = tempo  # to be picked up on next wait rows
-
-    def parse_measure(self, mbr_word):
-        measure_length = self.get_measure_length()
-        beat_length = self.get_beat_length()
-        mbr = [int(x) for x in mbr_word.split(':', 2)]
-        measure = mbr[0]
-        beat = mbr[1] - 1 if len(mbr) > 1 else 0
-        if beat < 0:
-            raise ValueError("time %s has a beat less than 1" % mbr_word)
-        row = mbr[2] if len(mbr) > 2 else 0
-        if row < 0:
-            raise ValueError("time %s has a row less than 0" % mbr_word)
-        row += beat_length * beat
-        if row >= measure_length:
-            raise ValueError("time %s has beat %d but measure has only %d beats (%d rows)"
-                             % (mbr_word, row // beat_length + 1,
-                                measure_length // beat_length, measure_length))
-        return measure, row, measure_length, beat_length
-
-    durcodes = {
-        1: '0', 2: 'D_8', 3: 'D_D8', 4: 'D_4',
-        6: 'D_D4', 8: 'D_2', 12: 'D_D2', 16: 'D_1'
-    }
-
-    def add_song_wait(self, words):
-        if not self.cur_song:
-            raise ValueError("at must be used in a song")
-        if len(words) < 2:
-            raise ValueError("must have 2 words: at MEASURE[:BEAT[:ROW]]")
-
-        measure, row, measure_length, beat_length = self.parse_measure(words[1])
-        if (measure < self.cur_measure
-            or (measure == self.cur_measure and row < self.row_in_measure)):
-            old_beat = self.row_in_measure // beat_length + 1
-            old_row = self.row_in_measure % beat_length
-            raise ValueError("wait for %d:%d:%d when song is already to %d:%d:%d"
-                             % (measure, row // beat_length + 1, row % beat_length,
-                                self.cur_measure, old_beat, old_row))
-
-        # If we're waiting at least one row, update the tempo and
-        # put in a wait command
-        rows_to_wait = ((measure - self.cur_measure) * measure_length
-                        + (row - self.row_in_measure))
-        if rows_to_wait > 0:
-            song = self.songs[self.cur_song]['conductor']
-
-            # Update tempo if needed
-            rowtempo = int(round(self.tempo * beat_length))
-            if rowtempo > 1500:
-                raise ValueError("last tempo change exceeds 1500 rows per minute")
-            if rowtempo != self.last_rowtempo:
-                song.append('setTempo %d' % rowtempo)
-                self.last_rowtempo = rowtempo
-
-            if self.last_beatlen != beat_length:
-                try:
-                    durcode = self.durcodes[beat_length]
-                except KeyError:
-                    raise ValueError("no duration code for %d beats per row"
-                                     % beat_length)
-                song.append('setBeatDuration %s' % durcode)
-                self.last_beatlen = beat_length
-            
-            while rows_to_wait > 256:
-                song.append('waitRows 256')
-                rows_to_wait -= 256
-            song.append('waitRows %d' % rows_to_wait)
-        
-        self.cur_measure, self.row_in_measure = measure, row
-        self.cur_obj = None  # end any song-local pattern or instrument
-        if len(words) > 2:
-            self.dokeyword(words[2:])
-
-    def add_song_pickup(self, words):
-        if not self.cur_song:
-            raise ValueError("at must be used in a song")
-        if len(words) != 2:
-            raise ValueError("must have 2 words: pickup MEASURE[:BEAT[:ROW]]")
-        measure, row, measure_length, beat_length = self.parse_measure(words[1])
-        self.cur_measure, self.row_in_measure = measure, row
-
-    @staticmethod
-    def extract_prepositions(words):
-        return dict(zip(words[2::2], words[3::2]))
-
-    pitched_tracks = {'pulse1': 0, 'pulse2': 1, 'triangle': 2, 'attack': 4}
-    track_suffixes = ['Sq1', 'Sq2', 'Tri', 'Noise', 'Attack']
-
-    def add_attack(self, words):
-        if len(words) != 3 or words[1] != 'on':
-            raise ValueError('syntax: attack on CHANNELNAME')
-        if self.cur_song is None:
-            raise ValueError('play must be used in a song')
-        chname = words[2]
-        chnum = self.pitched_tracks[chname]
-        if chnum >= 3:
-            raise ValueError("%s is not a pitched channel" % chname)
-        cmd = "attackOn%s" % self.track_suffixes[chnum]
-        self.songs[self.cur_song]['conductor'].append(cmd)
-
-    def add_play(self, words):
-        if len(words) % 2 != 0:
-            raise ValueError('syntax: pattern PATTERNNAME [on TRACK] [with INSTRUMENT]')
-        if self.cur_song is None:
-            raise ValueError('play must be used in a song')
-        patname = words[1]
-        pps = self.extract_prepositions(words)
-        track = pps.pop('on', None)
-        instrument = pps.pop('with', None)
-        transpose = int(pps.pop('up', 0)) - int(pps.pop('down', 0))
-        if pps:
-            raise ValueError("unknown prepositions: " + " ".join(pps))
-
-        if (track is not None and instrument is not None
-            and transpose == 0):
-            # Attempt a note-on rather than a pattern start
-            if track == 'noise':
-                ch = 3
-                self.pitchctx.octave_mode = "noise"
-            else:
-                ch = self.pitched_tracks[track]
-                self.pitchctx.octave_mode = 'absolute'
-                self.pitchctx.reset_octave()
-                if ch >= 3:
-                    raise ValueError("cannot play conductor note on a track without its own channel")
-            try:
-                transpose = self.pitchctx.parse_pitch_str(patname)
-            except ValueError as e:
-                pass
-            else:
-                abstract_cmd = ('noteOn', ch, transpose, instrument)
-                self.songs[self.cur_song]['conductor'].append(abstract_cmd)
-                return
-
-        if track is not None:
-            try:
-                track = self.pitched_tracks[track]
-            except KeyError:
-                raise ValueError('unknown track ' + track)
-        abstract_cmd = ('playPat', track, patname, transpose, instrument)
-        self.songs[self.cur_song]['conductor'].append(abstract_cmd)
-
-    def add_stop(self, words):
-        if self.cur_song is None:
-            raise ValueError('stop must be used in a song')
-        if len(words) < 2:
-            raise ValueError('must stop at least one track')
-        tracks_to_stop = set()
-        tracks_unknown = []
-        for trackname in words[1:]:
-            if trackname == 'drum':
-                tracks_to_stop.add(3)
-                continue
-            try:
-                track = self.pitched_tracks[trackname]
-            except KeyError:
-                tracks_unknown.append(trackname)
-                continue
-            else:
-                tracks_to_stop.add(track)
-        if tracks_unknown:
-            raise ValueError("unknown track names: "+" ".join(tracks_unknown))
-        abstract_cmds = (('stopPat', track) for track in tracks_to_stop)
-        self.songs[self.cur_song]['conductor'].extend(abstract_cmds)
-
-    def add_pattern(self, words):
-        if len(words) % 2 != 0:
-            raise ValueError('syntax: pattern PATTERNNAME [on TRACK] [with INSTRUMENT]')
-        patname = words[1]
-        if patname in self.patterns:
-            raise ValueError("pattern %s was already defined on line %d"
-                             % (patname, self.patterns[patname]['linenum']))
-        if self.cur_song is not None:
-            patname = '::'.join((self.cur_song, patname))
-
-        pps = self.extract_prepositions(words)
-        track = pps.pop('on', None)
-        if track and track not in self.pitched_tracks:
-            raise ValueError('unknown track ' + track)
-        instrument = pps.pop('with', None)
-        if pps:
-            raise ValueError("unknown prepositions: " + " ".join(pps))
-
-        # Prepare for autodetection of octave mode.  If a pitched
-        # track or pitched instrument is specified, default to
-        # absolute.  Or if a note is seen before it is set, switch
-        # to absolute with that note.  But if a drum is seen first,
-        # set to drum mode.
-        self.pitchctx.reset_octave()
-        self.pitchctx.octave_mode = 'absolute' if track or instrument else None
-        self.cur_obj = ('pattern', patname)
-        self.patterns[patname] = {
-            'linenum': self.linenum,
-            'instrument': instrument, 'track': track, 'notes': [],
-            'fallthrough': False
-        }
-        self.last_duration = None
-
-    def add_fallthrough(self, words):
-        if len(words) > 1:
-            raise ValueError("fallthrough takes no arguments")
-        if self.cur_obj is None or self.cur_obj[0] != 'pattern':
-            raise ValueError("fallthrough must be used in a pattern")
-        self.patterns[self.cur_obj[1]]['fallthrough'] = True
-        self.cur_obj = None
-
-    dotted_names = {4: '', 6: 'dotted ', 7: 'double dotted '}
-
     def fix_note_duration(self, notematch):
-        """Convert duration to number of rows. 
+        """Convert duration to number of rows.
 
 notematch -- (pitch, duration denominator, duration augment, slur)
 
@@ -774,15 +254,517 @@ Return (pitch, number of rows, slur) or None if it's not actually a note.
         wholerows = self.scale * augment // (denom * 4)
         partrows = self.scale * augment % (denom * 4)
         if partrows != 0:
-            augmentname = dotted_names[augment]
+            augmentname = self.dotted_names[augment]
             msg = ("%s1/%d note not multiple of 1/%d note scale (%.3f rows)"
                    % (augmentname, denom, self.scale,
                       wholerows + partrows / (denom * 4)))
             raise ValueError(msg)
         return pitch, wholerows, slur
 
-    arpeggioRE = re.compile("@EN([0-9a-fA-F]{1,2})$")
+    def parse_measure(self, measure=1, beat=1, row=0):
+        if beat < 1:
+            raise ValueError("time %d:%d:%d has a beat less than 1"
+                             % (measure, beat, row))
+        if row < 0:
+            raise ValueError("time %d:%d:%d has a row less than 0"
+                             % (measure, beat, row))
 
+        measure_length = self.get_measure_length()
+        beat_length = self.get_beat_length()
+        actual_row = row + beat_length * (beat - 1)
+
+        if actual_row >= measure_length:
+            raise ValueError("time %d:%d:%d has beat %d but measure has only %d beats (%d rows)"
+                             % (measure, beat, row,
+                                actual_row // beat_length + 1,
+                                measure_length // beat_length, measure_length))
+        return measure, actual_row, measure_length, beat_length
+
+    def set_measure(self, measure=1, beat=1, row=0):
+        measure, row, _, _ = self.parse_measure(measure, beat, row)
+        self.cur_measure, self.row_in_measure = measure, row
+
+    def wait_for_measure(self, measure, beat=1, row=0):
+        measure, row, measure_length, beat_length = self.parse_measure(measure, beat, row)
+        if (measure < self.cur_measure
+            or (measure == self.cur_measure and row < self.row_in_measure)):
+            old_beat = self.row_in_measure // beat_length + 1
+            old_row = self.row_in_measure % beat_length
+            raise ValueError("wait for %d:%d:%d when song is already to %d:%d:%d"
+                             % (measure, row // beat_length + 1, row % beat_length,
+                                self.cur_measure, old_beat, old_row))
+
+        rows_to_wait = ((measure - self.cur_measure) * measure_length
+                        + (row - self.row_in_measure))
+        self.cur_measure, self.row_in_measure = measure, row
+        return rows_to_wait
+
+class PentlyRenderable(object):
+
+    nonalnumRE = re.compile("[^a-zA-Z0-9]")
+
+    def __init__(self, name=None, linenum=None):
+        self.name, self.linenum = name, linenum
+        self.asmdataname = self.asmdata = None
+        self.asmdataprefix = ''
+
+    @classmethod
+    def get_asmname(self, name):
+        return '_'.join(c for c in self.nonalnumRE.split(name) if c)
+
+    def resolve_scope(self, scoped_name, parent_scope, existing):
+        if scoped_name.startswith('::'):
+            return scoped_name.lstrip(':')
+        while parent_scope:
+            test = '::'.join((parent_scope, scoped_name))
+            if test in existing: return test
+            parent_scope = parent_scope.rsplit('::', 1)
+            if len(parent_scope) < 2: break
+            parent_scope = parent_scope[0]
+        return scoped_name
+
+    def render(self, scopes=None):
+        raise NotImplementedError
+
+class PentlyEnvelopeContainer(PentlyRenderable):
+
+    def __init__(self, name=None, linenum=None):
+        super().__init__(name, linenum)
+        self.timbre = self.volume = self.pitch = None
+        self.pitch_looplen = self.timbre_looplen = 1
+
+    def set_volume(self, volumes, linenum=None):
+        if self.volume is not None:
+            raise ValueError("volume for %s was already set on line %d"
+                             % (self.name, self.volume_linenum))
+        volumes = list(volumes)
+        if not all(0 <= x <= 15 for x in volumes):
+            raise ValueError("volume steps must be 0 to 15")
+        self.volume, self.volume_linenum = volumes, linenum
+
+    @staticmethod
+    def pipesplit(words):
+        pipesplit = ' '.join(words).split('|', 1)
+        out = pipesplit[0].split()
+        if len(pipesplit) > 1:
+            afterloop = pipesplit[1].split()
+            looplen = len(afterloop)
+            out.extend(afterloop)
+        else:
+            looplen = None
+        return out, looplen
+
+    def get_max_timbre(self):
+        return 3
+
+    def set_timbre(self, timbrewords, linenum=None):
+        if self.timbre is not None:
+            raise ValueError("timbre for %s %s was already set on line %d"
+                             % (self.cur_obj[0], self.cur_obj[1].name,
+                                volumedthing['timbre_linenum']))
+        timbres, looplen = self.pipesplit(timbrewords)
+        timbres = [int(x) for x in timbres]
+        maxduty = self.get_max_timbre()
+        if not all(0 <= x <= maxduty for x in timbres):
+            raise ValueError("timbre steps must be 0 to %d" % maxduty)
+        self.timbre, self.timbre_looplen = timbres, looplen or 1
+        self.timbre_linenum = linenum
+
+    def parse_pitchenv(self, pitchword):
+        """Parse an element of a pitch envelope.
+
+The set_pitch() method calls this once per pitch word.  Subclasses
+may initialize any necessary state in their __init__() method or in
+an overridden set_pitch().
+
+If not overridden, this abstract method raises NotImplementedError.
+
+"""
+        raise NotImplementedError
+
+    def set_pitch(self, pitchwords, linenum=None):
+        if self.pitch is not None:
+            raise ValueError("pitch for %s %s was already set on line %d"
+                             % (self.cur_obj[0], self.cur_obj[1].name,
+                                volumedthing['pitch_linenum']))
+        pitches, looplen = self.pipesplit(pitchwords)
+        pitches = [self.parse_pitchenv(pitch) for pitch in pitches]
+        self.pitch, self.pitch_looplen = pitches, looplen or 1
+        self.pitch_linenum = linenum
+
+    @staticmethod
+    def expand_envelope_loop(envelope, looplen, length):
+        index = 0
+        for i in range(length):
+            yield envelope[index]
+            index += 1
+            if index >= len(envelope):
+                index -= looplen
+
+    def xform_timbre(self, t):
+        return t << 14
+
+    def get_default_timbre(self):
+        return 2
+
+    def render_tvp(self):
+        volume = self.volume or [8]
+        timbre = self.timbre or [self.get_default_timbre()]
+        timbre_looplen = self.timbre_looplen
+        timbre = list(self.expand_envelope_loop(timbre, timbre_looplen, len(volume)))
+        xtimbre = [self.xform_timbre(t) for t in timbre]
+        pitch = self.pitch or [0]
+        pitch_looplen = self.pitch_looplen
+        pitch = list(self.expand_envelope_loop(pitch, pitch_looplen, len(volume)))
+        attackdata = [t | (v << 8) | (p & 0xFF)
+                      for t, v, p in zip(xtimbre, volume, pitch)]
+        return timbre, volume, pitch, attackdata
+
+class PentlyInstrument(PentlyEnvelopeContainer):
+
+    def __init__(self, name=None, linenum=None):
+        """Set up a new instrument.
+
+name, linenum -- used in duplicate error messages
+
+"""
+        super().__init__(name, linenum)
+        self.detached = self.decay = None
+
+    def set_decay(self, rate, linenum=None):
+        if not 0 <= rate <= 127:
+            raise ValueError("decay must be 1 to 127 units per 16 frames, not %d"
+                             % rate)
+        if self.decay is not None:
+            raise ValueError("decay for %s was already set on line %d"
+                             % (self.name, self.decay_linenum))
+        self.decay, self.decay_linenum = rate, linenum
+
+    def parse_pitchenv(self, pitch):
+        """Parse an element of the pitch envelope relative to the base note.
+
+This is equivalent to an "absolute" arpeggio envelope in FamiTracker.
+
+"""
+        pitch = int(pitch)
+        if not -60 <= pitch <= 60:
+            raise ValueError("noise pitches must be within five octaves")
+        return pitch
+
+    def set_detached(self, detached):
+        self.detached = detached
+
+    def render(self, scopes=None):
+        timbre, volume, pitch, attackdata = self.render_tvp()
+        del attackdata[-1]
+        sustaintimbre = timbre[-1]
+        sustainvolume = volume[-1]
+        decay = self.decay or 0
+        detached = 1 if self.detached else 0
+
+        asmname = self.get_asmname(self.name)
+        self.asmname = 'PI_'+asmname
+        self.asmdef = ("instdef PI_%s, %d, %d, %d, %d, %s, %d"
+                       % (asmname, sustaintimbre, sustainvolume, decay,
+                          detached, 'PIDAT_'+asmname if attackdata else '0',
+                          len(attackdata)))
+        self.asmdataname = 'PIDAT_'+asmname
+        self.asmdataprefix = '.dbyt '
+        self.asmdata = attackdata
+
+class PentlySfx(PentlyEnvelopeContainer):
+
+    def __init__(self, channel_type, pitchctx=None, name=None, linenum=None):
+        """Set up a new sound effect.
+
+channel_type -- 0 for pulse, 2 for triangle, or 3 for noise
+name, linenum -- used in duplicate error messages
+
+"""
+        super().__init__(name, linenum)
+        self.rate, self.channel_type = None, channel_type
+        self.pitchctx = PentlyPitchContext(pitchctx)
+        octave_mode = 'noise' if channel_type == 3 else 'absolute'
+        self.pitchctx.reset_octave(octave_mode=octave_mode)
+
+    def set_rate(self, rate, linenum=None):
+        """Sets the playback rate of a sound effect."""
+        if not 1 <= rate <= 16:
+            raise ValueError("rate must be 1 to 16 frames per step, not %d"
+                             % rate)
+        if self.rate is not None:
+            raise ValueError("rate for %s was already set on line %d"
+                             % (self.cur_obj[1].name,
+                                rated_sfx['rate_linenum']))
+        self.rate, self.rate_linenum = rate, linenum
+
+    def get_max_timbre(self):
+        return 1 if self.channel_type == 3 else 3
+
+    def parse_pitchenv(self, pitch):
+        """Parse an element of the absolute pitch envelope.
+
+This is equivalent to a "fixed" arpeggio envelope in FamiTracker.
+
+"""
+        return self.pitchctx.parse_pitch_str(pitch)
+
+    def get_default_timbre(self):
+        return 0 if self.channel_type == 3 else 2
+
+    def xform_timbre(self, t):
+        if self.channel_type == 2:
+            return 0x8000
+        if self.channel_type == 3:
+            return 0x80 if t else 0
+        return t << 14
+
+    def render(self, scopes=None):
+        timbre, volume, pitch, attackdata = self.render_tvp()
+        rate = self.rate or 1
+
+        # Trim trailing silence
+        while len(volume) > 1 and volume[-1] == 0:
+            del volume[-1], attackdata[-1]
+
+        asmname = self.get_asmname(self.name)
+        self.asmname = 'PE_'+asmname
+        self.asmdef = ("sfxdef PE_%s, PEDAT_%s, %d, %d, %d"
+                       % (asmname, asmname,
+                          len(attackdata), rate, self.channel_type))
+        self.asmdataname = 'PEDAT_'+asmname
+        self.asmdataprefix = '.dbyt '
+        self.asmdata = attackdata
+
+class PentlyDrum(PentlyRenderable):
+
+    drumnameRE = re.compile('([a-zA-Z_].*[a-zA-Z_])$')
+
+    def __init__(self, sfxnames, name, linenum=None):
+        super().__init__(name, linenum)
+        if not self.drumnameRE.match(name):
+            raise ValueError("drum names must begin and end with letter or '_'")
+        self.sfxnames = sfxnames
+
+    def render(self, scopes=None):
+        # TODO: For drums defined in a song, check for effects in same song
+        sfxnames = ', '.join('PE_'+self.get_asmname(sfxname)
+                             for sfxname in self.sfxnames)
+        self.asmname = 'DR_'+PentlyRenderable.get_asmname(self.name)
+        self.asmdef = "drumdef %s, %s" % (self.asmname, sfxnames)
+
+class PentlySong(PentlyRenderable):
+
+    def __init__(self, pitchctx=None, rhyctx=None,
+                 name=None, linenum=None):
+        super().__init__(name, linenum)
+        self.pitchctx = PentlyPitchContext(pitchctx)
+        self.rhyctx = PentlyRhythmContext(rhyctx)
+        self.rhyctx.tempo = 100.0
+        self.last_rowtempo = self.segno_linenum = self.last_beatlen = None
+        self.conductor = []
+
+    def wait_rows(self, rows_to_wait):
+        """Updates the tempo and beat duration if needed, then waits some rows."""
+        if rows_to_wait < 1: return
+
+        # Update tempo if needed
+        beat_length = self.rhyctx.get_beat_length()
+        rowtempo = int(round(self.rhyctx.tempo * beat_length))
+        if rowtempo > 1500:
+            raise ValueError("last tempo change exceeds 1500 rows per minute")
+        if rowtempo != self.last_rowtempo:
+            self.conductor.append('setTempo %d' % rowtempo)
+            self.last_rowtempo = rowtempo
+
+        if self.last_beatlen != beat_length:
+            try:
+                durcode = durcodes[beat_length]
+            except KeyError:
+                raise ValueError("no duration code for %d beats per row"
+                                 % beat_length)
+            self.conductor.append('setBeatDuration %s' % durcode)
+            self.last_beatlen = beat_length
+            
+        while rows_to_wait > 256:
+            self.conductor.append('waitRows 256')
+            rows_to_wait -= 256
+        self.conductor.append('waitRows %d' % rows_to_wait)
+
+    def set_attack(self, chname):
+        chnum = pitched_tracks[chname]
+        if chnum >= 3:
+            raise ValueError("%s is not a pitched channel" % chname)
+        cmd = "attackOn%s" % track_suffixes[chnum]
+        self.conductor.append(cmd)
+
+    def play(self, patname, track=None, instrument=None, transpose=0):
+        if (track is not None and instrument is not None
+            and transpose == 0):
+            # Attempt a note-on rather than a pattern start
+            if track == 'noise':
+                ch = 3
+                self.pitchctx.octave_mode = "noise"
+            else:
+                ch = pitched_tracks[track]
+                self.pitchctx.octave_mode = 'absolute'
+                self.pitchctx.reset_octave()
+                if ch >= 3:
+                    raise ValueError("cannot play conductor note on a track without its own channel")
+            try:
+                transpose = self.pitchctx.parse_pitch_str(patname)
+            except ValueError as e:
+                pass
+            else:
+                abstract_cmd = ('noteOn', ch, transpose, instrument)
+                self.conductor.append(abstract_cmd)
+                return
+
+        if track is not None:
+            try:
+                track = pitched_tracks[track]
+            except KeyError:
+                raise ValueError('unknown track ' + track)
+        abstract_cmd = ('playPat', track, patname, transpose, instrument)
+        self.conductor.append(abstract_cmd)
+
+    def stop_tracks(self, tracks):
+        tracks_to_stop = set()
+        tracks_unknown = []
+        for trackname in tracks:
+            if trackname == 'drum':
+                tracks_to_stop.add(3)
+                continue
+            try:
+                track = pitched_tracks[trackname]
+            except KeyError:
+                tracks_unknown.append(trackname)
+                continue
+            else:
+                tracks_to_stop.add(track)
+        if tracks_unknown:
+            raise ValueError("unknown track names: "+" ".join(tracks_unknown))
+        abstract_cmds = (('stopPat', track) for track in tracks_to_stop)
+        self.conductor.extend(abstract_cmds)
+
+    def render(self, scopes):
+        out = []
+        for row in self.conductor:
+            if isinstance(row, str):
+                out.append(row)
+                continue
+            if row[0] == 'playPat':
+                track, patname, transpose, instrument = row[1:5]
+                patname = self.resolve_scope(patname, self.name, scopes.patterns)
+                pat = scopes.patterns[patname]
+                if track is None: track = pat.track
+                if track == 'drum':
+                    if pat.track != 'drum':
+                        raise ValueError('cannot play pitched pattern %s on drum track'
+                                         % (patname,))
+                    out.append("playPatNoise %s" % pat.asmname)
+                    continue
+                if pat.track == 'drum':
+                    raise ValueError('cannot play drum pattern %s on pitched track'
+                                     % (patname,))
+                if isinstance(track, str):
+                    track = pitched_tracks[track]
+                if track is None:
+                    raise ValueError("%s: no track for pitched pattern %s"
+                                     % (name, patname))
+                transpose += pat.transpose
+                if instrument is None: instrument = pat.instrument
+                if instrument is None:
+                    raise ValueError("%s: no instrument for pattern %s"
+                                     % (song, patname))
+                instrument = self.resolve_scope(instrument, self.name, scopes.instruments)
+                instrument = scopes.instruments[instrument].asmname
+                suffix = track_suffixes[track]
+                out.append("playPat%s %s, %d, %s"
+                           % (suffix, pat.asmname, transpose, instrument))
+                continue
+            if row[0] == 'stopPat':
+                out.append('stopPat%s' % track_suffixes[row[1]])
+                continue
+            if row[0] == 'noteOn':
+                ch, pitch, instrument = row[1:4]
+                instrument = self.resolve_scope(instrument, self.name, scopes.instruments)
+                instrument = scopes.instruments[instrument].asmname
+                out.append('noteOn%s %d, %s'
+                           % (track_suffixes[ch], pitch, instrument))
+                continue
+            raise ValueError(row)
+
+        asmname = PentlyRenderable.get_asmname(self.name)
+        self.asmname = 'PS_'+asmname
+        self.asmdef = 'songdef PS_%s, PSDAT_%s' % (asmname, asmname)
+        self.asmdataname = 'PSDAT_'+asmname
+        self.asmdataprefix = ''
+        self.asmdata = out
+
+class PentlyPattern(PentlyRenderable):
+
+    def __init__(self, pitchctx=None, rhyctx=None,
+                 instrument=None, track=None, name=None, linenum=None):
+        super().__init__(name, linenum)
+        self.pitchctx = PentlyPitchContext(pitchctx)
+        self.rhyctx = PentlyRhythmContext(rhyctx)
+        self.rhyctx.last_duration = None
+        self.instrument, self.track, self.notes = instrument, track, []
+
+        # TODO: The fallthrough feature is currently sort of broken
+        # for pitched patterns.  Rendering needs to be reworked in
+        # order to make the transposition consistent with that of
+        # the following pattern.
+        self.set_fallthrough(False)
+
+        # Prepare for autodetection of octave mode.  If a pitched
+        # track or pitched instrument is specified, default to
+        # absolute.  Or if a note is seen before it is set, switch
+        # to absolute with that note.  But if a drum is seen first,
+        # set to drum mode.
+        octave_mode = 'absolute' if track or instrument else None
+        self.pitchctx.reset_octave(octave_mode=octave_mode)
+
+    def set_fallthrough(self, value):
+        self.fallthrough = bool(value)
+
+    noteRE = re.compile(r"""
+(>*|<*)       # MML style octave
+([a-hrwl])    # note name
+(b|bb|-|--|es|eses|s|ss|is|isis|\#|\#\#|\+|\+\+|x|)  # accidental
+(,*|'*)       # LilyPond style octave
+([0-9]*)      # duration
+(|\.|\.\.|g)  # duration augment
+(\~?)$        # slur?
+""", re.VERBOSE)
+
+    def parse_note(self, pitch):
+        m = self.noteRE.match(pitch)
+        if not m:
+            return None, None, None, None
+        (preoctave, notename, accidental, postoctave,
+         duration, duraugment, slur) = m.groups()
+        semi = self.pitchctx.parse_pitch(preoctave, notename, accidental, postoctave)
+        duration, duraugment = self.rhyctx.parse_duration(duration, duraugment)
+        slur = slur != ''
+        return semi, duration, duraugment, slur
+
+    drumnoteRE = re.compile(r"""
+([a-zA-Z_].*[a-zA-Z_]|l|r)  # drum name, length, or rest
+([0-9]*)       # duration
+(|\.|\.\.|g)$  # duration augment
+""", re.VERBOSE)
+
+    def parse_drum_note(self, pitch):
+        m = self.drumnoteRE.match(pitch)
+        if not m:
+            return None, None, None, None
+        (notename, duration, duraugment) = m.groups()
+        duration, duraugment = self.rhyctx.parse_duration(duration, duraugment)
+        return notename, duration, duraugment, False
+
+    arpeggioRE = re.compile("@?EN(OF|[0-9a-fA-F]{1,2})$")
     def add_pattern_note(self, word):
         if word in ('absolute', 'orelative', 'relative'):
             if self.pitchctx.octave_mode == 'drum':
@@ -790,20 +772,21 @@ Return (pitch, number of rows, slur) or None if it's not actually a note.
             self.pitchctx.octave_mode = word
             return
 
-        pattern = self.patterns[self.cur_obj[1]]
-
-        arpmatch = self.arpeggioRE.match(word)
+        arpmatch = (self.arpeggioRE.match(word)
+                    if self.pitchctx.octave_mode != 'drum'
+                    else None)
         if arpmatch:
-            if self.pitchctx.octave_mode == 'drum':
-                raise ValueError("can't arpeggio a drum")
             self.pitchctx.set_pitched_mode()
-            pattern['notes'].append("ARPEGGIO,$"+arpmatch.group(1))
+            arpargument = arpmatch.group(1)
+            if arpargument == 'OF':  # Treat ENOF as EN00
+                arpargument = '00'
+            self.notes.append("ARPEGGIO,$"+arpargument)
             return
 
         # Other @ marks are instrument changes.  Resolve them later
         # once asmname values have been assigned.
         if word.startswith('@'):
-            pattern['notes'].append(word)
+            self.notes.append(word)
             return
 
         if self.pitchctx.octave_mode is None:
@@ -816,17 +799,17 @@ Return (pitch, number of rows, slur) or None if it's not actually a note.
                     raise ValueError("%s is ambiguous: it could be a drum or a pitch"
                                      % word)
                 f = self.fix_note_duration(drummatch)
-                if f: pattern['notes'].append(f)
+                if f: self.notes.append(f)
                 return
             elif drummatch[0] is not None:
-                pattern['track'] = self.pitchctx.octave_mode = 'drum'
-                f = self.fix_note_duration(drummatch)
-                if f: pattern['notes'].append(f)
+                self.track = self.pitchctx.octave_mode = 'drum'
+                f = self.rhyctx.fix_note_duration(drummatch)
+                if f: self.notes.append(f)
                 return
             elif notematch[0] is not None:
                 self.pitchctx.set_pitched_mode()
-                f = self.fix_note_duration(notematch)
-                if f: pattern['notes'].append(f)
+                f = self.rhyctx.fix_note_duration(notematch)
+                if f: self.notes.append(f)
                 return
             else:
                 print("unknown first note", word)
@@ -835,8 +818,8 @@ Return (pitch, number of rows, slur) or None if it's not actually a note.
         if self.pitchctx.octave_mode == 'drum':
             drummatch = self.parse_drum_note(word)
             if drummatch[0] is not None:
-                f = self.fix_note_duration(drummatch)
-                if f: pattern['notes'].append(f)
+                f = self.rhyctx.fix_note_duration(drummatch)
+                if f: self.notes.append(f)
             else:
                 print("unknown drum pattern note", word)
                 self.unk_keywords += 1
@@ -844,139 +827,12 @@ Return (pitch, number of rows, slur) or None if it's not actually a note.
 
         notematch = self.parse_note(word)
         if notematch[0] is not None:
-            f = self.fix_note_duration(notematch)
-            if f: pattern['notes'].append(f)
+            f = self.rhyctx.fix_note_duration(notematch)
+            if f: self.notes.append(f)
         else:
             print("unknown pitched pattern note", word,
                   file=sys.stderr)
             self.unk_keywords += 1
-
-    keywordhandlers = {
-        'notenames': add_notenames,
-        'durations': add_durations,
-        'sfx': add_sfx,
-        'volume': add_volume,
-        'rate': add_rate,
-        'decay': add_decay,
-        'timbre': add_timbre,
-        'pitch': add_pitch,
-        'instrument': add_instrument,
-        'drum': add_drum,
-        'detached': add_detached,
-        'song': add_song,
-        'fine': end_song,
-        'dal': end_song,
-        'dalSegno': end_song,
-        'da': end_song,
-        'daCapo': end_song,
-        'segno': add_segno,
-        'time': add_time,
-        'scale': add_scale,
-        'attack': add_attack,
-        'pattern': add_pattern,
-        'fallthrough': add_fallthrough,
-        'at': add_song_wait,
-        'pickup': add_song_pickup,
-        'tempo': add_tempo,
-        'play': add_play,
-        'stop': add_stop,
-    }
-
-    def dokeyword(self, words):
-        try:
-            kwh = self.keywordhandlers[words[0]]
-        except KeyError:
-            pass
-        else:
-            return kwh(self, words)
-        if self.cur_obj and self.cur_obj[0] == 'pattern':
-            for word in words:
-                self.add_pattern_note(word)
-            return
-        if self.unk_keywords < 100:
-            print("unknown keyword %s inside %s"
-                  % (repr(words), self.cur_obj or self.cur_song),
-                  file=sys.stderr)
-        self.unk_keywords += 1
-
-    @staticmethod
-    def expand_envelope_loop(envelope, looplen, length):
-        index = 0
-        for i in range(length):
-            yield envelope[index]
-            index += 1
-            if index >= len(envelope):
-                index -= looplen
-
-    nonalnumRE = re.compile("[^a-zA-Z0-9]")
-
-    def get_asmname(self, name):
-        return '_'.join(c for c in self.nonalnumRE.split(name) if c)
-
-    def render_instrument(self, inst_name):
-        """Create asmname, def, and data for an instrument."""
-        inst = self.instruments[inst_name]
-        volume = inst.get('volume') or [8]
-        timbre = inst.get('timbre') or [2]
-        pitch = inst.get('pitch') or [0]
-        decay = inst.get('decay') or 0
-        timbre_looplen = inst.get('timbre_looplen') or 1
-        pitch_looplen = inst.get('pitch_looplen') or 1
-        detached = 1 if inst.get('detached') else 0
-
-        attacklen = len(volume)
-        timbre = list(self.expand_envelope_loop(timbre, timbre_looplen, attacklen))
-        pitch = list(self.expand_envelope_loop(pitch, pitch_looplen, attacklen - 1))
-        attackdata = [((t << 14) | (v << 8) | (p & 0xFF))
-                      for t, v, p in zip(timbre, volume, pitch)]
-        sustaintimbre = timbre[-1]
-        sustainvolume = volume[-1]
-
-        asmname = self.get_asmname(inst_name)
-        inst['asmname'] = 'PI_'+asmname
-        inst['dataname'] = 'PIDAT_'+asmname
-        inst['data'] = attackdata
-        inst['def'] = ("instdef PI_%s, %d, %d, %d, %d, %s, %d"
-                       % (asmname, sustaintimbre, sustainvolume, decay,
-                          detached, 'PIDAT_'+asmname if attackdata else '0',
-                          len(attackdata)))
-
-    def render_sfx(self, inst_name):
-        """Create asmname, def, and data for an instrument."""
-        inst = self.sfxs[inst_name]
-        volume = inst.get('volume') or [8]
-        pitch = inst.get('pitch') or [0]
-        timbre_looplen = inst.get('timbre_looplen') or 1
-        pitch_looplen = inst.get('pitch_looplen') or 1
-        channel = inst.get('channel') or 0
-        rate = inst.get('rate') or 1
-        timbre = inst.get('timbre') or [2 if channel != 3 else 0]
-
-        # Trim trailing silence
-        while volume and volume[-1] == 0:
-            del volume[-1]
-        attacklen = len(volume)
-        pitch = list(self.expand_envelope_loop(pitch, pitch_looplen, attacklen))
-        if channel != 2:
-            timbre = self.expand_envelope_loop(timbre, timbre_looplen, attacklen)
-            if channel == 3:
-                # On noise, nonzero timbre means use looped noise
-                timbre = [0x80 if t else 0 for t in timbre]
-            else:
-                # Otherwise, timbre means duty (1/8, 1/4, 1/2, 3/4)
-                timbre = [t << 14 for t in timbre]
-        else:
-            # Triangle sfx always uses timbre 2
-            timbre = [0x8000] * attacklen
-        attackdata = [(t | (v << 8) | (p & 0xFF))
-                      for t, v, p in zip(timbre, volume, pitch)]
-
-        asmname = self.get_asmname(inst_name)
-        inst['asmname'] = 'PE_'+asmname
-        inst['dataname'] = 'PEDAT_'+asmname
-        inst['data'] = attackdata
-        inst['def'] = ("sfxdef PE_%s, PEDAT_%s, %d, %d, %d"
-                       % (asmname, asmname, len(attackdata), rate, channel))
 
     # in a way that minimizes TRANSPOSE transitions
     @staticmethod
@@ -1048,35 +904,15 @@ tie_rests -- True if track has no concept of a "note off"
             yield ormask
             numrows -= dur
 
-    pattern_pitchoffsets = [
-        'N_C', 'N_CS', 'N_D', 'N_DS', 'N_E', 'N_F',
-        'N_FS', 'N_G', 'N_GS', 'N_A', 'N_AS', 'N_B',
-        'N_CH', 'N_CSH', 'N_DH', 'N_DSH', 'N_EH', 'N_FH',
-        'N_FSH', 'N_GH', 'N_GSH', 'N_AH', 'N_ASH', 'N_BH',
-        'N_CHH'
-    ]
-
-    def resolve_scope(self, scoped_name, parent_scope, existing):
-        if scoped_name.startswith('::'):
-            return scoped_name.lstrip(':')
-        while parent_scope:
-            test = '::'.join((parent_scope, scoped_name))
-            if test in existing: return test
-            parent_scope = parent_scope.rsplit('::', 1)
-            if len(parent_scope) < 2: break
-            parent_scope = parent_scope[0]
-        return scoped_name
-
-    def render_pattern(self, name):
-        pattern = self.patterns[name]
-        is_drum = pattern['track'] == 'drum'
-        pattern['notes'] = notes = self.collapse_ties(pattern['notes'], is_drum)
+    def render(self, scopes):
+        is_drum = self.track == 'drum'
+        self.notes = notes = self.collapse_ties(self.notes, is_drum)
 
         bytedata = []
 
         if not is_drum:
-            transpose_runs = self.find_transpose_runs(pattern['notes'])
-            pattern['transpose'] = cur_transpose = transpose_runs[0][1]
+            transpose_runs = self.find_transpose_runs(self.notes)
+            self.transpose = cur_transpose = transpose_runs[0][1]
             transpose_pos = 1
         else:
             transpose_runs = []
@@ -1092,8 +928,8 @@ tie_rests -- True if track has no concept of a "note off"
                 transpose_pos += 1
             if isinstance(note, str):
                 if note.startswith('@'):
-                    instname = self.resolve_scope(note[1:], name, self.instruments)
-                    note = 'INSTRUMENT,' + self.instruments[instname]['asmname']
+                    instname = self.resolve_scope(note[1:], self.name, scopes.instruments)
+                    note = 'INSTRUMENT,' + scopes.instruments[instname].asmname
                 bytedata.append(note)
                 continue
             if len(note) != 3:
@@ -1102,14 +938,14 @@ tie_rests -- True if track has no concept of a "note off"
             if isinstance(pitch, int):
                 offset = pitch - cur_transpose
                 assert 0 <= offset <= 24
-                pitchcode = self.pattern_pitchoffsets[offset]
+                pitchcode = pattern_pitchoffsets[offset]
             elif pitch == 'r':
                 pitchcode = 'REST'
             elif pitch == 'w':  # usually a tie after an @-command
                 pitchcode = 'N_TIE'
             elif is_drum:
-                drumname = self.resolve_scope(pitch, name, self.drums)
-                pitchcode = 'D_' + self.get_asmname(drumname)
+                drumname = self.resolve_scope(pitch, self.name, scopes.drums)
+                pitchcode = 'DR_' + self.get_asmname(drumname)
             else:
                 raise ValueError("unknown pitch %s" % pitch)
 
@@ -1130,69 +966,412 @@ tie_rests -- True if track has no concept of a "note off"
         # Transpose back to start at end of pattern
         if transpose_runs and cur_transpose != transpose_runs[0][1]:
             bytedata.append("TRANSPOSE,<%d" % (transpose_runs[0][1] - cur_transpose))
-        if not pattern['fallthrough']: bytedata.append('PATEND')
+        if not self.fallthrough: bytedata.append('PATEND')
 
-        asmname = self.get_asmname(name)
-        pattern['data'] = bytedata
-        pattern['def'] = 'patdef PP_%s, PPDAT_%s' % (asmname, asmname)
-        pattern['asmname'] = 'PP_'+asmname
-        pattern['dataname'] = 'PPDAT_'+asmname
+        asmname = self.get_asmname(self.name)
+        self.asmdef = 'patdef PP_%s, PPDAT_%s' % (asmname, asmname)
+        self.asmname = 'PP_'+asmname
+        self.asmdataname = 'PPDAT_'+asmname
+        self.asmdataprefix = '.byte '
+        self.asmdata = bytedata
 
-    def render_song(self, name):
-        song = self.songs[name]
-        out = []
-        for row in song['conductor']:
-            if isinstance(row, str):
-                out.append(row)
-                continue
-            if row[0] == 'playPat':
-                track, patname, transpose, instrument = row[1:5]
-                patname = self.resolve_scope(patname, name, self.patterns)
-                pat = self.patterns[patname]
-                if track is None: track = pat['track']
-                if track == 'drum':
-                    if pat['track'] != 'drum':
-                        raise ValueError('cannot play pitched pattern %s on drum track'
-                                         % (patname,))
-                    out.append("playPatNoise %s" % pat['asmname'])
-                    continue
-                if pat['track'] == 'drum':
-                    raise ValueError('cannot play drum pattern %s on pitched track'
-                                     % (patname,))
-                if isinstance(track, str):
-                    track = self.pitched_tracks[track]
-                if track is None:
-                    raise ValueError("%s: no track for pitched pattern %s"
-                                     % (name, patname))
-                transpose += pat['transpose']
-                if instrument is None: instrument = pat['instrument']
-                if instrument is None:
-                    raise ValueError("%s: no instrument for pattern %s"
-                                     % (song, patname))
-                instrument = self.resolve_scope(instrument, name, self.instruments)
-                instrument = self.instruments[instrument]['asmname']
-                suffix = self.track_suffixes[track]
-                out.append("playPat%s %s, %d, %s"
-                           % (suffix, pat['asmname'], transpose, instrument))
-                continue
-            if row[0] == 'stopPat':
-                out.append('stopPat%s' % self.track_suffixes[row[1]])
-                continue
-            if row[0] == 'noteOn':
-                ch, pitch, instrument = row[1:4]
-                instrument = self.resolve_scope(instrument, name, self.instruments)
-                instrument = self.instruments[instrument]['asmname']
-                out.append('noteOn%s %d, %s'
-                           % (self.track_suffixes[ch], pitch, instrument))
-                continue
-            raise ValueError(row)
+# Pass 1: Load
+class PentlyInputParser(object):
 
-        asmname = self.get_asmname(name)
-        song['data'] = out
-        song['def'] = 'songdef PS_%s, PSDAT_%s' % (asmname, asmname)
-        song['asmname'] = 'PS_'+asmname
-        song['dataname'] = 'PSDAT_'+asmname
+    def __init__(self):
+        self.sfxs = {}
+        self.drums = {}
+        self.instruments = {}
+        self.patterns = {}
+        self.songs = {}
+        self.cur_obj = self.cur_song = None
+        self.linenum = 0
+        self.rhyctx = PentlyRhythmContext()
+        self.pitchctx = PentlyPitchContext()
+        self.unk_keywords = 0
 
+    def append(self, s):
+        """Parse one line of code."""
+        self.linenum += 1
+        s = s.strip()
+        if not s or s.startswith(('#', '//')):
+            return
+        self.dokeyword(s.split())
+
+    def extend(self, iterable):
+        """Parse an iterable of lines."""
+        for line in iterable:
+            self.append(line)
+
+    def cur_obj_type(self):
+        return (self.cur_obj[0] if self.cur_obj
+                else 'song' if self.cur_song.name
+                else 'top level')
+
+    def ensure_in_object(self, parent, allowed_objects):
+        allowed_objects = ([allowed_objects]
+                           if isinstance(allowed_objects, str)
+                           else frozenset(allowed_objects))
+        if not self.cur_obj or self.cur_obj[0] not in allowed_objects:
+            allowed_objects = sorted(allowed_objects)
+            article = 'an' if allowed_objects[0].lower() in 'aeiou' else 'a'
+            wrong_type = self.cur_obj_type()
+            sep = ' ' if len(allowed_objects) < 2 else ', '
+            allowed_objects[-1] = 'or ' + allowed_objects[-1]
+            allowed_objects = sep.join(allowed_objects)
+            raise ValueError("%s must be inside %s %s, not %s"
+                             % (parent, article, allowed_objects, wrong_type))
+
+    # Configuration
+
+    def get_pitchrhy_parent(self):
+        """Get the currently open pattern, song, or project in that order.
+
+Used to find the target of a time, scale, durations, or notenames command.
+
+"""
+        return (self.cur_obj[1]
+                if self.cur_obj is not None and self.cur_obj[0] == 'pattern'
+                else self.cur_song
+                if self.cur_song is not None
+                else self)
+
+    def add_notenames(self, words):
+        if len(words) != 2:
+            raise ValueError("must have 2 words: notenames LANGUAGE")
+        self.get_pitchrhy_parent().pitchctx.set_language(words[1])
+
+    def add_durations(self, words):
+        if len(words) != 2:
+            raise ValueError("must have 2 words: durations BEHAVIOR")
+        rhyctx = self.get_pitchrhy_parent().rhyctx
+        language = words[1].lower()
+        if language == 'temporary':
+            rhyctx.durations_stick = False 
+        elif language == 'stick':
+            rhyctx.durations_stick = True
+        else:
+            raise ValueError("unknown durations behavior %s; try temporary or stick"
+                             % language)
+
+    # Instruments
+
+    def add_sfx(self, words):
+        if len(words) != 4 or words[2] != 'on':
+            raise ValueError("must have 4 words: sfx SFXNAME on CHANNELTYPE")
+        _, name, _, channel = words
+        try:
+            channel = channeltypes[channel]
+        except KeyError:
+            raise ValueError("unknown channel; try pulse, triangle, or noise")
+        if self.cur_song is not None:
+            name = '::'.join((self.cur_song.name, name))
+        if name in self.sfxs:
+            raise ValueError("sfx %s was already defined on line %d"
+                             % (name, self.sfxs[name].linenum))
+        inst = PentlySfx(channel, pitchctx=self.pitchctx,
+                         name=name, linenum=self.linenum)
+        self.sfxs[name] = inst
+        self.cur_obj = ('sfx', inst)
+
+    def add_instrument(self, words):
+        if len(words) != 2:
+            raise ValueError("must have 2 words: instrument INSTNAME")
+        name = words[1]
+        if self.cur_song is not None:
+            name = '::'.join((self.cur_song.name, name))
+        if name in self.instruments:
+            raise ValueError("instrument %s was already defined on line %d"
+                             % (name, self.instruments[name].linenum))
+        inst = PentlyInstrument(name=name, linenum=self.linenum)
+        self.instruments[name] = inst
+        self.cur_obj = ('instrument', inst)
+
+    def add_rate(self, words):
+        self.ensure_in_object('rate', 'sfx')
+        if len(words) != 2:
+            raise ValueError("must have 2 words: rate FRAMESPERSTEP")
+        rate = int(words[1])
+        self.cur_obj[1].set_rate(rate, linenum=self.linenum)
+
+    def add_volume(self, words):
+        self.ensure_in_object('volume', ('sfx', 'instrument'))
+        if len(words) < 2:
+            raise ValueError("volume requires at least one step")
+        obj = self.cur_obj[1]
+        obj.set_volume([int(x) for x in words[1:]], linenum=self.linenum)
+
+    def add_decay(self, words):
+        self.ensure_in_object('decay', 'instrument')
+        if len(words) != 2:
+            raise ValueError("must have 2 words: decay UNITSPER16FRAMES")
+        obj = self.cur_obj[1]
+        obj.set_decay(int(words[1]), linenum=self.linenum)
+
+    def add_timbre(self, words):
+        self.ensure_in_object('timbre', ('sfx', 'instrument'))
+        if len(words) < 2:
+            raise ValueError("timbre requires at least one step")
+        obj = self.cur_obj[1]
+        obj.set_timbre(words[1:], linenum=self.linenum)
+
+    def add_pitch(self, words):
+        self.ensure_in_object('pitch', ('sfx', 'instrument'))
+        if len(words) < 2:
+            raise ValueError("pitch requires at least one step")
+        obj = self.cur_obj[1]
+        obj.set_pitch(words[1:], linenum=self.linenum)
+
+    def add_detached(self, words):
+        self.ensure_in_object('detached', 'instrument')
+        if len(words) > 1:
+            raise ValueError("detached in instrument takes no arguments")
+        self.cur_obj[1].set_detached(True)
+
+    def add_drum(self, words):
+        if len(words) not in (3, 4):
+            raise ValueError("must have 3 words: drum DRUMNAME")
+        self.cur_obj = None
+        drumname = words[1]
+        if self.cur_song is not None:
+            drumname = '::'.join((self.cur_song.name, drumname))
+        if drumname in self.drums:
+            raise ValueError("drum %s was already defined on line %d"
+                             % (drumname, self.drums[drumname].linenum))
+        d = PentlyDrum(words[2:], name=drumname, linenum=self.linenum)
+        self.drums[drumname] = d
+
+    # Songs and patterns
+
+    def add_song(self, words):
+        if len(words) != 2:
+            raise ValueError("must have 2 words: song SONGNAME")
+        if self.cur_song:
+            raise ValueError("song %s began on line %d and was not ended with fine or dal segno"
+                             % (songname, self.songs['linenum']))
+        self.cur_obj = None
+        songname = words[1]
+        if songname in self.songs:
+            raise ValueError("song %s was already defined on line %d"
+                             % (songname, self.songs['linenum']))
+        song = PentlySong(pitchctx=self.pitchctx, rhyctx=self.rhyctx,
+                          name=songname, linenum=self.linenum)
+        self.cur_song = self.songs[songname] = song
+
+    def end_song(self, words):
+        if not self.cur_song:
+            raise ValueError("no song is open")
+        song = self.cur_song
+        words = ' '.join(words).lower()
+        if words == 'fine':
+            endcmd = 'fine'
+        elif words in ('dal segno', 'dalsegno'):
+            endcmd = 'dalSegno'
+        elif words in ('da capo', 'dacapo'):
+            if song.segno_linenum is not None:
+                raise ValueError("cannot loop to start because segno was set on line %d"
+                                 % song.segno_linenum)
+            endcmd = 'dalSegno'
+        else:
+            raise ValueError('song end must be "fine" or "dal segno" or "da capo", not '
+                             + end)
+        song.conductor.append(endcmd)
+        self.cur_song = self.cur_obj = None
+
+    def add_segno(self, words):
+        if len(words) > 1:
+            raise ValueError('segno takes no arguments')
+        if not self.cur_song:
+            raise ValueError("no song is open")
+        song = self.cur_song
+        if song.segno_linenum is not None:
+            raise ValueError('loop point for song %s was already set at line %d'
+                             % (self.cur_song.name, self.segno_linenum))
+        song.conductor.append('segno')
+        song.segno_linenum = self.linenum
+        self.cur_obj = None
+
+    def add_time(self, words):
+        if len(words) < 2:
+            raise ValueError('no time signature given')
+        if len(words) > 2 and (len(words) != 4 or words[2] != 'scale'):
+            raise ValueError("time with scale must have 4 words: time N/D scale D")
+        try:
+            sp = timesignames[words[1].lower()]
+        except KeyError:
+            sp = words[1].split('/', 1)
+        if len(sp) != 2:
+            raise ValueError("time signature must be a fraction separated by /")
+        timenum, timeden = int(sp[0]), int(sp[1])
+        rhyctx = self.get_pitchrhy_parent().rhyctx
+        rhyctx.set_time_signature(timenum, timeden)
+        if len(words) > 2:
+            self.add_scale(words[2:])
+
+    def add_scale(self, words):
+        if len(words) != 2:
+            raise ValueError("must have 2 words: scale ROWVALUE")
+        target = self.get_pitchrhy_parent()
+        target.rhyctx.set_scale(int(words[1]))
+
+    def add_tempo(self, words):
+        if not self.cur_song:
+            raise ValueError("tempo must be used in a song")
+        if len(words) != 2:
+            raise ValueError("must have 2 words: pickup MEASURE[:BEAT[:ROW]]")
+        tempo = float(words[1])
+        if not 1.0 <= tempo <= 1500.0:
+            raise ValueError("tempo must be positive and no more than 1500 rows per minute")
+        song = self.cur_song
+        song.rhyctx.tempo = tempo  # to be picked up on next wait rows
+
+    def add_song_wait(self, words):
+        if not self.cur_song:
+            raise ValueError("at must be used in a song")
+        if len(words) < 2:
+            raise ValueError("must have 2 words: at MEASURE[:BEAT[:ROW]]")
+        song = self.cur_song
+        mbr = [int(x) for x in words[1].split(':', 2)]
+
+        # If we're waiting at least one row, update the tempo and
+        # put in a wait command
+        rows_to_wait = song.rhyctx.wait_for_measure(*mbr)
+        song.wait_rows(rows_to_wait)
+
+        self.cur_obj = None  # end any song-local pattern or instrument
+        if len(words) > 2:
+            self.dokeyword(words[2:])
+
+    def add_song_pickup(self, words):
+        if not self.cur_song:
+            raise ValueError("at must be used in a song")
+        if len(words) != 2:
+            raise ValueError("must have 2 words: pickup MEASURE[:BEAT[:ROW]]")
+        rhyctx = self.cur_song.rhyctx
+        mbr = [int(x) for x in words[1].split(':', 2)]
+        rhyctx.set_measure(*mbr)
+
+    @staticmethod
+    def extract_prepositions(words):
+        return dict(zip(words[2::2], words[3::2]))
+
+    def add_attack(self, words):
+        if len(words) != 3 or words[1] != 'on':
+            raise ValueError('syntax: attack on CHANNELNAME')
+        if self.cur_song.name is None:
+            raise ValueError('no song is open')
+        self.cur_obj = None
+        chname = words[2]
+        song = self.cur_song
+        song.set_attack(chname)
+
+    def add_play(self, words):
+        if len(words) % 2 != 0:
+            raise ValueError('syntax: pattern PATTERNNAME [on TRACK] [with INSTRUMENT]')
+        if self.cur_song.name is None:
+            raise ValueError('no song is open')
+        self.cur_obj = None
+        patname = words[1]
+        pps = self.extract_prepositions(words)
+        track = pps.pop('on', None)
+        instrument = pps.pop('with', None)
+        transpose = int(pps.pop('up', 0)) - int(pps.pop('down', 0))
+        if pps:
+            raise ValueError("unknown prepositions: " + " ".join(pps))
+        song = self.cur_song
+        song.play(patname, track=track, instrument=instrument,
+                  transpose=transpose)
+
+    def add_stop(self, words):
+        if self.cur_song.name is None:
+            raise ValueError('no song is open')
+        self.cur_obj = None
+        if len(words) < 2:
+            raise ValueError('must stop at least one track')
+        self.cur_song.stop_tracks(words[1:])
+
+    def add_pattern(self, words):
+        if len(words) % 2 != 0:
+            raise ValueError('syntax: pattern PATTERNNAME [on TRACK] [with INSTRUMENT]')
+        patname = words[1]
+        if patname in self.patterns:
+            raise ValueError("pattern %s was already defined on line %d"
+                             % (patname, self.patterns[patname].linenum))
+        if self.cur_song is not None:
+            patname = '::'.join((self.cur_song.name, patname))
+            pitchrhy = self.cur_song
+        else:
+            pitchrhy = self
+
+        pps = self.extract_prepositions(words)
+        track = pps.pop('on', None)
+        if track and track not in pitched_tracks:
+            raise ValueError('unknown track ' + track)
+        instrument = pps.pop('with', None)
+        if pps:
+            raise ValueError("unknown prepositions: " + " ".join(pps))
+
+        pat = PentlyPattern(pitchctx=pitchrhy.pitchctx, rhyctx=pitchrhy.rhyctx,
+                            instrument=instrument, track=track,
+                            name=patname, linenum=self.linenum)
+        self.patterns[patname] = pat
+        self.cur_obj = ('pattern', pat)
+
+    def add_fallthrough(self, words):
+        if len(words) > 1:
+            raise ValueError("fallthrough takes no arguments")
+        self.ensure_in_object('fallthrough', 'pattern')
+        self.cur_obj[1].set_fallthrough(True)
+        self.cur_obj = None
+
+    keywordhandlers = {
+        'notenames': add_notenames,
+        'durations': add_durations,
+        'sfx': add_sfx,
+        'volume': add_volume,
+        'rate': add_rate,
+        'decay': add_decay,
+        'timbre': add_timbre,
+        'pitch': add_pitch,
+        'instrument': add_instrument,
+        'drum': add_drum,
+        'detached': add_detached,
+        'song': add_song,
+        'fine': end_song,
+        'dal': end_song,
+        'dalSegno': end_song,
+        'da': end_song,
+        'daCapo': end_song,
+        'segno': add_segno,
+        'time': add_time,
+        'scale': add_scale,
+        'attack': add_attack,
+        'pattern': add_pattern,
+        'fallthrough': add_fallthrough,
+        'at': add_song_wait,
+        'pickup': add_song_pickup,
+        'tempo': add_tempo,
+        'play': add_play,
+        'stop': add_stop,
+    }
+
+    def dokeyword(self, words):
+        try:
+            kwh = self.keywordhandlers[words[0]]
+        except KeyError:
+            pass
+        else:
+            return kwh(self, words)
+        if self.cur_obj and self.cur_obj[0] == 'pattern':
+            pat = self.cur_obj[1]
+            for word in words:
+                pat.add_pattern_note(word)
+            return
+        if self.unk_keywords < 100:
+            print("unknown keyword %s inside %s"
+                  % (repr(words), self.cur_obj or self.cur_song.name),
+                  file=sys.stderr)
+        self.unk_keywords += 1
 
 # Pass 3: Try to find envelopes that overlap envelopes
 
@@ -1227,58 +1406,116 @@ def print_all_dicts(parser):
         print("\n".join("%s\n  %s" % (name, json.dumps(el))
                         for name, el in d.items()))
 
+# Perfect optimization of these is unlikely in the near future
+# because the shortest common supersequence problem is NP-complete.
+# So instead, we limit the optimization to cases where one entire
+# envelope is a supersequence of another.  This is polynomial even
+# with a naive greedy algorithm.
+
+def subseq_pack(subseqs):
+    # out_seqs is a list of tuples of the form (index into subseqs,
+    # sequence data).  We want to find the LONGEST sequence that
+    # contains each.
+    inclen_seqs = sorted(enumerate(subseqs), key=lambda x: len(x[1]))
+
+    def handle_one_seq(inclen_seqs, i):
+        subseq = inclen_seqs[i][1]
+        for candidate in range(len(inclen_seqs) - 1, i, -1):
+            ckey, longerdata = inclen_seqs[candidate]
+            for startidx in range(0, len(longerdata) - len(subseq) + 1):
+                if (subseq[0] == longerdata[startidx]
+                    and subseq == longerdata[startidx:startidx + len(subseq)]):
+                    return ckey, startidx, startidx + len(subseq)
+        return None
+
+    out_seqs = [None] * len(inclen_seqs)
+
+    # Each element out_seqs[i] is either a tuple
+    # (index of longer sequence in subseqs, slice start, slice end)
+    # if a match for subseqs[i] is found among longer sequences,
+    # or None otherwise.
+    for i in range(len(inclen_seqs)):
+        key = inclen_seqs[i][0]
+        out_seqs[key] = handle_one_seq(inclen_seqs, i)
+    return out_seqs
+
 def render_file(parser):
-    for row in parser.instruments:
-        parser.render_instrument(row)
-    for row in parser.sfxs:
-        parser.render_sfx(row)
-    for row in parser.patterns:
-        parser.render_pattern(row)
-    for row in parser.songs:
-        parser.render_song(row)
-
-    lines = [
-        '.include "../../src/pentlyseq.inc"'
-    ]
-    all_exports = []
-
+    # each entry in this row is a tuple of the form
+    # list, name of directory table, include asmnames in export,
+    # include in dbyt subsequence packing
     parts_to_print = [
         (parser.sfxs, 'pently_sfx_table', True,
-         '.dbyt ', format_dbyt),
+         format_dbyt),
         (parser.instruments, 'pently_instruments', True,
-         '.dbyt ', format_dbyt),
+         format_dbyt),
+        (parser.drums, 'pently_drums', False,
+         None),
         (parser.patterns, 'pently_patterns', False,
-         '.byte ', None),
+         None),
         (parser.songs, 'pently_songs', True,
-         None, None),
+         None),
     ]
 
-    for row in parts_to_print:
-        things, deflabel, exportable, prefix, fmtfunc = row
-        defs1 = sorted(things.values(), key=lambda x: x['linenum'])
-        if exportable:
-            all_exports.extend(row['asmname'] for row in defs1)
-        all_exports.append(deflabel)
-        lines.append(deflabel+':')
-        lines.extend(row['def'] for row in defs1)
-        for row in defs1:
-            if row['data']:
-                lines.append(row['dataname']+':')
-                data = (fmtfunc(s) for s in row['data']) if fmtfunc else row['data']
-                lines.extend(wrapdata(data, prefix) if prefix else data)
+    # Pack dbyt arrays that are subsequences of another dbyt array
+    # into the longer one
+    dbyt_pool_directory = []
+    dbyt_pool_data = []
+    for ptpidx, row in enumerate(parts_to_print):
+        things, deflabel, _, is_dbyt = row
+        for thingkey, thing in things.items():
+            thing.render(scopes=parser)
+            if thing.asmdata and is_dbyt:
+                dbyt_pool_directory.append(thing.asmdataname)
+                dbyt_pool_data.append(thing.asmdata)
+    dbyt_packed = subseq_pack(dbyt_pool_data)
+    dbyt_packed = {k: v for k, v in zip(dbyt_pool_directory, dbyt_packed) if v}
 
-    defs1 = sorted(parser.drums.items(), key=lambda x: x[0])
-    lines.append('pently_drums:')
-    all_exports.append('pently_drums')
-    for drumname, sfxnames in defs1:
-        drumname = 'D_'+parser.get_asmname(drumname)
-        sfxnames = ', '.join('PE_'+parser.get_asmname(sfxname)
-                            for sfxname in sfxnames)
-        lines.append("drumdef %s, %s" % (drumname, sfxnames))
+    lines = [
+        '; Generated with Pently music assembler',
+        '.include "../../src/pentlyseq.inc"',
+        '.segment "RODATA"',
+        'NUM_SONGS=%d' % len(parser.songs),
+        '.exportzp NUM_SONGS',
+    ]
+    all_exports = []
+    for row in parts_to_print:
+        things, deflabel, exportable, is_dbyt = row
+        fmtfunc = format_dbyt if is_dbyt else None
+        defs1 = sorted(things.values(), key=lambda x: x.linenum)
+        if exportable:
+            all_exports.extend(thing.asmname for thing in defs1)
+        all_exports.append(deflabel)
+        
+        entries_plural = "entry" if len(defs1) == 1 else "entries"
+        lines.append("%s:  ; %d %s"
+                     % (deflabel, len(defs1), entries_plural))
+        lines.extend(thing.asmdef for thing in defs1)
+        for thing in defs1:
+
+            # Skip renderables without any data array
+            if not thing.asmdata: continue
+
+            # Use the packed array if it exists
+            packresult = dbyt_packed.get(thing.asmdataname)
+            if packresult is not None:
+                diridx, startoffset, endoffset = packresult
+                assert endoffset - startoffset == len(thing.asmdata)
+                line = ('%s = %s + 2 * %d'
+                        % (thing.asmdataname, dbyt_pool_directory[diridx],
+                           startoffset))
+                lines.append(line)
+                continue
+
+            # Otherwise, emit the array
+            lines.append("%s:" % thing.asmdataname)
+            data = ((fmtfunc(s) for s in thing.asmdata)
+                    if fmtfunc
+                    else thing.asmdata)
+            if thing.asmdataprefix:
+                data = wrapdata(data, thing.asmdataprefix)
+            lines.extend(data)
 
     lines.extend(wrapdata(all_exports, ".export "))
-    lines.append('NUM_SONGS=%d' % len(parser.songs))
-    lines.append('.globalzp NUM_SONGS')
     return lines
 
 def main(argv=None):
@@ -1296,7 +1533,7 @@ def main(argv=None):
             sys.exit(1)
     if parser.cur_song:
         print("%s:%d: song %s was not ended"
-              % (infilename, parser.linenum, parser.cur_song),
+              % (infilename, parser.linenum, parser.cur_song.name),
               file=sys.stderr)
         return
 
@@ -1305,18 +1542,17 @@ def main(argv=None):
     print("\n".join(lines))
 
 if __name__=='__main__':
-##    main(["pentlyas", "../docs/samplefile.txt"])
+##    main(["pentlyas", "../src/musicseq.pently"])
     main()
 
-# TO DO
-# 1. Render song
-# 2. Format ['data'] as .byte or .dbyt
+# TODO (high priority)
+# 1. Test finding envelopes that overlap envelopes
+# 2. 
 # 3. 
-# 4. Write out a file
-# 5. Actually play twinkle
-# 6. Make a class for each data type rather than just using dicts
-# 7. Give each class a 'render' method
-# 8. Support grace notes
-# 9. Support arpeggio changes
-# 10. Support mid-pattern instrument changes
-# 11. Try to find envelopes that overlap envelopes
+# 4. 
+# 5. 
+# 6. 
+# 7. 
+
+# TODO (low priority)
+# 8. Fix transpose of patterns that fallthrough

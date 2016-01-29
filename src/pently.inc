@@ -60,3 +60,8 @@
 ; Will range from -3000 to 0 on PAL or -3606 to 0 on NTSC.
 .global pently_tempoCounterLo, pently_tempoCounterHi
 
+; Pently requires 5 bytes of temporary zero page scratch space
+; that need not be preserved from one call to the next.
+pently_zptemp = $0000
+
+

@@ -257,11 +257,11 @@ These commands can be used instead of a note:
   (see below) for subsequent notes, rests, and waits in a pattern
   that lack their own duration.
 
-Note durations are fractions of a whole note, whose length depends on
-the `scale`.  Recognized note durations include `1`, `2`, `4`, `8`,
-`16`, and `32`, so long as it isn't shorter than one row.  Durations
-may be augmented by 50% or 75% by adding `.` or `..` after the
-number.
+Note durations are fractions of a whole note, whose length depends
+on the `scale`.  Recognized note durations include `1`, `2`, `4`,
+`8`, `16`, and `32`, so long as it isn't shorter than one row.
+Durations may be augmented by 50% or 75% by adding `.` or `..`
+after the number.
 
 Duration is optional for each note.  The `durations` command controls
 how missing durations are assigned.  In `durations temporary`, as
@@ -284,9 +284,15 @@ notes together or producing legato (HOPO).  If the following note
 has the same pitch, it's the same as a wait: `eb2~ eb8` and `eb2 w8`
 mean the same.
 
-**TODO: Imperfection of durations**
+**TODO:** A future version of Pently may introduce a command to
+modify durations in compound prolation for a swing feel.
 
-**TODO: detachment larger than half row**
+**TODO:** A future version of Pently may introduce a command to
+automatically introduce rests between notes for staccato feel.
+
+**TODO:** A future version of Pently may introduce a command to
+"bar check", or pad a pattern with rests or notes to the end of
+a measure.
 
 **TODO: Example of a pattern**
 
@@ -297,20 +303,21 @@ the instrument name, such as `@piano`.  Otherwise, it'll use the
 instrument specified in the song's play command.
 
 **Arpeggio** is rapid alternation among two or three pitches to
-create a warbly chord on one channel.  The `@EN` command enables or
-disables arpeggio: `@EN00` turns it off, `@EN04` sets it to a major
-third interval (four semitones above the note), and `@EN37` sets it
-to a minor chord (three and seven semitones above the note).
+create a warbly chord on one channel.  The `EN` command enables or
+disables arpeggio: `EN00` or `ENOF` turns it off, `EN04` sets it to
+a major third interval (four semitones above the note), and `EN37`
+sets it to a minor chord (three and seven semitones above the note).
 
 Songs
 =====
 Like patterns, songs also have `time` and `scale`.  They are used to
-interpret the `tempo` and `at` commands.  
+interpret the `tempo` and `at` commands.
 
-Patterns may be defined inside or outside a song.  If a pattern is
-defined outside a song, and its `scale` does not match that of the
-song, it will be played with rows in all tracks the same duration,
-which may not be what you want.
+Patterns may be defined inside or outside a song.  A pattern defined
+inside a song inherits the song's `time` and `scale`.  If a pattern
+is defined  outside a song, and its `scale` does not match that
+of the song, it will be played with rows in all tracks the same
+duration, which may not be what you want.
 
 The **`tempo`** command tells how many beats are played per minute.
 This can be a decimal, which will be rounded to the nearest whole
@@ -343,8 +350,8 @@ on an attack track must have an attack phase.  (This means its
 `volume` must be longer than one step because the last step belongs
 to sustain, not attack.)  To select a channel for the attack track,
 use `attack on pulse1`, `attack on pulse2`, or `attack on triangle`.
-(There is no channel called `titan`.)  It's not recommended to try
-to use attack on the same channel as your drums.
+(There is no channel called `titan`.)  It's not recommended to use
+attack on the same channel as the sound effects that make up drums.
 
 The loop point is set with the **`segno`** (sen-yoh) command.  A song
 ends with the **`fine`** (fee-neh) command, which stops playback, or

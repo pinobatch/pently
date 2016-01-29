@@ -11,7 +11,7 @@
 
 # These are used in the title of the NES program and the zip file.
 title = pently
-version = 0.05wip2
+version = 0.05wip3
 
 # Space-separated list of assembly language files that make up the
 # PRG ROM.  If it gets too long for one line, you can add a backslash
@@ -102,8 +102,8 @@ $(objdir)/ntscPeriods.s: tools/mktables.py
 	$< period $@
 
 # Translate music project
-$(objdir)/%.s: src/%.pently
-	tools/pentlyas.py $< > $@
+$(objdir)/%.s: tools/pentlyas.py src/%.pently
+	$^ > $@
 
 # Rules for CHR ROM
 

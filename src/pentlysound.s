@@ -89,16 +89,16 @@ SOUND_NTSC_ONLY = 0
 
 ;;
 ; Starts a sound effect.
-; (Trashes $0000-$0004 and X.)
+; (Trashes pently_zptemp+0 through +4 and X.)
 ;
 ; @param A sound effect number (0-63)
 ;
 .proc pently_start_sound
-snddatalo = 0
-snddatahi = 1
-sndchno = 2
-sndlen = 3
-sndrate = 4
+snddatalo = pently_zptemp + 0
+snddatahi = pently_zptemp + 1
+sndchno   = pently_zptemp + 2
+sndlen    = pently_zptemp + 3
+sndrate   = pently_zptemp + 4
 
   asl a
   asl a
@@ -116,11 +116,11 @@ sndrate = 4
   lsr a
   lsr a
   sta sndrate
-  
   lda pently_sfx_table+3,x
   sta sndlen
 
-  ; split up square wave sounds between $4000 and $4004
+  ; Split up square wave sounds between pulse 1 ($4000) and
+  ; pulse 2 ($4004) depending on which has less data left to play
   .if ::SQUARE_POOLING
     lda sndchno
     bne not_ch0to4  ; if not ch 0, don't try moving it
@@ -132,16 +132,19 @@ sndrate = 4
     not_ch0to4:
   .endif 
 
+  ; Play only if this sound effect is no shorter than the existing
+  ; effect on the same channel
   ldx sndchno
   lda sndlen
   cmp sfx_remainlen,x
   bcc ch_full
+
+  ; Replace the current sound effect if any
+  sta sfx_remainlen,x
   lda snddatalo
   sta sfx_datalo,x
   lda snddatahi
   sta sfx_datahi,x
-  lda sndlen
-  sta sfx_remainlen,x
   lda sndrate
   sta sfx_rate,x
   lda #0
@@ -169,13 +172,19 @@ loop:
 .endproc
 
 .proc pently_update_one_ch
+srclo  = pently_zptemp + 0
+srchi  = pently_zptemp + 1
+tvol   = pently_zptemp + 2
+tpitch = pently_zptemp + 3
+t4     = pently_zptemp + 4
+
 
   ; At this point, the music engine should have left duty and volume
   ; in 2 and pitch in 3.
   lda sfx_remainlen,x
   ora sfx_ratecd,x
   bne ch_not_done
-  lda 2
+  lda tvol
   bne update_channel_hw
 
   ; Turn off the channel and force a reinit of the length counter.
@@ -197,49 +206,49 @@ ch_not_done:
 
   ; fetch the instruction
   lda sfx_datalo+1,x
-  sta 1
+  sta srchi
   lda sfx_datalo,x
-  sta 0
+  sta srclo
   clc
   adc #2
   sta sfx_datalo,x
   bcc :+
-  inc sfx_datahi,x
-:
+    inc sfx_datahi,x
+  :
   ldy #0
   .if ::KEEP_MUSIC_IF_LOUDER
-    lda 2
+    lda tvol
     and #$0F
-    sta 4
-    lda (0),y
+    sta t4
+    lda (srclo),y
     and #$0F
     
     ; At this point: A = sfx volume; 4 = musc volume
-    cmp 4
+    cmp t4
     bcc music_was_louder
   .endif
-  lda (0),y
-  sta 2
+  lda (srclo),y
+  sta tvol
   iny
-  lda (0),y
-  sta 3
+  lda (srclo),y
+  sta tpitch
 music_was_louder:
   dec sfx_remainlen,x
 
 update_channel_hw:
-  lda 2
+  lda tvol
   ora #$30
   cpx #12
   bne notnoise
   sta $400C
-  lda 3
+  lda tpitch
   sta $400E
 rate_divider_cancel:
   rts
 
 notnoise:
   sta $4000,x
-  ldy 3
+  ldy tpitch
 .if ::SOUND_NTSC_ONLY = 0
   lda tvSystem
   lsr a

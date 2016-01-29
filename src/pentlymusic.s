@@ -29,6 +29,10 @@ PENTLY_USE_ROW_CALLBACK = 0
 .import pently_row_callback, pently_dalsegno_callback
 .endif
 
+NUM_CHANNELS = 4
+DRUM_TRACK = 12
+ATTACK_TRACK = 16
+
 ; pently_zp_state:
 ;       +0              +1              +2              +3
 ; $00 | Sq1 sound effect data ptr       Sq1 envelope data ptr
@@ -153,13 +157,13 @@ invdurations:
   lda #>300
   sta music_tempoHi
 .endproc
-.proc resume_music
+.proc pently_resume_music
   lda #1
   sta pently_music_playing
   rts
 .endproc
 
-.proc stop_music
+.proc pently_stop_music
   lda #0
   sta pently_music_playing
   rts
@@ -217,6 +221,7 @@ is_ntsc_1:
   jmp skipConductor
 
 doConductor:
+conbyte = pently_zptemp + 0
 
   ldy #0
   lda (conductorPos),y
@@ -224,7 +229,7 @@ doConductor:
   bne :+
     inc conductorPos+1
   :
-  sta 0
+;  sta conbyte
   cmp #CON_SETTEMPO
   bcc @notTempoChange
   cmp #CON_SETBEAT
@@ -361,7 +366,7 @@ conductorDoWaitRows:
 
 skipConductor:
 
-  ldx #12
+  ldx #4 * (NUM_CHANNELS - 1)
   channelLoop:
     jsr processTrackPattern
     dex
@@ -369,7 +374,7 @@ skipConductor:
     dex
     dex
     bpl channelLoop
-  ldx #16
+  ldx #ATTACK_TRACK
   ; fall through
 
 processTrackPattern:
@@ -460,7 +465,7 @@ anotherPatternByte:
   jmp skipNote
 
   isTransposedNote:
-    cpx #12
+    cpx #DRUM_TRACK
     beq isDrumNote
     clc
     adc patternTranspose,x
@@ -469,7 +474,6 @@ anotherPatternByte:
     jmp skipNote
 
 isDrumNote:
-  stx 5
   asl a
   pha
   tax
@@ -481,7 +485,7 @@ isDrumNote:
   bmi noSecondDrum
   jsr pently_start_sound
 noSecondDrum:
-  ldx 5
+  ldx #DRUM_TRACK
   jmp skipNote
 
 startPattern:
@@ -506,8 +510,8 @@ startPattern:
 ; Plays note A on channel X (0, 4, 8, 12) with instrument Y.
 ; Trashes 0-1 and preserves X.
 .proc music_play_note
-notenum = 0
-instrument_id = 1
+notenum       = pently_zptemp + 0
+instrument_id = pently_zptemp + 1
 
   sta notenum
   sty instrument_id
@@ -565,10 +569,10 @@ instrument_id = 1
 .endproc
 
 .proc pently_update_music_ch
-xsave = 0
-ysave = 1
-out_volume = 2
-out_pitch = 3
+xsave      = pently_zptemp + 0
+ysave      = pently_zptemp + 1
+out_volume = pently_zptemp + 2
+out_pitch  = pently_zptemp + 3
 
   lda pently_music_playing
   beq silenced

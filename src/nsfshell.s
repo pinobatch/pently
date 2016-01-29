@@ -20,7 +20,7 @@
   .addr init_sound_and_music
   .addr pently_update
 names_start:
-  .byt "The Naive Confidence"
+  .byt "argument turned on (inst.)"
   .res names_start+32-*, $00
   .byt "DJ Tepples"
   .res names_start+64-*, $00

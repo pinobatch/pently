@@ -14,6 +14,11 @@ sfx hihat on noise
   pitch 12
   timbre | 0 1
 
+sfx quiethat on noise
+  volume 2 1
+  pitch 12
+  timbre | 0 1
+
 sfx openhat on noise
   volume 6 5 4 4 3 3 3 2 2 2 1 1 1 1 1
   pitch 12
@@ -32,6 +37,16 @@ sfx trisnare on triangle
   volume 15 15 2 2
   pitch bb' ab' g' f#'
 
+sfx tubfloorA on pulse
+  volume 12 10 8 7 6 5 4 4 3 3 2 1
+  timbre 1 1 2
+  pitch eb, cb, b,, bb,, a,,
+
+sfx arghatbuzz on noise
+  volume 4 2 3 2 2 1
+  pitch 12 12 7
+  timbre 0 1
+
 drum kick kick
 drum snare snare
 drum clhat hihat
@@ -39,6 +54,9 @@ drum ohat openhat
 drum tkick kick trikick
 drum tsnare snare trisnare
 drum tsohat snarehat trisnare
+drum tubkick kick tubfloorA
+drum arghatbuzz arghatbuzz
+drum quiethat quiethat
 
 instrument bass
 
@@ -60,6 +78,18 @@ instrument tubbass
   decay 2
   timbre 1 1 2
   pitch 6 4 2 1 0
+
+instrument tubbass_slow
+  volume 14 13 12 11 10 9 9 9 8
+  decay 1
+  timbre 0 0 1 1 2
+  pitch 6 4 2 1 0
+
+instrument dut
+  volume 12 12 11 8 6 5 4 2 1 0
+  decay 16
+  timbre 2 1 0
+  pitch -3 -2 -1 0 0 -1 -1 -2 -4 -6
 
 instrument feat_wah
   volume 8 8 7 7 6 6 5 5 5 4 4 4 3
@@ -98,6 +128,273 @@ instrument fiddle2
   volume 3 5 6 5 5 4
   timbre 1
   detached
+
+instrument bf98_fluteshort
+  volume 4 6 7 6 5
+  timbre 2
+
+instrument vowele
+  volume 4 6 7 6 6 5 5 5
+  timbre 1
+
+instrument vowela
+  volume 4 6 7 6 6 5 5 5
+  timbre 0
+
+instrument argtwinkle
+  volume 7 6 6 5 5 4 4 4 4 4 2
+  decay 1
+
+instrument argdive
+  volume 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5
+  pitch -1 -2 -3 -4 -5 -6 -7 -8 -9 -10 -11 -12 -13 -14 -15 -16 -17 -18 -19 -20 -21
+  timbre 2
+
+instrument arg2bass
+  volume 10
+  decay 20
+
+# argument
+
+song argument
+  time 3/4
+  scale 8
+  tempo 180
+
+  at 1
+  pattern drum34
+    tubkick4 clhat clhat
+  pattern drum34_8
+    tubkick8 quiethat clhat arghatbuzz clhat quiethat
+  play drum34
+
+  at 9
+  pattern commemorate3 on pulse2 with bf98_flute2
+    relative
+    @vowele bb8 db8 r c8 db4
+    c4 r8 @vowela db8 w4g @vowele c4
+    b8 w4g @bf98_flute2 bb4 @vowele d8 r4g @bf98_flute2 b4
+    @vowela bb8 r4g @vowele a4 @bf98_flute2 r4 @bf98_flute2 a8
+    @vowela b7g r @vowele a @bf98_flute2 c# w4g @vowele b#4 a8
+    r4g c4 b r8
+    a8 @bf98_flute2 r4g b4 @vowele a8 @vowela ab r
+    d#4g ab4 @vowele a r2
+  play commemorate3
+  
+  pattern tubbassloop on pulse2 with tubbass_slow
+    @tubbass_slow
+    relative
+    bb,,8~ a8~ a2~ a2. r2. r2.
+  
+  at 17
+  play tubbassloop
+  
+  at 21
+  stop pulse2
+  
+  at 25
+  pattern intro_dut on pulse2 with dut
+    eb2. r eb r
+    eb eb eb4 eb eb eb8 eb eb eb eb eb
+  play intro_dut
+  
+  at 33
+  pattern bass with bass on triangle
+    a,4 a8 a,4 a8  a,4 a a,
+    c4 c'8 c4 c'8  c4 c' c4
+    g,4 g8 g,4 g8  g,4 g g,
+    d4 d'8 d4 d'8  d4 d' d4
+
+  stop pulse2
+  play bass
+
+  at 49
+  pattern melody with bf98_flute2 on pulse2
+    orelative
+    e'2.~ e2 g4  d2.~ d2 c4 
+    e2.~ e2 g4   d2.~ d2.
+  play melody
+
+  at 65
+  attack on pulse2
+  pattern melodyend with bf98_flute2 on attack
+    orelative
+    d#'8 e r2
+  play bass on pulse2 with bf98_flute2
+  play melodyend
+  play drum34_8
+
+  at 66
+  stop attack
+  
+  at 73
+  play bass up 12 on pulse1 with bf98_flute2
+  
+  at 81
+  play tubbassloop up 12 on pulse1
+  play melody up 12
+  
+  at 97
+  pattern descendingchords on pulse2 with bf98_flute2
+    relative
+    e''8 c a e c a e c a e c a
+    g'''' e c g e c g e c g e c
+    g'''' d b g d b g d b g d b
+    f#'''' d a f# d a f# d a f# d a
+  play descendingchords
+  
+  at 113
+  pattern twinkle with argtwinkle on pulse2
+    relative
+    r4 c''' d e2.  r4 e f# g2.
+    r4 b, c d2.    r4 d e f#2.
+  stop pulse1
+  play twinkle
+  
+  at 145
+  play tubbassloop up 12 on pulse1
+  play melody up 12
+  attack on pulse1
+  play twinkle on attack
+  
+  at 161
+  attack on pulse2
+  play bass on pulse2 with bf98_flute2
+  play melodyend up 12
+  stop pulse1
+  at 162
+  stop attack
+  
+  at 169
+  play bass up 12 on pulse1 with bf98_flute2
+
+  at 177
+  pattern cadenzabass on pulse1 with tubbass_slow
+    a,2. w c w g, w d w
+  pattern cadenza on pulse2 with bf98_flute2
+    relative
+    e'''4 d c d e a, c g a e g c,
+    d g, b d, g b, d f#, a d, f# a,
+    c e a e a c g c e c e g
+    d g b g b d a d f# d f# a
+  pattern cadenzaend on pulse2 with bf98_flute2
+    relative
+    c e a c e a c e g c e g
+    b8 a g e d b a g e d b a f#2. w2 @argdive f#4
+  pattern cadenzaend2 on attack with bf98_fluteshort
+    relative
+    e'''8 d b a g e d b a g e d a2. r
+  play cadenza
+  attack on pulse2
+  play cadenza down 12 on attack with bf98_fluteshort
+  play cadenzabass
+
+  at 201
+  play cadenzaend
+  play cadenzaend down 12 on attack with bf98_fluteshort
+  at 205
+  play cadenzaend2
+
+  at 208:3
+  play a with argdive on pulse1
+  
+  at 209
+  pickup 1
+  time 6/8
+  scale 8
+  tempo 120
+
+  pattern drum68
+    tkick8 quiethat quiethat
+    fallthrough
+  pattern drum68nokick
+    clhat8 quiethat quiethat
+  pattern drum68allkick
+    tkick8 quiethat quiethat
+  pattern drum68top with tubbass on attack
+    a,4.
+  pattern bass68 with arg2bass on triangle
+    relative
+    a,8 a a a a a  a a a a a a
+    c c c c c c    c c c c c c
+    g g g g g g    g g g g g g
+    d' d d d d d   d d d d d d
+  pattern harmony68_1 with bf98_flute2 on pulse2
+    e'8 r4 r4. r2.
+    g'8 r4 r4. r2.
+    g'8 r4 r4. r2.
+    f#'8 r4 r4. r2.
+  pattern harmony68_2 with bf98_flute2 on pulse1
+    a,2. r c r g, r d r
+  pattern harmony68_3 with bf98_flute2 on attack
+    c'8 r4 r4. r2.
+    e'8 r4 r4. r2.
+    d'8 r4 r4. r2.
+    d'8 r4 r4. r2.
+  pattern melody68 with bf98_flute2 on pulse2
+    relative 
+    e'8 a, c e d c d r e r4.
+    g8 g, c e d c d r e r d c
+    g'8 g, b d c b c r d r4.
+    f#8 a, d f# e d r f#4 g8 g# a
+  
+  pattern bass68end with arg2bass on triangle
+    relative
+    a,4 a a  a a a  c c c   c c c
+    g g g    g g g  d' d d  d d d
+  pattern drum68topend with tubbass on attack
+    a,2.
+
+  at 1
+  stop pulse1 pulse2 triangle attack
+  play drum68
+  attack on pulse1
+  play drum68top
+  play bass68
+  at 33
+  play harmony68_1
+  at 34
+  play harmony68_2
+  at 49
+  play harmony68_3
+
+  at 65
+  play drum68top
+  play melody68
+  play drum68allkick
+
+  at 81
+  play drum68
+  play harmony68_1
+  play harmony68_2 on triangle
+  
+  at 97
+  play drum68allkick
+  play drum68top
+  play melody68
+  play bass68
+
+  at 113
+  play harmony68_2 on triangle
+  play drum68nokick
+
+  at 129
+  stop pulse1 pulse2
+  play drum68allkick
+  play bass68
+  
+  at 145
+  play drum68
+  play bass68end
+  play drum68topend
+
+  at 161
+  stop triangle
+  da capo
+
+# The Naive Confidence
+# aka Twinkle, Twinkle, Little Star
+# Pre-1800
 
 song twinkle
   time 6/8
@@ -141,6 +438,9 @@ song twinkle
 
   at 25
   fine
+
+# Canon in D
+# By Johann Pachelbel, pre-1800
 
 song canon
   time 4/4
@@ -247,6 +547,9 @@ song canon
   play melody on pulse1 with fiddle2
   at 57:2
     fine
+
+# Happy Flappy Crappy
+# By Damian Yerrick, 2015
 
 song bf98
   time 9/8
@@ -404,6 +707,9 @@ song bf98
   at 57
   dal segno
 
+# Individual Features
+# By Damian Yerrick, 2015
+
 song allfeatures
   time 12/8
   scale 16
@@ -411,7 +717,7 @@ song allfeatures
   
   pickup 1:3
   pattern between with feat_power
-    @EN00 eb4. r1 w w w
+    ENOF eb4. r1 w w w
   play between down 12 on pulse1
   play between down 5 on pulse2
   play between up 12 on triangle with bass
@@ -427,8 +733,8 @@ song allfeatures
   at 4
   pattern chords on pulse2 with feat_wah
     orelative
-    @EN37 r4. eb'1 r2
-    @EN47 db1 r8
+    EN37 r4. eb'1 r2
+    EN47 db1 r8
   pattern bass on triangle with bass
     orelative
     eb'4 r8 gb4. r4 gb8 eb4 gb8
@@ -441,6 +747,10 @@ song allfeatures
   at 8
   stop drum
   da capo
+
+# Stairs
+# by Damian Yerrick, 2015
+# If anything, inspired by "Little Brown Jug"
 
 song stairs
   time 12/8
@@ -501,6 +811,11 @@ song stairs
 
   at 25
   dal segno
+
+# Attack injection
+# by Damian Yerrick, 2015
+# If anything, inspired by "The Big One
+# (Theme from The People's Court)"
 
 song attacktest
   time 12/4
