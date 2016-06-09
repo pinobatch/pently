@@ -254,7 +254,7 @@ Return (pitch, number of rows, slur) or None if it's not actually a note.
         wholerows = self.scale * augment // (denom * 4)
         partrows = self.scale * augment % (denom * 4)
         if partrows != 0:
-            augmentname = self.dotted_names[augment]
+            augmentname = dotted_names[augment]
             msg = ("%s1/%d note not multiple of 1/%d note scale (%.3f rows)"
                    % (augmentname, denom, self.scale,
                       wholerows + partrows / (denom * 4)))
@@ -658,6 +658,9 @@ class PentlySong(PentlyRenderable):
                 patname = self.resolve_scope(patname, self.name, scopes.patterns)
                 pat = scopes.patterns[patname]
                 if track is None: track = pat.track
+                if track != 'drum' and pat.transpose is None:
+                    raise ValueError("pitched track %s has only rests; use stopPat instead"
+                                     % (patname,))
                 if track == 'drum':
                     if pat.track != 'drum':
                         raise ValueError('cannot play pitched pattern %s on drum track'
