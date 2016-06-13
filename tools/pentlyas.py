@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 from __future__ import with_statement, division, print_function
 # The above are imported by default in Python 3, but I need to import
 # them anyway in case someone runs it on Python 2 for Windows, which
@@ -754,7 +755,7 @@ class PentlyPattern(PentlyRenderable):
         return semi, duration, duraugment, slur
 
     drumnoteRE = re.compile(r"""
-([a-zA-Z_].*[a-zA-Z_]|l|r)  # drum name, length, or rest
+([a-zA-Z_].*[a-zA-Z_]|l|r|w)  # drum name, length, rest, or wait
 ([0-9]*)       # duration
 (|\.|\.\.|g)$  # duration augment
 """, re.VERBOSE)
@@ -765,6 +766,8 @@ class PentlyPattern(PentlyRenderable):
             return None, None, None, None
         (notename, duration, duraugment) = m.groups()
         duration, duraugment = self.rhyctx.parse_duration(duration, duraugment)
+        if notename == 'r':
+            notename = 'w'
         return notename, duration, duraugment, False
 
     arpeggioRE = re.compile("@?EN(OF|[0-9a-fA-F]{1,2})$")
@@ -815,8 +818,7 @@ class PentlyPattern(PentlyRenderable):
                 if f: self.notes.append(f)
                 return
             else:
-                print("unknown first note", word)
-                self.unk_keywords += 1
+                raise ValueError("unknown first note %s" % word)
 
         if self.pitchctx.octave_mode == 'drum':
             drummatch = self.parse_drum_note(word)
@@ -824,8 +826,7 @@ class PentlyPattern(PentlyRenderable):
                 f = self.rhyctx.fix_note_duration(drummatch)
                 if f: self.notes.append(f)
             else:
-                print("unknown drum pattern note", word)
-                self.unk_keywords += 1
+                raise ValueError("unknown drum pattern note %s" % word)
             return
 
         notematch = self.parse_note(word)
@@ -833,9 +834,7 @@ class PentlyPattern(PentlyRenderable):
             f = self.rhyctx.fix_note_duration(notematch)
             if f: self.notes.append(f)
         else:
-            print("unknown pitched pattern note", word,
-                  file=sys.stderr)
-            self.unk_keywords += 1
+            raise ValueError("unknown pitched pattern note %s" % word)
 
     # in a way that minimizes TRANSPOSE transitions
     @staticmethod
