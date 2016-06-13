@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from __future__ import with_statement, division, print_function
+# Pently music assembler
+# Copyright 2015-2016 Damian Yerrick
+# License: MIT (Expat variant)
+
 # The above are imported by default in Python 3, but I need to import
 # them anyway in case someone runs it on Python 2 for Windows, which
 # is the default IDLE in a lot of Windows PCs
+from __future__ import with_statement, division, print_function
 import sys, json, re
 
 scaledegrees = {
@@ -308,6 +312,7 @@ class PentlyRenderable(object):
         self.name, self.linenum = name, linenum
         self.asmdataname = self.asmdata = None
         self.asmdataprefix = ''
+        self.bytesize = 0
 
     @classmethod
     def get_asmname(self, name):
@@ -472,6 +477,7 @@ This is equivalent to an "absolute" arpeggio envelope in FamiTracker.
         self.asmdataname = 'PIDAT_'+asmname
         self.asmdataprefix = '.dbyt '
         self.asmdata = attackdata
+        self.bytesize = len(attackdata) * 2 + 5
 
 class PentlySfx(PentlyEnvelopeContainer):
 
@@ -536,6 +542,7 @@ This is equivalent to a "fixed" arpeggio envelope in FamiTracker.
         self.asmdataname = 'PEDAT_'+asmname
         self.asmdataprefix = '.dbyt '
         self.asmdata = attackdata
+        self.bytesize = len(attackdata) * 2 + 4
 
 class PentlyDrum(PentlyRenderable):
 
@@ -553,6 +560,7 @@ class PentlyDrum(PentlyRenderable):
                              for sfxname in self.sfxnames)
         self.asmname = 'DR_'+PentlyRenderable.get_asmname(self.name)
         self.asmdef = "drumdef %s, %s" % (self.asmname, sfxnames)
+        self.bytesize = 2
 
 class PentlySong(PentlyRenderable):
 
@@ -564,6 +572,7 @@ class PentlySong(PentlyRenderable):
         self.rhyctx.tempo = 100.0
         self.last_rowtempo = self.segno_linenum = self.last_beatlen = None
         self.conductor = []
+        self.bytesize = 2
 
     def wait_rows(self, rows_to_wait):
         """Updates the tempo and beat duration if needed, then waits some rows."""
@@ -576,6 +585,7 @@ class PentlySong(PentlyRenderable):
             raise ValueError("last tempo change exceeds 1500 rows per minute")
         if rowtempo != self.last_rowtempo:
             self.conductor.append('setTempo %d' % rowtempo)
+            self.bytesize += 2
             self.last_rowtempo = rowtempo
 
         if self.last_beatlen != beat_length:
@@ -585,12 +595,15 @@ class PentlySong(PentlyRenderable):
                 raise ValueError("no duration code for %d beats per row"
                                  % beat_length)
             self.conductor.append('setBeatDuration %s' % durcode)
+            self.bytesize += 1
             self.last_beatlen = beat_length
             
         while rows_to_wait > 256:
             self.conductor.append('waitRows 256')
+            self.bytesize += 2
             rows_to_wait -= 256
         self.conductor.append('waitRows %d' % rows_to_wait)
+        self.bytesize += 2
 
     def set_attack(self, chname):
         chnum = pitched_tracks[chname]
@@ -598,6 +611,7 @@ class PentlySong(PentlyRenderable):
             raise ValueError("%s is not a pitched channel" % chname)
         cmd = "attackOn%s" % track_suffixes[chnum]
         self.conductor.append(cmd)
+        self.bytesize += 1
 
     def play(self, patname, track=None, instrument=None, transpose=0):
         if (track is not None and instrument is not None
@@ -619,6 +633,7 @@ class PentlySong(PentlyRenderable):
             else:
                 abstract_cmd = ('noteOn', ch, transpose, instrument)
                 self.conductor.append(abstract_cmd)
+                self.bytesize += 3
                 return
 
         if track is not None:
@@ -627,6 +642,7 @@ class PentlySong(PentlyRenderable):
             except KeyError:
                 raise ValueError('unknown track ' + track)
         abstract_cmd = ('playPat', track, patname, transpose, instrument)
+        self.bytesize += 4
         self.conductor.append(abstract_cmd)
 
     def stop_tracks(self, tracks):
@@ -647,6 +663,7 @@ class PentlySong(PentlyRenderable):
             raise ValueError("unknown track names: "+" ".join(tracks_unknown))
         abstract_cmds = (('stopPat', track) for track in tracks_to_stop)
         self.conductor.extend(abstract_cmds)
+        self.bytesize += 4 * len(abstract_cmds)
 
     def render(self, scopes):
         out = []
@@ -976,6 +993,7 @@ tie_rests -- True if track has no concept of a "note off"
         self.asmdataname = 'PPDAT_'+asmname
         self.asmdataprefix = '.byte '
         self.asmdata = bytedata
+        self.bytesize = sum(len(s.split(',')) for s in bytedata) + 2
 
 # Pass 1: Load
 class PentlyInputParser(object):
@@ -1178,6 +1196,7 @@ Used to find the target of a time, scale, durations, or notenames command.
             raise ValueError('song end must be "fine" or "dal segno" or "da capo", not '
                              + end)
         song.conductor.append(endcmd)
+        song.bytesize += 1
         self.cur_song = self.cur_obj = None
 
     def add_segno(self, words):
@@ -1190,6 +1209,7 @@ Used to find the target of a time, scale, durations, or notenames command.
             raise ValueError('loop point for song %s was already set at line %d'
                              % (self.cur_song.name, self.segno_linenum))
         song.conductor.append('segno')
+        song.bytesize += 1
         song.segno_linenum = self.linenum
         self.cur_obj = None
 
@@ -1473,24 +1493,28 @@ def render_file(parser):
     dbyt_packed = {k: v for k, v in zip(dbyt_pool_directory, dbyt_packed) if v}
 
     lines = [
-        '; Generated with Pently music assembler',
         '.include "../../src/pentlyseq.inc"',
         '.segment "RODATA"',
         'NUM_SONGS=%d' % len(parser.songs),
         '.exportzp NUM_SONGS',
     ]
-    all_exports = []
+    all_export = []
+    all_exportzp = []
+    bytes_lines = []
+    total_partbytes = 0
     for row in parts_to_print:
         things, deflabel, exportable, is_dbyt = row
         fmtfunc = format_dbyt if is_dbyt else None
         defs1 = sorted(things.values(), key=lambda x: x.linenum)
         if exportable:
-            all_exports.extend(thing.asmname for thing in defs1)
-        all_exports.append(deflabel)
-        
+            all_exportzp.extend(thing.asmname for thing in defs1)
+        all_export.append(deflabel)
+
         entries_plural = "entry" if len(defs1) == 1 else "entries"
-        lines.append("%s:  ; %d %s"
-                     % (deflabel, len(defs1), entries_plural))
+        partbytes = sum(thing.bytesize for thing in defs1)
+        total_partbytes += partbytes
+        lines.append("%s:  ; %d %s, %d bytes"
+                     % (deflabel, len(defs1), entries_plural, partbytes))
         lines.extend(thing.asmdef for thing in defs1)
         for thing in defs1:
 
@@ -1517,7 +1541,25 @@ def render_file(parser):
                 data = wrapdata(data, thing.asmdataprefix)
             lines.extend(data)
 
-    lines.extend(wrapdata(all_exports, ".export "))
+        bytes_lines.append('; %s: %d bytes' % (deflabel, partbytes))
+        bytes_lines.extend(';   %s: %d bytes' % (thing.asmname, thing.bytesize)
+                           for thing in defs1)
+
+    lines.extend([
+        '',
+        '; Make music data available to Pently'
+    ])
+    lines.extend(wrapdata(all_export, ".export "))
+    lines.extend([
+        '',
+        '; Sound effect, instrument, and song names for your program to .importzp'
+    ])
+    lines.extend(wrapdata(all_exportzp, ".exportzp "))
+    lines.extend([
+        '',
+        '; Total music data size: %d bytes' % total_partbytes
+    ])
+    lines.extend(bytes_lines)
     return lines
 
 def main(argv=None):
@@ -1540,21 +1582,9 @@ def main(argv=None):
         return
 
     lines = render_file(parser)
-    print("; Generated using Pently compiler from %s" % infilename)
+    print("; Generated using Pently music assembler from\n; %s" % infilename)
     print("\n".join(lines))
 
 if __name__=='__main__':
 ##    main(["pentlyas", "../src/musicseq.pently"])
     main()
-
-# TODO (high priority)
-# 1. Test finding envelopes that overlap envelopes
-# 2. 
-# 3. 
-# 4. 
-# 5. 
-# 6. 
-# 7. 
-
-# TODO (low priority)
-# 8. Fix transpose of patterns that fallthrough
