@@ -2,6 +2,33 @@ This document describes Pently's text-based music description
 language.  It should be straightforward for a user of LilyPond
 notation software or MML tools such as PPMCK to pick up.
 
+Invoking
+========
+The Pently assembler takes a music description file and produces an
+assembly language file suitable for ca65.  Like other command-line
+programs, it should be run from a Terminal or Command Prompt.
+Double-clicking it in Finder or File Explorer won't do anything
+useful.
+
+Usage:
+
+    pentlyas.py [-h] [-o OUTFILENAME] [--periods NUMSEMITONES]
+                [--period-region {dendy,ntsc,pal}]
+                [infilename]
+
+Arguments:
+
+* `infilename`  
+  Music file to process or `-` for standard input; omit for period
+  table only.
+* `-o OUTFILENAME`  
+  Write output to a file instead of standard output.
+* `--periods NUMSEMITONES`  
+  Include a period table in the output; `NUMSEMITONES` is usually
+  64 to 80.
+* `--period-region {dendy,ntsc,pal}`  
+  Make period table for this region (default: `ntsc`).
+
 Overall structure
 =================
 Indentation is not important.

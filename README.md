@@ -8,9 +8,11 @@ Documentation can be found in `docs/` and example tracks can be found in `musics
 
 Prerequisites:
 
+- Python 3
 - Pillow (Python imaging library) - `pip install pillow`
-- [ca65](http://www.cc65.org/)
-- GNU make / coreutils
+- [ca65](https://cc65.github.io/cc65/)
+- GNU Make and Coreutils - on Windows, install MSYS through
+  [mingw-get](http://www.mingw.org/wiki/Getting_Started)
 
 Building:
 

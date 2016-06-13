@@ -1585,7 +1585,7 @@ def parse_argv(argv):
     parser.add_argument("infilename", nargs='?',
                         help='Pently-MML file to process or - for standard input; omit for period table only')
     parser.add_argument("-o", metavar='OUTFILENAME',
-                        help='write output to a file instead of stdout')
+                        help='write output to a file instead of standard output')
     parser.add_argument("--periods", type=int, default=0,
                         metavar='NUMSEMITONES',
                         help='include a period table in the output; NUMSEMITONES is usually 64 to 80')
