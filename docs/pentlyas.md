@@ -84,7 +84,8 @@ pitch by specifying an octave mode inside the pattern:
 * `absolute` means that notes `c` through `h` fall in the octave
   below middle C.  The low octave is `c,` through `b,` or `<c`
   through `<b`, and middle C is `c'` or `>c`.  The lowest note that
-  works on an NES is `a,,`.
+  works on an NES is `a,,`, and the highest depends on the size of
+  the period table.
 * `orelative` assumes that an octave will be in the same octave as
   the previous note.  Octave changes persist onto later notes.
   This behavior is familiar to MML users.
@@ -178,10 +179,10 @@ Like sound effects, instruments are built out of envelopes.  They
 have the same `volume` and `timbre` settings as pulse sound effects.
 But their `pitch` settings differ: instead of being a list of
 absolute pitches, they are a list of transpositions in semitones
-relative to the note's own pitch.  For example, up a third is 3,
-while down a third is -3.  (They behave the same as an "Absolute"
-arpeggio in FamiTracker.)  In addition, the `rate` command is not
-recognized in an instrument.
+relative to the note's own pitch.  For example, up a major third
+is 4, while down a minor third is -3.  (They behave the same as an
+"Absolute" arpeggio in FamiTracker.)  In addition, the `rate` command
+is not recognized in an instrument.
 
 The `timbre` of an instrument played on the triangle channel must be
 2, or the note will cut prematurely.
@@ -190,9 +191,11 @@ On the last step of the volume envelope, the instrument enters
 sustain.  (The portion envelope prior to sustain is called "attack".)
 A sustaining note's timbre stays constant, its pitch returns to the
 note's own pitch, and its volume stays constant or decreases linearly
-over time.  The `decay` command sets the rate of decrease in volume
-units per 16 frames, from `decay 0` (no decrease; default) through
-`decay 1` (a slow fade) and `decay 16` (much faster).
+over time.  (This means that steps in an instrument's `timbre` or
+`pitch` envelope past the attack _will be ignored._)  The `decay`
+command sets the rate of decrease in volume units per 16 frames, from
+`decay 0` (no decrease; default) through `decay 1` (a slow fade) and
+`decay 16` (much faster).
 
 The `detached` attribute cuts the note half a row early, so that
 notes don't run into each other.  This is especially useful with
@@ -254,6 +257,11 @@ A `time` numerator that is a multiple of 3 greater than 3, such as
 6 or 9, triggers a special-case behavior for compound prolation,
 making the beat three times as long.  For example, each measure in
 `time 6/8` is two beats, each beat a dotted quarter note.
+A few time signatures have shortcut notations:
+
+* `time c` means `time 4/4` (common time).
+* `time ¢` means `time 2/2` (cut time or alla breve).
+* `time o` means `time 3/4` (perfect time).
 
 The **`scale`** command sets what note value shall be used as a
 _row_, the smallest unit of musical time in Pently.  It must be a
@@ -306,10 +314,12 @@ produces a short D, an E taking the remainder of the quarter note,
 followed by a D half note.  Grace note durations never stick.
 
 A note followed by a tilde `~` will not be retriggered but instead
-will be slurred into the following notes.  This is useful for tying
-notes together or producing legato (HOPO).  If the following note
-has the same pitch, it's the same as a wait: `eb2~ eb8` and `eb2 w8`
-mean the same.
+will be slurred into the following note.  A note followed by a left
+parenthesis `(` will be slurred into the following notes, and a note
+followed by a right parenthesis `)` represents the end of such a
+slurred group.  This is useful for tying notes together or producing
+legato (HOPO).  Slurring into a note with the same pitch is the same
+as a wait: `eb2~ eb8`, `eb2( eb8)`, and `eb2 w8` mean the same.
 
 **TODO:** A future version of Pently may introduce a command to
 modify durations in compound prolation for a swing feel.
@@ -325,9 +335,9 @@ a measure.
 
 Pattern effects
 ---------------
-To change the **instrument** within a pattern, use `@` followed by
-the instrument name, such as `@piano`.  Otherwise, it'll use the
-instrument specified in the song's play command.
+To change the **instrument** within a pattern, use `@` followed
+by the instrument name, such as `@piano`.  Notes before the first
+change use the instrument specified in the song's play command.
 
 **Arpeggio** is rapid alternation among two or three pitches to
 create a warbly chord on one channel.  The `EN` command enables or
@@ -350,8 +360,9 @@ The **`tempo`** command tells how many beats are played per minute.
 This can be a decimal, which will be rounded to the nearest whole
 number of rows per minute.  For example, a song in `time 6/8` and
 `scale 16` will have 6 rows per beat; `tempo 100.2` would then
-map to 601.2 rows per minute, which is rounded to 601.  A tempo that
-maps to more than about 1500 rows per minute is forbidden.
+map to 601.2 rows per minute, which is rounded to 601.  A tempo
+that maps to more than 1500 rows per minute is forbidden because
+it would cause a row to be shorter than two frames.
 
 The **`at`** command waits for a `measure:beat:row` combination,
 where measures and beats are numbered from 1 and rows from 0, before
@@ -362,7 +373,7 @@ As in Chinese films and Charles Stross novels, an `at` that goes
 back in time is forbidden.
 
 If a song begins on an upbeat, you can add a **`pickup`** measure.
-The pickup command sets what the parser thinks is the current beat,
+The `pickup` command sets what the parser thinks is the current beat,
 so that the `at` command knows how many rows to wait.  For example,
 in a piece in 3/4 that starts on the third beat, use `pickup 0:3`,
 where `0` means the measure preceding the first full measure, and
@@ -432,6 +443,8 @@ studied music theory and MIDI.
   MOS 6502 CPU, a DMA unit for the sprite display list, four tone
   generators, and a sampled audio playback unit.  Pently uses the
   CPU to send commands to the tone generators.
+* 2A07: Variant of 2A03 used in the PAL NES sold in Europe.
+* 6527P: Variant of 2A03 used in the Dendy famiclone sold in Russia.
 * Attack: The beginning of an envelope.  It consists of all volume
   envelope steps except the last.
 * Bar: The line in musical notation that separates one measure from
@@ -449,8 +462,11 @@ studied music theory and MIDI.
   progress through an envelope, too fast for rhythmic significance.
   Like other NES music engines, Pently counts frames based on the
   vertical retrace of the picture generator.  An NTSC PPU produces
-  60.1 frames per second, which usually ends up assigning three to
-  ten frames per row depending on the tempo and scale.
+  60.1 frames per second, and a PAL PPU produces 50.0 frames per
+  second.  This usually ends up assigning three to ten frames per
+  row depending on the tempo and scale.
+* HOPO: Instantaneous change in a note's pitch.  (After guitar
+  techniques called "hammer-on" and "pull-off" that produce this.)
 * Illusory continuity: The tendency of the human auditory system to
   fill in gaps in a continuous tone when these gaps coincide with
   another sufficiently loud tone or noise.
@@ -462,6 +478,7 @@ studied music theory and MIDI.
 * Pattern: A musical phrase, consisting of a list of notes with
   durations.
 * Pickup measure: A partial measure at the start of a piece of music.
+  Also called "anacrusis".
 * Pitch: The frequency of a tone expressed using a logarithmic scale.
 * Pitched: Relating to a channel with a `pulse` or `triangle` type,
   which plays pitches rather than noise.

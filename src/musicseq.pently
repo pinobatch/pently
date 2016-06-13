@@ -184,7 +184,7 @@ song argument
   pattern tubbassloop on pulse2 with tubbass_slow
     @tubbass_slow
     relative
-    bb,,8~ a8~ a2~ a2. r2. r2.
+    bb,,8( a8 a2 a2.) r2. r2.
   
   at 17
   play tubbassloop

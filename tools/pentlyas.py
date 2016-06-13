@@ -661,7 +661,7 @@ class PentlySong(PentlyRenderable):
                 tracks_to_stop.add(track)
         if tracks_unknown:
             raise ValueError("unknown track names: "+" ".join(tracks_unknown))
-        abstract_cmds = (('stopPat', track) for track in tracks_to_stop)
+        abstract_cmds = [('stopPat', track) for track in tracks_to_stop]
         self.conductor.extend(abstract_cmds)
         self.bytesize += 4 * len(abstract_cmds)
 
@@ -757,7 +757,7 @@ class PentlyPattern(PentlyRenderable):
 (,*|'*)       # LilyPond style octave
 ([0-9]*)      # duration
 (|\.|\.\.|g)  # duration augment
-(\~?)$        # slur?
+([~()]?)$     # slur?
 """, re.VERBOSE)
 
     def parse_note(self, pitch):
@@ -768,7 +768,6 @@ class PentlyPattern(PentlyRenderable):
          duration, duraugment, slur) = m.groups()
         semi = self.pitchctx.parse_pitch(preoctave, notename, accidental, postoctave)
         duration, duraugment = self.rhyctx.parse_duration(duration, duraugment)
-        slur = slur != ''
         return semi, duration, duraugment, slur
 
     drumnoteRE = re.compile(r"""
@@ -875,12 +874,30 @@ class PentlyPattern(PentlyRenderable):
 
     @staticmethod
     def collapse_ties(notes, tie_rests=False):
-        """Combine w notes and notes matching previous slurred pitch into previous.
+        """Interpret slur commands; combine w notes and slurred same-pitch notes.
 
 notes -- iterable of (pitch, numrows, slur) sequences
 tie_rests -- True if track has no concept of a "note off"
 
 """
+
+        # Convert tie/slur notations ~, (, and ) to true/false
+        sluropen = False
+        slurnotes = []
+        for note in notes:
+            if isinstance(note, str):
+                slurnotes.append(note)
+                continue
+            
+            pitch, numrows, slur = note
+            if slur == '(':
+                sluropen = True
+            elif slur == ')':
+                sluropen = False
+            slur = sluropen or slur == '~'
+            slurnotes.append((pitch, numrows, slur))
+        notes = slurnotes
+
         out = []
         lastwasnote = hasnote = False
         for note in notes:
@@ -1616,7 +1633,7 @@ def main(argv=None):
         except Exception as e:
             import traceback
             traceback.print_exc()
-            print("%s:%d: %s" % (infilename, parser.linenum, e),
+            print("%s:%d: %s" % (args.infilename, parser.linenum, e),
                   file=sys.stderr)
             sys.exit(1)
         finally:
