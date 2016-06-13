@@ -8,7 +8,7 @@
 # them anyway in case someone runs it on Python 2 for Windows, which
 # is the default IDLE in a lot of Windows PCs
 from __future__ import with_statement, division, print_function
-import sys, json, re
+import sys, json, re, argparse
 
 scaledegrees = {
     'c': 0, 'd': 1, 'e': 2, 'f': 3, 'g': 4, 'a': 5, 'h': 6, 'b': 6
@@ -1562,11 +1562,55 @@ def render_file(parser):
     lines.extend(bytes_lines)
     return lines
 
+# Period table generation ###########################################
+
+baseNoteFreq = 55.0
+region_period_numerator = {
+    'ntsc': 39375000.0/(22 * 16),
+    'pal': 266017125.0/(10 * 16 * 16),
+    'dendy': 266017125.0/(10 * 16 * 15)
+}
+
+def getPeriodValues(maxNote=64, region='ntsc'):
+    numerator = region_period_numerator[region.strip().lower()]
+    octaveBase = numerator / baseNoteFreq
+    semitone = 2.0**(1./12)
+    relFreqs = [(1 << (i // 12)) * semitone**(i % 12)
+                for i in range(maxNote)]
+    periods = [int(round(octaveBase / freq)) - 1 for freq in relFreqs]
+    return periods
+
+def parse_argv(argv):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("infilename", nargs='?',
+                        help='Pently-MML file to process or - for standard input; omit for period table only')
+    parser.add_argument("-o", metavar='OUTFILENAME',
+                        help='write output to a file instead of stdout')
+    parser.add_argument("--periods", type=int, default=0,
+                        metavar='NUMSEMITONES',
+                        help='include a period table in the output; NUMSEMITONES is usually 64 to 80')
+    parser.add_argument("--period-region", default='ntsc',
+                        choices=sorted(region_period_numerator.keys()),
+                        help='make period table for this region (default: ntsc)')
+    args = parser.parse_args(argv[1:])
+    if not args.infilename and not args.periods:
+        parser.error('at least one of infilename and --periods is required')
+    if args.periods < 0:
+        parser.error('NUMSEMITONES cannot be negative')
+    if args.periods > 88:
+        parser.error('2A03 not precise enough for NUMSEMITONES > 88')
+    return args
+
 def main(argv=None):
-    argv = argv or sys.argv
-    parser = PentlyInputParser()
-    infilename = argv[1]
-    with open(infilename, 'r') as infp:
+    args = parse_argv(argv or sys.argv)
+
+    lines = [
+        '; Generated using Pently music assembler'
+    ]
+    if args.infilename:
+        parser = PentlyInputParser()
+        is_stdin = args.infilename == '-'
+        infp = sys.stdin if is_stdin else open(args.infilename, 'r')
         try:
             parser.extend(infp)
         except Exception as e:
@@ -1575,15 +1619,37 @@ def main(argv=None):
             print("%s:%d: %s" % (infilename, parser.linenum, e),
                   file=sys.stderr)
             sys.exit(1)
-    if parser.cur_song:
-        print("%s:%d: song %s was not ended"
-              % (infilename, parser.linenum, parser.cur_song.name),
-              file=sys.stderr)
-        return
+        finally:
+            if not is_stdin:
+                infp.close()
 
-    lines = render_file(parser)
-    print("; Generated using Pently music assembler from\n; %s" % infilename)
-    print("\n".join(lines))
+        if parser.cur_song:
+            print("%s:%d: warning: song %s was not ended"
+                  % (infilename, parser.linenum, parser.cur_song.name),
+                  file=sys.stderr)
+        lines.append('; Music from ' + ('standard input' if is_stdin else args.infilename))
+        lines.extend(render_file(parser))
+
+    if args.periods > 0:
+        periods = getPeriodValues(args.periods, args.period_region)
+        lines.extend([
+            '; Period table of length %d for %s'
+            % (args.periods, args.period_region),
+            '.export periodTableLo, periodTableHi',
+            'periodTableLo:'
+        ])
+        lines.extend(wrapdata(("$%02x" % (x & 0xFF) for x in periods), '.byt '))
+        lines.append('periodTableHi:')
+        lines.extend(wrapdata((str(x >> 8) for x in periods), '.byt '))
+
+    is_stdout = not args.o
+    outfp = sys.stdout if is_stdout else open(args.o, 'w')
+    lines.append('')
+    try:
+        outfp.write('\n'.join(lines))
+    finally:
+        if not is_stdout:
+            outfp.close()
 
 if __name__=='__main__':
 ##    main(["pentlyas", "../src/musicseq.pently"])
