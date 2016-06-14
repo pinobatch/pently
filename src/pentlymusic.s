@@ -117,11 +117,15 @@ invdurations:
   sta conductorPos+1
   sta conductorSegno+1
 
-  ldx #16
+  ldx #ATTACK_TRACK
   bne channelLoopSkipHWOnly
   channelLoop:
     lda #0
     sta noteEnvVol,x
+    sta noteLegato,x
+    sta arpInterval1,x
+    sta arpInterval2,x
+    sta arpPhase,x
     channelLoopSkipHWOnly:
     lda #<silentPattern
     sta musicPatternPos,x
@@ -129,10 +133,6 @@ invdurations:
     sta musicPatternPos+1,x
     sta musicPattern,x  ; bit 7 set: no pattern playing
     lda #0
-    sta arpInterval1,x
-    sta noteLegato,x
-    sta arpPhase,x
-    sta arpInterval2,x
     sta patternTranspose,x
     sta noteInstrument,x
     sta noteRowsLeft,x
@@ -334,8 +334,12 @@ conductorPlayPattern:
   asl a
   asl a
   tax
+
   lda #0
-  sta noteLegato,x  ; start all patterns with legato off
+  cpx #ATTACK_TRACK
+  bcs :+
+    sta noteLegato,x  ; start all patterns with legato off
+  :
   sta noteRowsLeft,x
   lda (conductorPos),y
   sta musicPattern,x
@@ -415,7 +419,7 @@ anotherPatternByte:
   notArpeggio:
     cmp #LEGATO_ON+1
     bcs notLegato
-    cpx #16
+    cpx #ATTACK_TRACK
     bcs anotherPatternByte
       and #$01
       sta noteLegato,x
@@ -458,7 +462,7 @@ anotherPatternByte:
   beq notKeyOff
     lda #0
     sta attack_remainlen,x
-    cpx #16
+    cpx #ATTACK_TRACK
     bcs notKeyOff
     sta noteEnvVol,x
   notKeyOff:
@@ -524,10 +528,16 @@ instrument_id = pently_zptemp + 1
   ; at this point:
   ; x = channel #
   ; y = offset in instrument table
-  cpx #16
+  cpx #ATTACK_TRACK
   bcs skipSustainPart
     lda notenum
     sta notePitch,x
+    lda arpPhase,x
+    bmi :+
+      ; If not an injected attack, also change attack pitch
+      lda notenum
+      sta attackPitch,x
+    :
     lda noteLegato,x
     bne skipAttackPart
     lda #0
@@ -547,7 +557,7 @@ instrument_id = pently_zptemp + 1
   beq skipAttackPart
     txa
     pha
-    cpx #16
+    cpx #ATTACK_TRACK
     bcc notAttackChannel
       ldx attackChannel
       lda #$80  ; Disable arpeggio until sustain
