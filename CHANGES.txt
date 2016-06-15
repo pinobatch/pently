@@ -1,7 +1,22 @@
+0.05wip4 (2016-06)
+* Project moved to GitHub: https://github.com/Qix-/pently
+* pentlyas.py: proper argument parsing
+* pentlyas.py: options to read input from stdin, write output to file
+* pentlyas.py: option to generate period table (requested by dougeff)
+* pentlyas.py: writes data sizes in bytes as comments in output
+  (requested by NovaSquirrel)
+* pentlyas.py: turned some internal exceptions into informative
+  error messages (reported by NovaSquirrel)
+* pentlyas.py: treats r and w the same in drum patterns
+  (requested by NovaSquirrel)
+* pentlyas.py: parentheses for slur for LilyPond parity
+* Legato note overwrites uninjected attack's pitch
+  (reported by NovaSquirrel)
+
 0.05wip3 (2016-01)
 * Corrected namespacing of pently_stop_music and pently_resume_music
-  (reported by 43110)
-* Allows relocating temporary zero page space (requested by 43110)
+  (reported by JRoatch)
+* Allows relocating temporary zero page space (requested by JRoatch)
 * pentlyas.py: Refactored without "god object"
 * pentlyas.py: Changed syntax for arpeggio effect; the original
   was based on a misreading of MCK Beginner's Guide

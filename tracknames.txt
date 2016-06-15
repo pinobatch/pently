@@ -6,6 +6,5 @@ Individual features
 Stairs
 Attack channel (no pulse!)
 
-Pently demo 0.05wip3
-with refactored converter
+Pently demo 0.05wip4
 Copr. 2016 Damian Yerrick

@@ -11,16 +11,15 @@
 
 # These are used in the title of the NES program and the zip file.
 title = pently
-version = 0.05wip3
+version = 0.05wip4
 
-# Space-separated list of assembly language files that make up the
-# PRG ROM.  If it gets too long for one line, you can add a backslash
-# (the \ character) at the end of the line and continue on the next.
+# Space-separated list of asm files that make up the ROM,
+# whether source code or generated
 objlist := main \
   pads ppuclear paldetect bcd math bpmmath \
-  pentlysound pentlymusic musicseq ntscPeriods
+  pentlysound pentlymusic musicseq
 objlistnsf := nsfshell \
-  pentlysound pentlymusic musicseq ntscPeriods
+  pentlysound pentlymusic musicseq
 
 AS65 = ca65
 LD65 = ld65
@@ -32,25 +31,6 @@ imgdir = tilesets
 #EMU := "/C/Program Files/Nintendulator/Nintendulator.exe"
 EMU := fceux --input1 GamePad.0
 # other options for EMU are start (Windows) or gnome-open (GNOME)
-
-# Occasionally, you need to make "build tools", or programs that run
-# on a PC that convert, compress, or otherwise translate PC data
-# files into the format that the NES program expects.  Some people
-# write their build tools in C or C++; others prefer to write them in
-# Perl, PHP, or Python.  This program doesn't use any C build tools,
-# but if yours does, it might include definitions of variables that
-# Make uses to call a C compiler.
-CC = gcc
-CFLAGS = -std=gnu99 -Wall -DNDEBUG -O
-
-# Windows needs .exe suffixed to the names of executables; UNIX does
-# not.  COMSPEC will be set to the name of the shell on Windows and
-# not defined on UNIX.
-ifdef COMSPEC
-DOTEXE=.exe
-else
-DOTEXE=
-endif
 
 .PHONY: run dist zip
 
@@ -67,9 +47,14 @@ run: $(title).nes
 dist: zip
 zip: $(title)-$(version).zip
 $(title)-$(version).zip: zip.in $(title).nes $(title).nsf \
-  TODO.txt README.txt CHANGES.txt docs/pently_manual.html \
+  TODO.txt README.md CHANGES.txt docs/pently_manual.html \
   $(objdir)/index.txt
 	zip -9 -u $@ -@ < $<
+
+# Build zip.in from the list of files in the Git tree
+zip.in:
+	git ls-files | grep -e "^[^.]" > $@
+	echo zip.in >> $@
 
 $(objdir)/index.txt: makefile
 	echo "This file forces the creation of the folder for object files. You may delete it." > $@
@@ -97,13 +82,9 @@ $(objdir)/musicseq.o $(objdir)/pentlymusic.o: $(srcdir)/pentlyseq.inc
 # Files that depend on .incbin'd files
 $(objdir)/main.o: tracknames.txt $(objdir)/bggfx.chr
 
-# Generate lookup tables at build time
-$(objdir)/ntscPeriods.s: tools/mktables.py
-	$< period $@
-
 # Translate music project
 $(objdir)/%.s: tools/pentlyas.py src/%.pently
-	$^ > $@
+	$^ -o $@ --periods 76
 
 # Rules for CHR ROM
 
