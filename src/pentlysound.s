@@ -172,11 +172,11 @@ loop:
 .endproc
 
 .proc pently_update_one_ch
-srclo  = pently_zptemp + 0
-srchi  = pently_zptemp + 1
-tvol   = pently_zptemp + 2
-tpitch = pently_zptemp + 3
-t4     = pently_zptemp + 4
+srclo     = pently_zptemp + 0
+srchi     = pently_zptemp + 1
+tvol      = pently_zptemp + 2
+tpitch    = pently_zptemp + 3
+tpitchadd = pently_zptemp + 4
 
 
   ; At this point, the music engine should have left duty and volume
@@ -218,15 +218,19 @@ ch_not_done:
   ldy #0
   .if ::KEEP_MUSIC_IF_LOUDER
     lda tvol
+    pha
     and #$0F
-    sta t4
+    sta tvol
     lda (srclo),y
     and #$0F
     
-    ; At this point: A = sfx volume; 4 = musc volume
-    cmp t4
+    ; At this point: A = sfx volume; tvol = music volume
+    cmp tvol
+    pla
+    sta tvol
     bcc music_was_louder
   .endif
+  sty tpitchadd  ; sfx don't support fine pitch adjustment
   lda (srclo),y
   sta tvol
   iny
@@ -257,8 +261,15 @@ notnoise:
 :
 .endif
   lda periodTableLo,y
+  clc
+  adc tpitchadd
   sta $4002,x
-  lda periodTableHi,y
+  lda tpitchadd
+  and #$80
+  bpl :+
+    lda #$FF
+  :
+  adc periodTableHi,y
   cmp ch_lastfreqhi,x
   beq no_change_to_hi_period
   sta ch_lastfreqhi,x

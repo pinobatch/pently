@@ -34,57 +34,64 @@ DRUM_TRACK = 12
 ATTACK_TRACK = 16
 
 ; pently_zp_state:
-;       +0              +1              +2              +3
-; $00 | Sq1 sound effect data ptr       Sq1 envelope data ptr
-; $04-$0C repeat for Sq2, Tri, Noise
-; $10 | Sq1 music pattern data ptr      Conductor data ptr
-; $14 | Sq2 music pattern data ptr      Unused
-; $18-$20 repeat for Tri, Noise, Attack
+;       +0                +1                +2                +3
+;  0  | Sq1 sound effect data ptr           Sq1 envelope data ptr
+;  4  | Sq2 sound effect data ptr           Sq2 envelope data ptr
+;  8  | Tri sound effect data ptr           Tri envelope data ptr
+; 12  | Noise sound effect data ptr         Noise envelope data ptr
+; 16  | Sq1 music pattern data ptr          Play/Pause        Attack channel
+; 20  | Sq2 music pattern data ptr          Tempo
+; 24  | Tri music pattern data ptr          Tempo counter
+; 28  | Noise music pattern data ptr        Unused            Unused
+; 32  | Attack music pattern data ptr       Conductor track position
 
 ; pentlyBSS:
-;       +0              +1              +2              +3
-; $00-$0F Sound effect state for Sq1, Sq2, Tri, Noise
-; $00 | Effect rate     Rate counter    Last period MSB Effect length
-; $10-$1F Instrument envelope state for Sq1, Sq2, Tri, Noise
-; $10 | Attack length   Attack pitch    Sustain vol     Note pitch
-; $20-$2F Instrument arpeggio state
-; $20 | Legato enable   Arpeggio phase  Arp interval 1  Arp interval 2
-; $30-$43 Pattern reader state for Sq1, Sq2, Tri, Noise, Attack
-; $20 | Note time left  Instrument ID   Pattern ID      Transpose amt
-; $34 | Grace note time Unused          conductor use
-; $48 End of allocation
+;       +0                +1                +2                +3
+;  0-15 Sound effect state for channels
+;  0  | Effect rate       Rate counter      Last period MSB   Effect length
+; 16-31 Instrument envelope state for channels
+; 16  | Sustain vol       Note pitch        Attack length     Attack pitch    
+; 32-47 Instrument arpeggio state for channels
+; 32  | Legato enable     Arpeggio phase    Arp interval 1    Arp interval 2
+; 48-67 Pattern reader state for tracks
+; 48  | Note time left    Instrument ID     Pattern ID        Transpose amt
+; 68  | Grace time        Unused            Unused            Conductor use
 
-noteAttackPos = pently_zp_state + 2
+; 88 End of allocation
+
+noteAttackPos   = pently_zp_state + 2
 musicPatternPos = pently_zp_state + 16
-
-conductorSegno = pently_zp_state + 26
-conductorPos = pently_zp_state + 30
-attack_remainlen = pentlyBSS + 16
-attackPitch = pentlyBSS + 17
-noteEnvVol = pentlyBSS + 18
-notePitch = pentlyBSS + 19
-noteLegato = pentlyBSS + 32
-arpPhase = pentlyBSS + 33
-arpInterval1 = pentlyBSS + 34
-arpInterval2 = pentlyBSS + 35
-noteRowsLeft = pentlyBSS + 48
-noteInstrument = pentlyBSS + 49
-musicPattern = pentlyBSS + 50
-patternTranspose = pentlyBSS + 51
-graceTime = pentlyBSS + 68
-unused69 = pentlyBSS + 69
+attack_remainlen= pentlyBSS + 16
+attackPitch     = pentlyBSS + 17
+noteEnvVol      = pentlyBSS + 18
+notePitch       = pentlyBSS + 19
+noteLegato      = pentlyBSS + 32
+arpPhase        = pentlyBSS + 33
+arpInterval1    = pentlyBSS + 34
+arpInterval2    = pentlyBSS + 35
+noteRowsLeft    = pentlyBSS + 48
+noteInstrument  = pentlyBSS + 49
+musicPattern    = pentlyBSS + 50
+patternTranspose= pentlyBSS + 51
+graceTime       = pentlyBSS + 68
+unused69        = pentlyBSS + 69
 
 ; Shared state
-unused70 = pentlyBSS + 70
-attackChannel = pentlyBSS + 71
-pently_rows_per_beat = pentlyBSS + 74
-pently_row_beat_part = pentlyBSS + 75
-pently_tempoCounterLo = pentlyBSS + 78
-pently_tempoCounterHi = pentlyBSS + 79
-music_tempoLo = pentlyBSS + 82
-music_tempoHi = pentlyBSS + 83
-conductorWaitRows = pentlyBSS + 86
-pently_music_playing = pentlyBSS + 87
+
+pently_music_playing    = pently_zp_state + 18
+attackChannel           = pently_zp_state + 19
+music_tempoLo           = pently_zp_state + 22
+music_tempoHi           = pently_zp_state + 23
+pently_tempoCounterLo   = pently_zp_state + 26
+pently_tempoCounterHi   = pently_zp_state + 27
+conductorPos            = pently_zp_state + 34
+
+conductorWaitRows       = pentlyBSS + 71
+pently_rows_per_beat    = pentlyBSS + 75
+pently_row_beat_part    = pentlyBSS + 79
+conductorSegnoLo        = pentlyBSS + 83
+conductorSegnoHi        = pentlyBSS + 87
+
 
 FRAMES_PER_MINUTE_PAL = 3000
 FRAMES_PER_MINUTE_NTSC = 3606
@@ -112,10 +119,10 @@ invdurations:
   tax
   lda pently_songs,x
   sta conductorPos
-  sta conductorSegno
+  sta conductorSegnoLo
   lda pently_songs+1,x
   sta conductorPos+1
-  sta conductorSegno+1
+  sta conductorSegnoHi
 
   ldx #ATTACK_TRACK
   bne channelLoopSkipHWOnly
@@ -308,17 +315,17 @@ conbyte = pently_zptemp + 0
   cmp #CON_SEGNO
   bne @notSegno
     lda conductorPos
-    sta conductorSegno
+    sta conductorSegnoLo
     lda conductorPos+1
-    sta conductorSegno+1
+    sta conductorSegnoHi
     jmp doConductor
   @notSegno:
 
   cmp #CON_DALSEGNO
   bne @notDalSegno
-    lda conductorSegno
+    lda conductorSegnoLo
     sta conductorPos
-    lda conductorSegno+1
+    lda conductorSegnoHi
     sta conductorPos+1
 .if ::PENTLY_USE_ROW_CALLBACK
     sec
@@ -579,10 +586,11 @@ instrument_id = pently_zptemp + 1
 .endproc
 
 .proc pently_update_music_ch
-xsave      = pently_zptemp + 0
-ysave      = pently_zptemp + 1
-out_volume = pently_zptemp + 2
-out_pitch  = pently_zptemp + 3
+xsave        = pently_zptemp + 0
+ysave        = pently_zptemp + 1
+out_volume   = pently_zptemp + 2
+out_pitch    = pently_zptemp + 3
+out_pitchadd = pently_zptemp + 4
 
   lda pently_music_playing
   beq silenced
@@ -644,11 +652,11 @@ noArpRestart:
   ldx xsave
   tya
   sta arpPhase,x
-  rts
+  jmp calc_vibrato
 
 storePitchNoArpeggio:
   sta out_pitch
-  rts
+  jmp calc_vibrato
 
 noAttack:
   lda noteEnvVol,x
@@ -710,9 +718,12 @@ notSilenced:
 yesCutNote:
   lda #0
   sta noteEnvVol,x
-
 notCutNote:
   rts
 
+calc_vibrato:
+  lda #0
+  sta out_pitchadd
+  rts
 .endproc
 
