@@ -455,6 +455,7 @@ song canon
   pattern melody on pulse2 with bf98_osti
     relative
     # 3
+    MP1
     f#''4 e d c#
     b a b c#
     d c# b a

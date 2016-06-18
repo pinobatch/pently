@@ -786,7 +786,8 @@ class PentlyPattern(PentlyRenderable):
             notename = 'w'
         return notename, duration, duraugment, False
 
-    arpeggioRE = re.compile("@?EN(OF|[0-9a-fA-F]{1,2})$")
+    arpeggioRE = re.compile("EN(OF|[0-9a-fA-F]{1,2})$")
+    vibratoRE = re.compile("MP(OF|[0-7])$")
     def add_pattern_note(self, word):
         if word in ('absolute', 'orelative', 'relative'):
             if self.pitchctx.octave_mode == 'drum':
@@ -803,6 +804,17 @@ class PentlyPattern(PentlyRenderable):
             if arpargument == 'OF':  # Treat ENOF as EN00
                 arpargument = '00'
             self.notes.append("ARPEGGIO,$"+arpargument)
+            return
+
+        vibratomatch = (self.vibratoRE.match(word)
+                        if self.pitchctx.octave_mode != 'drum'
+                        else None)
+        if vibratomatch:
+            self.pitchctx.set_pitched_mode()
+            vibargument = vibratomatch.group(1)
+            if vibargument == 'OF':  # Treat MPOF as MP0
+                vibargument = '0'
+            self.notes.append("VIBRATO,"+vibargument)
             return
 
         # Other @ marks are instrument changes.  Resolve them later

@@ -340,10 +340,16 @@ by the instrument name, such as `@piano`.  Notes before the first
 change use the instrument specified in the song's play command.
 
 **Arpeggio** is rapid alternation among two or three pitches to
-create a warbly chord on one channel.  The `EN` command enables or
-disables arpeggio: `EN00` or `ENOF` turns it off, `EN04` sets it to
-a major third interval (four semitones above the note), and `EN37`
-sets it to a minor chord (three and seven semitones above the note).
+create a warbly chord on one channel.  The `EN` command controls
+arpeggio: `EN00` or `ENOF` turns it off, `EN04` sets it to a major
+third interval (four semitones above the note), and `EN37` sets it
+to a minor chord (three and seven semitones above the note).
+
+**Vibrato** is a subtle pitch slide up and down while a note is held.
+The `MP` (modulate period) command controls vibrato: `MP1` through
+`MP4` set depth between 1 (very subtle) and 4 (very strong), and
+`MP0` or `MPOF` disables it.  Only the depth can be controlled, not
+the rate (which is fixed to a musically sane 12 frame period).
 
 Songs
 =====

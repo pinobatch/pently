@@ -390,62 +390,28 @@ skipNote:
 
 anotherPatternByte:
   lda (musicPatternPos,x)
-  cmp #255
+  cmp #PATEND
   bne notStartPatternOver
     jsr startPattern
     lda (musicPatternPos,x)
   notStartPatternOver:
-    
   inc musicPatternPos,x
   bne patternNotNewPage
     inc musicPatternPos+1,x
   patternNotNewPage:
 
   cmp #INSTRUMENT
-  bcc notExtraCommand
-  beq isInstrument
-    cmp #ARPEGGIO
-    bne notArpeggio
-    lda (musicPatternPos,x)
-    lsr a
-    lsr a
-    lsr a
-    lsr a
-    sta arpInterval1,x
-    lda (musicPatternPos,x)
-    and #$0F
-    sta arpInterval2,x
-    jmp nextPatternByte
-  notArpeggio:
-    cmp #LEGATO_ON+1
-    bcs notLegato
-    cpx #ATTACK_TRACK
-    bcs anotherPatternByte
-      and #$01
-      sta noteLegato,x
-      bpl anotherPatternByte
-  notLegato:
-    cmp #GRACE
-    bcc isTranspose
-    bne anotherPatternByte
-    lda (musicPatternPos,x)
-    sta graceTime,x
-    jmp nextPatternByte
-  isTranspose:
-    ; clc
-    lda patternTranspose,x
-    adc (musicPatternPos,x)
-    sta patternTranspose,x
-    jmp nextPatternByte
-  isInstrument:
-    lda (musicPatternPos,x)
-    sta noteInstrument,x
-  nextPatternByte:
-    inc musicPatternPos,x
-    bne anotherPatternByte
-    inc musicPatternPos+1,x
-    jmp anotherPatternByte
-  notExtraCommand:
+  bcc isNoteCmd
+  sbc #INSTRUMENT
+  asl a
+  tay
+  lda patcmdhandlers+1,y
+  pha
+  lda patcmdhandlers,y
+  pha
+  rts
+
+isNoteCmd:
   
   ; set the note's duration
   pha
@@ -508,6 +474,70 @@ startPattern:
   lda pently_patterns+1,y
   sta musicPatternPos+1,x
   rts
+
+.pushseg
+.segment "RODATA"
+patcmdhandlers:
+  .addr handle_instrument-1
+  .addr handle_arpeggio-1
+  .addr handle_legato-1
+  .addr handle_legato-1
+  .addr handle_transpose-1
+  .addr handle_grace-1
+  .addr handle_vibrato-1
+.popseg
+
+handle_instrument:
+  lda (musicPatternPos,x)
+  sta noteInstrument,x
+nextPatternByte:
+  inc musicPatternPos,x
+  bne :+
+    inc musicPatternPos+1,x
+  :
+  jmp anotherPatternByte
+
+handle_arpeggio:
+  cpx #12
+  bcs :+
+    lda (musicPatternPos,x)
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    sta arpInterval1,x
+    lda (musicPatternPos,x)
+    and #$0F
+    sta arpInterval2,x
+  :
+  jmp nextPatternByte
+
+handle_legato:
+  cpx #12
+  bcs :+
+    tya
+    and #$02
+    sta noteLegato,x
+  :
+  jmp anotherPatternByte
+
+handle_grace:
+  lda (musicPatternPos,x)
+  sta graceTime,x
+  jmp nextPatternByte
+
+handle_transpose:
+  lda patternTranspose,x
+  adc (musicPatternPos,x)
+  sta patternTranspose,x
+  jmp nextPatternByte
+
+handle_vibrato:
+  lda (musicPatternPos,x)
+  and #$07
+  sta vibratoDepth,x
+  jmp nextPatternByte
+
 .endproc
 
 ;;

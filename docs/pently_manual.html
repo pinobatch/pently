@@ -174,7 +174,7 @@ There can be up to 51 different instrument definitions in a soundtrack.
 </p><p>
 The envelope determines the volume and timbre of an instrument over time. We take a cue from the <a href="https://en.wikipedia.org/wiki/Roland_D-50" target="wikipedia">Roland D-50 and D-550 synthesizers</a> that a note's attack is the hardest thing to synthesize. An instrument for the D-50 can play a PCM sample to sweeten the attack and leave the decay, sustain, and release to a subtractive synthesizer. Likewise in Pently, an envelope has two parts: attack and sustain.
 </p><p>
-An attack is like a short sound effect that specifies the duty, volume, and pitch for the first few frames of a note. It's analogous to the arpeggio, volume, and duty envelopes in FamiTracker, but in a more compact format almost identical to that of sound effects with one difference: instead of specifying an absolute pitch (as in FamiTracker's "Fixed" envelope), they specify an offset in semitones from the note's own pitch (as in FamiTracker "Absolute" envelope).
+An attack is like a short sound effect that specifies the duty, volume, and pitch for the first few frames of a note. It's analogous to the arpeggio, volume, and duty envelopes in FamiTracker, but in a compact format almost identical to that of sound effects with one difference: instead of specifying an absolute pitch (as in FamiTracker's "Fixed" envelope), they specify an offset in semitones from the note's own pitch (as in FamiTracker "Absolute" envelope).
 </p><p>
 After the attack finishes, the channel continues into the sustain. The duty and initial volume of the channel are set, and then the volume gradually decreases if desired. Each instrument is defined by one line in <code>pently_instruments</code> in <code>musicseq.s</code>:
 </p><pre>
@@ -332,6 +332,8 @@ Arpeggio rapidly cycles a note among two or three different pitches, which produ
 <tr><td><code>ARPEGGIO,$58</code></td><td>Minor chord, second inversion</td></tr>
 <tr><td><code>ARPEGGIO,$59</code></td><td>Major chord, second inversion</td></tr>
 </table><p>
+Vibrato is a subtle pitch slide up and down while a note is held. First it waits 12 frames, then it adds a fraction of the note's period to its period, which fraction is controlled by a sinusoid with period 12 frames. The depth can be set from off (<code>VIBRATO,0</code>) to subtle (<code>VIBRATO,1</code>) through very strong (<code>VIBRATO,4</code>).
+</p><p>
 The transpose command changes the pitch of the rest of a pattern by a given number of semitones. For example, <code>TRANSPOSE,5</code> moves the rest of the pattern up a perfect fourth. <code>TRANSPOSE,&lt;-12</code> moves down an octave, with the <code>-</code> denoting negative and the <code>&lt;</code> working around ca65's lack of support for signed bytes. It's most often used to include notes more than two octaves apart in one pattern.
 </p><p>
 The grace command shortens the next two rows to one row's length. The next byte specifies the length in frames of the first note in the pair. Like the <code>EDx</code> command in MOD/XM or the <code>SDx</code> command in S3M/IT, it's designed for making an <a href="https://en.wikipedia.org/wiki/Ornament_%28music%29#Acciaccatura">acciaccatura (grace note)</a> or a set of triplets (3 notes in the time of 4). For example, to play a short C note for 4 frames followed by a B flat that is as long as a quarter note minus 4 frames, do <code>GRACE,4,N_CH, N_BB|D_Q4.</code>
@@ -346,22 +348,21 @@ The following are all the symbols that are valid in pattern code:
 <li>Notes, <a href="https://en.wikipedia.org/wiki/Enharmonic" target="wikipedia">enharmonic</a> synonyms: <code>N_DB, N_EB, N_GB, N_AB, N_BB, N_DBH, N_EBH, N_GBH, N_ABH, N_BBH</code>
 <li>Duration carriers that are not notes: <code>N_TIE, REST</code></li>
 <li>Durations: <code>D_8</code> (2 rows), <code>D_D8</code> (3 rows), <code>D_4</code> (4 rows), <code>D_D4</code> (6 rows), <code>D_2</code> (8 rows), <code>D_D2</code> (12 rows), <code>D_1</code> (16 rows)</code></li>
-<li>Control: <code>INSTRUMENT, ARPEGGIO, LEGATO_ON, LEGATO_OFF, TRANSPOSE, PATEND</code></li>
+<li>Control: <code>INSTRUMENT, ARPEGGIO, LEGATO_ON, LEGATO_OFF, VIBRATO, TRANSPOSE, PATEND</code></li>
 </ul>
 
 <h2 id="Bugs_and_limits">Bugs and limits</h2>
 <p>
 No music engine is perfect. These problems exist:
 </p><ul>
-<li>Though it's only 1.3 KiB and thus much smaller than the FamiTracker or NerdTracker II player, it may still take up too much space in a very tight NROM-128 game because it is not modularized to be built without support for some effects.</li>
-<li>A legato note does not take effect until after the attack phase has completed. This is especially noticeable with legato grace notes.</li>
+<li>Though it's only 1.4 KiB and thus much smaller than the FamiTracker or NerdTracker II player, it may still take up too much space in a very tight NROM-128 game because it is not modularized to be built without support for some effects.</li>
 <li>There is currently no way to split sequence data across multiple PRG ROM banks or stash it in CHR ROM (like in <em>Galaxian</em>).</li>
-<li>No pitch bends or vibrato.</li>
+<li>No pitch bends.</li>
 <li>No echo buffer effect.</li>
 <li>No support for DPCM drums. This is a low priority because Pently is used in games that depend on controllers or raster effects incompatible with DPCM. However, it won't interfere with your own sample player, which can be triggered from <code>pently_row_callback</code>.</li>
 <li>Envelopes have no release phase; a note-off kills the note abruptly.</li>
 <li>No error checking for certain combinations that cause undefined behavior.</li>
-<li>No graphical editor.</li>
+<li>No graphical editor, unless you count using FamiTracker and then converting it with <a href="https://github.com/NovaSquirrel/ft2pently">NovaSquirrel's ft2pently</a>.</li>
 <li>Limit of 51 instruments, 64 sound effects, 25 different drums, 128 patterns, and 128 songs.</li>
 <li>The bottom and top octaves of the 88-key piano are missing, reflecting an NES limit.</li>
 <li>The row grid cannot be swung.</li>
@@ -370,15 +371,29 @@ No music engine is perfect. These problems exist:
 
 <h2 id="License">License</h2>
 <p>
-The Pently audio engine is distributed under the following terms:
+The Pently audio engine is distributed under the MIT License (Expat
+variant):
 </p><pre>
-Copyright 2010-2015 Damian Yerrick
+Copyright 2010-2016 Damian Yerrick
 
-Copying and distribution of this file, with or without
-modification, are permitted in any medium without royalty provided
-the copyright notice and this notice are preserved in all source
-code copies.  This file is offered as-is, without any warranty.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 </pre><p>
-This means that yes, you may use Pently in games that you are selling on cartridge. And no, you do not have to make your game <a href="https://en.wikipedia.org/wiki/Free_software" target="wikipedia">free software</a>; this is not a copyleft. But I'd appreciate a mention of Pently in the game's credits.
+This means that yes, you may use Pently in games that you are selling on cartridge. And no, you do not have to make your game <a href="https://en.wikipedia.org/wiki/Free_software" target="wikipedia">free software</a>; this is not a copyleft. If a game is distributed with a manual, you may place the full notice in the manual so long as the author is credited within the game.
 </p>
 </body></html>
