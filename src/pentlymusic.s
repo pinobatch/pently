@@ -11,8 +11,9 @@
 .include "pently.inc"
 .include "pentlyseq.inc"
 
-.importzp pently_zp_state
+.importzp pently_zp_state, PENTLYBSS_SIZE
 .import pentlyBSS
+.import periodTableLo, periodTableHi
 .export pently_update_music, pently_update_music_ch
 
 .ifndef SOUND_NTSC_ONLY
@@ -41,8 +42,8 @@ ATTACK_TRACK = 16
 ; 12  | Noise sound effect data ptr         Noise envelope data ptr
 ; 16  | Sq1 music pattern data ptr          Play/Pause        Attack channel
 ; 20  | Sq2 music pattern data ptr          Tempo
-; 24  | Tri music pattern data ptr          Tempo counter
-; 28  | Noise music pattern data ptr        Unused            Unused
+; 24  | Tri music pattern data ptr          Unused            Unused
+; 28  | Noise music pattern data ptr        Conductor segno
 ; 32  | Attack music pattern data ptr       Conductor track position
 
 ; pentlyBSS:
@@ -50,31 +51,34 @@ ATTACK_TRACK = 16
 ;  0-15 Sound effect state for channels
 ;  0  | Effect rate       Rate counter      Last period MSB   Effect length
 ; 16-31 Instrument envelope state for channels
-; 16  | Sustain vol       Note pitch        Attack length     Attack pitch    
+; 16  | Sustain vol       Note pitch        Attack length     Attack pitch
 ; 32-47 Instrument arpeggio state for channels
 ; 32  | Legato enable     Arpeggio phase    Arp interval 1    Arp interval 2
-; 48-67 Pattern reader state for tracks
-; 48  | Note time left    Instrument ID     Pattern ID        Transpose amt
-; 68  | Grace time        Unused            Unused            Conductor use
-
+; 48-57 Instrument vibrato state for channels
+; 50-67 Pattern reader state for tracks
+; 48  | Vibrato depth     Vibrato phase     Note time left    Transpose amt
+; 68  | Grace time        Instrument ID     Pattern ID        Conductor use
 ; 88 End of allocation
+;
+; Noise envelope is NOT unused.  Conductor track cymbals use it.
 
 noteAttackPos   = pently_zp_state + 2
 musicPatternPos = pently_zp_state + 16
-attack_remainlen= pentlyBSS + 16
-attackPitch     = pentlyBSS + 17
-noteEnvVol      = pentlyBSS + 18
-notePitch       = pentlyBSS + 19
+noteEnvVol      = pentlyBSS + 16
+notePitch       = pentlyBSS + 17
+attack_remainlen= pentlyBSS + 18
+attackPitch     = pentlyBSS + 19
 noteLegato      = pentlyBSS + 32
 arpPhase        = pentlyBSS + 33
 arpInterval1    = pentlyBSS + 34
 arpInterval2    = pentlyBSS + 35
-noteRowsLeft    = pentlyBSS + 48
-noteInstrument  = pentlyBSS + 49
-musicPattern    = pentlyBSS + 50
+vibratoDepth    = pentlyBSS + 48
+vibratoPhase    = pentlyBSS + 49
+noteRowsLeft    = pentlyBSS + 50
 patternTranspose= pentlyBSS + 51
 graceTime       = pentlyBSS + 68
-unused69        = pentlyBSS + 69
+noteInstrument  = pentlyBSS + 69
+musicPattern    = pentlyBSS + 70
 
 ; Shared state
 
@@ -82,36 +86,32 @@ pently_music_playing    = pently_zp_state + 18
 attackChannel           = pently_zp_state + 19
 music_tempoLo           = pently_zp_state + 22
 music_tempoHi           = pently_zp_state + 23
-pently_tempoCounterLo   = pently_zp_state + 26
-pently_tempoCounterHi   = pently_zp_state + 27
+conductorSegnoLo        = pently_zp_state + 30
+conductorSegnoHi        = pently_zp_state + 31
 conductorPos            = pently_zp_state + 34
 
 conductorWaitRows       = pentlyBSS + 71
 pently_rows_per_beat    = pentlyBSS + 75
 pently_row_beat_part    = pentlyBSS + 79
-conductorSegnoLo        = pentlyBSS + 83
-conductorSegnoHi        = pentlyBSS + 87
-
-
-FRAMES_PER_MINUTE_PAL = 3000
-FRAMES_PER_MINUTE_NTSC = 3606
+pently_tempoCounterLo   = pentlyBSS + 83
+pently_tempoCounterHi   = pentlyBSS + 87
 
 .segment "RODATA"
 
+FRAMES_PER_MINUTE_PAL = 3000
+FRAMES_PER_MINUTE_NTSC = 3606
 fpmLo:
   .byt <FRAMES_PER_MINUTE_NTSC, <FRAMES_PER_MINUTE_PAL
 fpmHi:
   .byt >FRAMES_PER_MINUTE_NTSC, >FRAMES_PER_MINUTE_PAL
-invfpm:
-  .byt 8192*48/FRAMES_PER_MINUTE_NTSC, 8192*48/FRAMES_PER_MINUTE_PAL
 
-silentPattern:
+silentPattern:  ; a pattern consisting of a single whole rest
   .byt 26*8+7, 255
   
 durations:
   .byt 1, 2, 3, 4, 6, 8, 12, 16
-invdurations:
-  .byt 48/1, 48/2, 48/3, 48/4, 48/6, 48/8, 48/12, 48/16
+vibratoPattern:
+  .byt 6,7,7,7,6,0,2,3,3,3,2
 
 .segment "CODE"
 .proc pently_start_music
@@ -124,34 +124,27 @@ invdurations:
   sta conductorPos+1
   sta conductorSegnoHi
 
+  ldy #PENTLYBSS_SIZE - 17
+  lda #0
+  :
+    sta pentlyBSS+16,y
+    dey
+    bpl :-
+
   ldx #ATTACK_TRACK
-  bne channelLoopSkipHWOnly
   channelLoop:
-    lda #0
-    sta noteEnvVol,x
-    sta noteLegato,x
-    sta arpInterval1,x
-    sta arpInterval2,x
-    sta arpPhase,x
-    channelLoopSkipHWOnly:
     lda #<silentPattern
     sta musicPatternPos,x
     lda #>silentPattern
     sta musicPatternPos+1,x
-    sta musicPattern,x  ; bit 7 set: no pattern playing
-    lda #0
-    sta patternTranspose,x
-    sta noteInstrument,x
-    sta noteRowsLeft,x
-    sta attack_remainlen,x
-    sta graceTime,x
+    lda #$FF
+    sta musicPattern,x
     dex
     dex
     dex
     dex
     bpl channelLoop
-  ; A is still 0
-  sta conductorWaitRows
+  lda #0
   sta attackChannel
   lda #4
   sta pently_rows_per_beat
@@ -539,7 +532,7 @@ instrument_id = pently_zptemp + 1
   bcs skipSustainPart
     lda notenum
     sta notePitch,x
-    lda arpPhase,x
+    lda arpPhase,x  ; bit 7 set if attack is injected
     bmi :+
       ; If not an injected attack, also change attack pitch
       lda notenum
@@ -547,8 +540,6 @@ instrument_id = pently_zptemp + 1
     :
     lda noteLegato,x
     bne skipAttackPart
-    lda #0
-    sta arpPhase,x
     lda instrument_id
     sta noteInstrument,x
     lda pently_instruments,y
@@ -558,6 +549,13 @@ instrument_id = pently_zptemp + 1
     asl a
     ora #$0C
     sta noteEnvVol,x
+    cpx #12
+    bcs skipSustainPart
+      lda #0
+      sta arpPhase,x
+      lda #23
+      sta vibratoPhase,x
+      sta $FF
   skipSustainPart:
 
   lda pently_instruments+4,y
@@ -587,7 +585,7 @@ instrument_id = pently_zptemp + 1
 
 .proc pently_update_music_ch
 xsave        = pently_zptemp + 0
-ysave        = pently_zptemp + 1
+pitchadd_lo  = pently_zptemp + 1
 out_volume   = pently_zptemp + 2
 out_pitch    = pently_zptemp + 3
 out_pitchadd = pently_zptemp + 4
@@ -686,10 +684,12 @@ notSilenced:
   sbc pently_instruments+1,y
   bcc silenced
   sta noteEnvVol,x
+  tya
+  pha
   lda notePitch,x
-  sty ysave
   jsr storePitchWithArpeggio
-  ldy ysave
+  pla
+  tay
 
   ; bit 7 of attribute 2: cut note when half a row remains
   lda pently_instruments+2,y
@@ -722,8 +722,76 @@ notCutNote:
   rts
 
 calc_vibrato:
+
+vibratoBits = xsave
+
   lda #0
+  sta pitchadd_lo
   sta out_pitchadd
+  lda vibratoDepth,x  ; Skip calculation if depth is 0
+  beq not_vibrato
+
+  ; Clock vibrato
+  ldy vibratoPhase,x
+  bne :+
+    ldy #12
+  :
+  dey
+  tya
+  sta vibratoPhase,x
+  cpy #11
+  bcs not_vibrato
+  lda arpPhase,x      ; Suppress vibrato from injected attack
+  bmi not_vibrato     ; (even though we still clock it)
+
+  ; Step 1: Calculate the delta to apply based on pitch
+  lda vibratoPattern,y
+  ldy notePitch,x
+  lsr a
+  sta vibratoBits
+  bcc notvibratobit0  ; Bit 0: add P/2
+    lda periodTableHi,y
+    lsr a
+    sta out_pitchadd
+    lda periodTableLo,y
+    ror a
+    sta pitchadd_lo
+  notvibratobit0:
+
+  lsr vibratoBits
+  bcc notvibratobit1  ; Bit 1: add P
+    clc
+    lda periodTableLo,y
+    adc pitchadd_lo
+    sta pitchadd_lo
+    lda periodTableHi,y
+    adc out_pitchadd
+    sta out_pitchadd
+  notvibratobit1:
+
+  lsr vibratoBits
+  bcc notvibratobit2  ; Bit 2: negate
+    lda #$FF
+    eor pitchadd_lo
+    sta pitchadd_lo
+    lda #$FF
+    eor out_pitchadd
+    sta out_pitchadd
+  notvibratobit2:
+
+  ldy vibratoDepth,x
+  dey
+  beq not_vibrato
+  lda pitchadd_lo
+  vibratodepthloop:
+    asl a
+    rol out_pitchadd
+    dey
+    bne vibratodepthloop
+  cmp #$80
+  bcc not_vibrato
+    inc out_pitchadd
+not_vibrato:
   rts
 .endproc
 

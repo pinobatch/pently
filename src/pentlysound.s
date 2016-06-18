@@ -11,7 +11,8 @@
 .include "pently.inc"
 .import pently_update_music, pently_update_music_ch, pently_music_playing, pently_sfx_table
 .import periodTableLo, periodTableHi
-.export pently_zp_state, pentlyBSS
+.export pentlyBSS
+.exportzp PENTLYBSS_SIZE, pently_zp_state
 
 SNDCHN = $4015
 
@@ -31,7 +32,8 @@ KEEP_MUSIC_IF_LOUDER = 1
 .segment "ZEROPAGE"
 pently_zp_state: .res 36
 .segment "BSS"
-pentlyBSS: .res 88
+PENTLYBSS_SIZE = 88
+pentlyBSS: .res PENTLYBSS_SIZE
 
 sfx_datalo = pently_zp_state + 0
 sfx_datahi = pently_zp_state + 1
