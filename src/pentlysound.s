@@ -42,10 +42,7 @@ sfx_ratecd = pentlyBSS + 1
 ch_lastfreqhi = pentlyBSS + 2
 sfx_remainlen = pentlyBSS + 3
 
-.ifndef SOUND_NTSC_ONLY
-SOUND_NTSC_ONLY = 0
-.endif
-.if (!SOUND_NTSC_ONLY)
+.if (!PENTLY_NTSC_ONLY)
 .importzp tvSystem
 .endif
 
@@ -255,7 +252,8 @@ rate_divider_cancel:
 notnoise:
   sta $4000,x
   ldy tpitch
-.if ::SOUND_NTSC_ONLY = 0
+.if ::PENTLY_NTSC_ONLY = 0
+  ; Correct pitch for PAL NES only, not NTSC (0) or PAL famiclone (2)
   lda tvSystem
   lsr a
   bcc :+

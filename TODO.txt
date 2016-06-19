@@ -1,4 +1,5 @@
 Actual things to do:
+Everything listed at https://github.com/Qix-/pently/issues
 More original music and classical covers
-Benchmark
-Make a graphical tracker
+Figure out how to make portamento
+Make a graphical tracker, if we find FamiTracker isn't enough

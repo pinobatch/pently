@@ -16,16 +16,10 @@
 .import periodTableLo, periodTableHi
 .export pently_update_music, pently_update_music_ch
 
-.ifndef SOUND_NTSC_ONLY
-SOUND_NTSC_ONLY = 0
-.endif
-.if (!SOUND_NTSC_ONLY)
+.if (!PENTLY_NTSC_ONLY)
 .importzp tvSystem
 .endif
 
-.ifndef PENTLY_USE_ROW_CALLBACK
-PENTLY_USE_ROW_CALLBACK = 0
-.endif
 .if PENTLY_USE_ROW_CALLBACK
 .import pently_row_callback, pently_dalsegno_callback
 .endif
@@ -184,7 +178,7 @@ music_not_playing:
   rts
 new_tick:
 
-.if ::SOUND_NTSC_ONLY
+.if ::PENTLY_NTSC_ONLY
   ldy #0
 .else
   ldy tvSystem
@@ -286,7 +280,7 @@ conbyte = pently_zptemp + 0
     :
     tay
     pla
-    jsr music_play_note
+    jsr pently_play_note
     jmp doConductor
 
   @notAttackSet:
@@ -403,6 +397,8 @@ anotherPatternByte:
   cmp #INSTRUMENT
   bcc isNoteCmd
   sbc #INSTRUMENT
+  cmp #num_patcmdhandlers  ; ignore invalid pattern commands
+  bcs anotherPatternByte
   asl a
   tay
   lda patcmdhandlers+1,y
@@ -440,7 +436,7 @@ isNoteCmd:
     clc
     adc patternTranspose,x
     ldy noteInstrument,x
-    jsr music_play_note
+    jsr pently_play_note
     jmp skipNote
 
 isDrumNote:
@@ -485,6 +481,7 @@ patcmdhandlers:
   .addr handle_transpose-1
   .addr handle_grace-1
   .addr handle_vibrato-1
+num_patcmdhandlers = (* - patcmdhandlers) / 2
 .popseg
 
 handle_instrument:
@@ -543,7 +540,7 @@ handle_vibrato:
 ;;
 ; Plays note A on channel X (0, 4, 8, 12) with instrument Y.
 ; Trashes 0-1 and preserves X.
-.proc music_play_note
+.proc pently_play_note
 notenum       = pently_zptemp + 0
 instrument_id = pently_zptemp + 1
 
@@ -734,7 +731,8 @@ notSilenced:
   adc #>(FRAMES_PER_MINUTE_NTSC/2)
   bcc notCutNote
   
-  ; if the next byte in the pattern is a tie or a legato enable
+  ; Unless the next byte in the pattern is a tie or a legato enable,
+  ; cut the note
   lda (musicPatternPos,x)
   cmp #LEGATO_ON
   beq notCutNote
@@ -752,9 +750,7 @@ notCutNote:
   rts
 
 calc_vibrato:
-
 vibratoBits = xsave
-
   lda #0
   sta pitchadd_lo
   sta out_pitchadd

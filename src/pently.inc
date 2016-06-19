@@ -8,6 +8,16 @@
 ; code copies.  This file is offered as-is, without any warranty.
 ;
 
+; Configuration ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+.ifndef PENTLY_NTSC_ONLY
+PENTLY_NTSC_ONLY = 0
+.endif
+.ifndef PENTLY_USE_ROW_CALLBACK
+PENTLY_USE_ROW_CALLBACK = 0
+.endif
+
+
 ; Methods ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;
@@ -37,6 +47,11 @@
 ;;
 ; Resumes the stopped music.
 .global pently_resume_music
+
+;;
+; Plays note A on channel X (0, 4, 8, 12) with instrument Y.
+; Trashes 0-1 and preserves X.
+.global pently_play_note
 
 ; Fields ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
