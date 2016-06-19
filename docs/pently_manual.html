@@ -58,14 +58,16 @@ The following methods, declared in the assembly language include file <code>pent
 <dd>Plays note A (see <a href="#Pitch">pitch table</a>) on channel X (0, 4, 8, 12, or 16) with instrument Y from <code>pently_instruments</code>.</dd>
 <dt><code>getTVSystem</code></dt>
 <dd>Waits for two NMIs, counting the time between them. Returns 0 in A for NTSC systems, 1 for PAL NES, or 2 for <a href="https://en.wikipedia.org/wiki/Dendy_(console)" target="wikipedia">Dendy</a>-style PAL famiclones. Make sure your NMI handler finishes within 1500 or so cycles (not taking the whole NMI or waiting for sprite 0) while calling this, or the result in A will be wrong.</dd>
-<dt><code>getCurBeatFraction</code></dt>
+<dt><code>pently_get_beat_fraction</code></dt>
 <dd>Reads the fraction of the current beat. Returns a value from 0 to 95 in A.</dd>
 </dl><p>
 Your makefile will need to assemble <code>pentlysound.s</code>,
-<code>pentlymusic.s</code>, <code>musicseq.s</code>, and
-<code>ntscPeriods.s</code>, and link them into your program.
-If using <code>getCurBeatFraction</code>, additionally assemble
-<code>math.s</code> and <code>bpmmath.s</code>.
+<code>pentlymusic.s</code>, and <code>musicseq.s</code>, and link them into
+your program.  If using <code>getTVSystem</code>, additionally assemble
+<code>paldetect.s</code>.  If using <code>pently_get_beat_fraction</code>,
+additionally assemble <code>math.s</code> and <code>bpmmath.s</code>.
+If not generating into the period table into <code>musicseq.s</code>,
+additionally assemble <code>ntscPeriods.s</code>.
 </p><p>
 If Pently is assembled with the command line switch
 <code>-DPENTLY_USE_ROW_CALLBACK=1</code>, your code must provide and

@@ -1,14 +1,40 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Pently music assembler
+#
+# Pently audio engine
+# Music assembler
+#
 # Copyright 2015-2016 Damian Yerrick
-# License: MIT (Expat variant)
+#
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without
+# restriction, including without limitation the rights to use, copy,
+# modify, merge, publish, distribute, sublicense, and/or sell copies
+# of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+# BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+# ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#
 
-# The above are imported by default in Python 3, but I need to import
-# them anyway in case someone runs it on Python 2 for Windows, which
-# is the default IDLE in a lot of Windows PCs
 from __future__ import with_statement, division, print_function
-import sys, json, re, argparse
+# The above features are available by default in Python 3, but I
+# need to declare them anyway in case someone runs it on Python 2
+# for Windows, which is the default IDLE on many Windows PCs
+import sys
+import json
+import re
+import argparse
 
 scaledegrees = {
     'c': 0, 'd': 1, 'e': 2, 'f': 3, 'g': 4, 'a': 5, 'h': 6, 'b': 6
@@ -26,9 +52,9 @@ duraugmentnums = {
 }
 dotted_names = {4: '', 6: 'dotted ', 7: 'double dotted '}
 timesignames = {
-    'c': (4, 4),   # common time
-    '¢': (2, 2),   # cut time
-    'o': (3, 4),   # perfect time
+    'c': (4, 4),  # common time
+    '¢': (2, 2),  # cut time (you are encoding your file UTF-8 right?)
+    'o': (3, 4),  # perfect time
 }
 channeltypes = {'pulse': 0, 'triangle': 2, 'noise': 3}
 durcodes = {

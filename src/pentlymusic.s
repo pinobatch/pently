@@ -1,11 +1,28 @@
 ;
-; Pently music engine
-; Copyright 2009-2015 Damian Yerrick
+; Pently audio engine
+; Music interpreter and instrument renderer
 ;
-; Copying and distribution of this file, with or without
-; modification, are permitted in any medium without royalty provided
-; the copyright notice and this notice are preserved in all source
-; code copies.  This file is offered as-is, without any warranty.
+; Copyright 2009-2016 Damian Yerrick
+; 
+; Permission is hereby granted, free of charge, to any person
+; obtaining a copy of this software and associated documentation
+; files (the "Software"), to deal in the Software without
+; restriction, including without limitation the rights to use, copy,
+; modify, merge, publish, distribute, sublicense, and/or sell copies
+; of the Software, and to permit persons to whom the Software is
+; furnished to do so, subject to the following conditions:
+; 
+; The above copyright notice and this permission notice shall be
+; included in all copies or substantial portions of the Software.
+; 
+; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+; EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+; MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+; NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+; BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+; ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+; CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+; THE SOFTWARE.
 ;
 
 .include "pently.inc"
@@ -94,9 +111,9 @@ pently_tempoCounterHi   = pentlyBSS + 87
 
 FRAMES_PER_MINUTE_PAL = 3000
 FRAMES_PER_MINUTE_NTSC = 3606
-fpmLo:
+pently_fpmLo:
   .byt <FRAMES_PER_MINUTE_NTSC, <FRAMES_PER_MINUTE_PAL
-fpmHi:
+pently_fpmHi:
   .byt >FRAMES_PER_MINUTE_NTSC, >FRAMES_PER_MINUTE_PAL
 
 silentPattern:  ; a pattern consisting of a single whole rest
@@ -189,10 +206,10 @@ is_ntsc_1:
 
   ; Subtract tempo
   lda pently_tempoCounterLo
-  sbc fpmLo,y
+  sbc pently_fpmLo,y
   sta pently_tempoCounterLo
   lda pently_tempoCounterHi
-  sbc fpmHi,y
+  sbc pently_fpmHi,y
   sta pently_tempoCounterHi
   
   ; Update row

@@ -1,11 +1,28 @@
 ;
-; Pently music engine public API
-; Copyright 2009-2015 Damian Yerrick
+; Pently audio engine
+; Public API
 ;
-; Copying and distribution of this file, with or without
-; modification, are permitted in any medium without royalty provided
-; the copyright notice and this notice are preserved in all source
-; code copies.  This file is offered as-is, without any warranty.
+; Copyright 2015-2016 Damian Yerrick
+; 
+; Permission is hereby granted, free of charge, to any person
+; obtaining a copy of this software and associated documentation
+; files (the "Software"), to deal in the Software without
+; restriction, including without limitation the rights to use, copy,
+; modify, merge, publish, distribute, sublicense, and/or sell copies
+; of the Software, and to permit persons to whom the Software is
+; furnished to do so, subject to the following conditions:
+; 
+; The above copyright notice and this permission notice shall be
+; included in all copies or substantial portions of the Software.
+; 
+; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+; EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+; MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+; NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+; BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+; ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+; CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+; THE SOFTWARE.
 ;
 
 ; Configuration ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -53,6 +70,11 @@ PENTLY_USE_ROW_CALLBACK = 0
 ; Trashes 0-1 and preserves X.
 .global pently_play_note
 
+;;
+; Returns the playing position as a fraction of a beat from 0 to 95.
+; (Implemented in bpmmath.s)
+.global pently_get_beat_fraction
+
 ; Fields ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; It's highly discouraged to write to any of these.
@@ -79,4 +101,4 @@ PENTLY_USE_ROW_CALLBACK = 0
 ; that need not be preserved from one call to the next.
 pently_zptemp = $0000
 
-
+.global pently_fpmLo, pently_fpmHi

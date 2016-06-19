@@ -1,3 +1,10 @@
+0.05wip5 (future)
+* Vibrato effect
+* Simplified zeroing of channel state during song start
+* Pattern effects use RTS dispatch
+* Corrected namespacing of some APIs
+* Applied MIT License (Expat variant) throughout
+
 0.05wip4 (2016-06)
 * Project moved to GitHub: https://github.com/Qix-/pently
 * pentlyas.py: proper argument parsing

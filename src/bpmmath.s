@@ -1,38 +1,62 @@
 ;
-; Pently beat fraction calculation
-; Copyright 2009-2015 Damian Yerrick
+; Pently audio engine
+; Beat fraction calculation
 ;
-; Copying and distribution of this file, with or without
-; modification, are permitted in any medium without royalty provided
-; the copyright notice and this notice are preserved in all source
-; code copies.  This file is offered as-is, without any warranty.
+; Copyright 2009-2016 Damian Yerrick
+; 
+; Permission is hereby granted, free of charge, to any person
+; obtaining a copy of this software and associated documentation
+; files (the "Software"), to deal in the Software without
+; restriction, including without limitation the rights to use, copy,
+; modify, merge, publish, distribute, sublicense, and/or sell copies
+; of the Software, and to permit persons to whom the Software is
+; furnished to do so, subject to the following conditions:
+; 
+; The above copyright notice and this permission notice shall be
+; included in all copies or substantial portions of the Software.
+; 
+; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+; EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+; MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+; NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+; BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+; ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+; CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+; THE SOFTWARE.
 ;
 
-;
-; This is very immature code, intended for a rhythm game that didn't
-; pan out.  Don't rely on it.
-;
+; This can be used to calculate the song position down to a fraction
+; of a beat, for use to synchronize a cut scene or a rhythm game.
+; CAUTION:  Rhythm games will be a patent minefield until 2010.
 
-.include "shell.inc"
 .include "pently.inc"
+.import mul8  ; from math.s
+.if !::PENTLY_NTSC_ONLY
+  .importzp tvSystem
+.endif
 
 ;;
 ; Returns the Pently playing position as a fraction of a beat
 ; from 0 to 95.
-.proc getCurBeatFraction
+.proc pently_get_beat_fraction
+
+.if !::PENTLY_NTSC_ONLY
   ldx tvSystem
   beq isNTSC_1
   ldx #1
 isNTSC_1:
+.else
+  ldx #0
+.endif
 
   ; as an optimization in the music engine, tempoCounter is
   ; actually stored as a negative number: -3606 through -1
   clc
   lda pently_tempoCounterLo
-  adc fpmLo,x
+  adc pently_fpmLo,x
   sta 0
   lda pently_tempoCounterHi
-  adc fpmHi,x
+  adc pently_fpmHi,x
 
   ; at this point, A:0 = tempoCounter + fpm (which I'll
   ; call ptc for positive tempo counter)
@@ -93,8 +117,6 @@ no_add_simple:
 
 .segment "RODATA"
 
-fpmLo: .byt <3606, <3000
-fpmHi: .byt >3606, >3000
 ; Reciprocals of frames per second:
 ; int(round(65536*6/n)) for n in [3606, 3000]
 reciprocal_fpm: .byt 109, 131
