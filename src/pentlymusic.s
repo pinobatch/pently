@@ -25,6 +25,7 @@
 ; THE SOFTWARE.
 ;
 
+.include "pentlyconfig.inc"
 .include "pently.inc"
 .include "pentlyseq.inc"
 
@@ -33,7 +34,7 @@
 .import periodTableLo, periodTableHi
 .export pently_update_music, pently_update_music_ch
 
-.if (!PENTLY_NTSC_ONLY)
+.if PENTLY_USE_PAL_ADJUST
 .importzp tvSystem
 .endif
 
@@ -118,11 +119,14 @@ pently_fpmHi:
 
 silentPattern:  ; a pattern consisting of a single whole rest
   .byt 26*8+7, 255
-  
 durations:
   .byt 1, 2, 3, 4, 6, 8, 12, 16
+
+.if PENTLY_USE_VIBRATO
+; bit 2: negate; bits 1-0: amplitude
 vibratoPattern:
   .byt 6,7,7,7,6,0,2,3,3,3,2
+.endif
 
 .segment "CODE"
 .proc pently_start_music
@@ -195,13 +199,13 @@ music_not_playing:
   rts
 new_tick:
 
-.if ::PENTLY_NTSC_ONLY
-  ldy #0
-.else
+.if ::PENTLY_USE_PAL_ADJUST
   ldy tvSystem
   beq is_ntsc_1
   ldy #1
 is_ntsc_1:
+.else
+  ldy #0
 .endif
 
   ; Subtract tempo
@@ -220,7 +224,6 @@ is_ntsc_1:
   ldy #0
 :
   sty pently_row_beat_part
-  
 
 .if ::PENTLY_USE_ROW_CALLBACK
   jsr pently_row_callback
@@ -511,6 +514,7 @@ nextPatternByte:
   :
   jmp anotherPatternByte
 
+.if ::PENTLY_USE_ARPEGGIO
 handle_arpeggio:
   cpx #12
   bcs :+
@@ -525,6 +529,9 @@ handle_arpeggio:
     sta arpInterval2,x
   :
   jmp nextPatternByte
+.else
+  handle_arpeggio = nextPatternByte
+.endif
 
 handle_legato:
   cpx #12
@@ -546,11 +553,15 @@ handle_transpose:
   sta patternTranspose,x
   jmp nextPatternByte
 
+.if ::PENTLY_USE_VIBRATO
 handle_vibrato:
   lda (musicPatternPos,x)
   and #$07
   sta vibratoDepth,x
   jmp nextPatternByte
+.else
+  handle_vibrato = nextPatternByte 
+.endif
 
 .endproc
 
@@ -577,11 +588,10 @@ instrument_id = pently_zptemp + 1
     lda notenum
     sta notePitch,x
     lda arpPhase,x  ; bit 7 set if attack is injected
-    bmi :+
-      ; If not an injected attack, also change attack pitch
+    bmi dont_legato_injected_attack
       lda notenum
       sta attackPitch,x
-    :
+    dont_legato_injected_attack:
     lda noteLegato,x
     bne skipAttackPart
     lda instrument_id
@@ -596,10 +606,11 @@ instrument_id = pently_zptemp + 1
     cpx #12
     bcs skipSustainPart
       lda #0
-      sta arpPhase,x
-      lda #23
-      sta vibratoPhase,x
-      sta $FF
+      sta arpPhase,x  ; bits 2-0: arp phase; 7: is attack injected
+      .if ::PENTLY_USE_VIBRATO
+        lda #23
+        sta vibratoPhase,x
+      .endif
   skipSustainPart:
 
   lda pently_instruments+4,y
@@ -609,7 +620,7 @@ instrument_id = pently_zptemp + 1
     cpx #ATTACK_TRACK
     bcc notAttackChannel
       ldx attackChannel
-      lda #$80  ; Disable arpeggio until sustain
+      lda #$80  ; Disable arpeggio and vibrato until sustain
       sta arpPhase,x
     notAttackChannel:
     lda notenum
@@ -658,10 +669,18 @@ nograce:
 :
   clc
   adc attackPitch,x
+
+  ; At this point, A is the note pitch with envelope modification.
+  ; Arpeggio still needs to be applied, but not to injected attacks.
+  ; Because bit 7 of arpPhase tells the rest of Pently whether an
+  ; attack is injected, storePitchWithArpeggio still clears this bit
+  ; during sustain phase even if arpeggio is disabled.
   ldy arpPhase,x
   bmi storePitchNoArpeggio
 storePitchWithArpeggio:
   sta out_pitch
+
+.if ::PENTLY_USE_ARPEGGIO
   stx xsave
   lda #$7F
   and arpPhase,x
@@ -693,12 +712,23 @@ noArpRestart:
   sta out_pitch
   ldx xsave
   tya
+.else
+  lda #0
+.endif
   sta arpPhase,x
-  jmp calc_vibrato
+  .if ::PENTLY_USE_VIBRATO
+    jmp calc_vibrato
+  .else
+    rts
+  .endif
 
 storePitchNoArpeggio:
   sta out_pitch
-  jmp calc_vibrato
+  .if ::PENTLY_USE_VIBRATO
+    jmp calc_vibrato
+  .else
+    rts
+  .endif
 
 noAttack:
   lda noteEnvVol,x
@@ -766,6 +796,7 @@ yesCutNote:
 notCutNote:
   rts
 
+.if ::PENTLY_USE_VIBRATO
 calc_vibrato:
 vibratoBits = xsave
   lda #0
@@ -836,5 +867,7 @@ vibratoBits = xsave
     inc out_pitchadd
 not_vibrato:
   rts
+.endif
+
 .endproc
 

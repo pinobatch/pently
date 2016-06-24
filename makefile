@@ -78,6 +78,7 @@ $(objdir)/%.o: $(objdir)/%.s
 
 # Files that depend on additional headers
 $(objdir)/musicseq.o $(objdir)/pentlymusic.o: $(srcdir)/pentlyseq.inc
+$(objdir)/pentlysound.o $(objdir)/pentlymusic.o: $(srcdir)/pentlyconfig.inc
 
 # Files that depend on .incbin'd files
 $(objdir)/main.o: tracknames.txt $(objdir)/bggfx.chr

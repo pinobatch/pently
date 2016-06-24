@@ -24,6 +24,7 @@
 ; THE SOFTWARE.
 ;
 
+.include "pentlyconfig.inc"
 .include "pently.inc"
 .import pently_update_music, pently_update_music_ch, pently_music_playing, pently_sfx_table
 .import periodTableLo, periodTableHi
@@ -58,7 +59,7 @@ sfx_ratecd = pentlyBSS + 1
 ch_lastfreqhi = pentlyBSS + 2
 sfx_remainlen = pentlyBSS + 3
 
-.if (!PENTLY_NTSC_ONLY)
+.if PENTLY_USE_PAL_ADJUST
 .importzp tvSystem
 .endif
 
@@ -245,7 +246,9 @@ ch_not_done:
     sta tvol
     bcc music_was_louder
   .endif
-  sty tpitchadd  ; sfx don't support fine pitch adjustment
+  .if ::PENTLY_USE_VIBRATO
+    sty tpitchadd  ; sfx don't support fine pitch adjustment
+  .endif
   lda (srclo),y
   sta tvol
   iny
@@ -268,7 +271,7 @@ rate_divider_cancel:
 notnoise:
   sta $4000,x
   ldy tpitch
-.if ::PENTLY_NTSC_ONLY = 0
+.if ::PENTLY_USE_PAL_ADJUST
   ; Correct pitch for PAL NES only, not NTSC (0) or PAL famiclone (2)
   lda tvSystem
   lsr a
@@ -276,16 +279,22 @@ notnoise:
   iny
 :
 .endif
+
   lda periodTableLo,y
-  clc
-  adc tpitchadd
-  sta $4002,x
-  lda tpitchadd
-  and #$80
-  bpl :+
-    lda #$FF
-  :
-  adc periodTableHi,y
+  .if ::PENTLY_USE_VIBRATO
+    clc
+    adc tpitchadd
+    sta $4002,x
+    lda tpitchadd
+    and #$80
+    bpl :+
+      lda #$FF
+    :
+    adc periodTableHi,y
+  .else
+    sta $4002,x
+    lda periodTableHi,y
+  .endif
   cmp ch_lastfreqhi,x
   beq no_change_to_hi_period
   sta ch_lastfreqhi,x

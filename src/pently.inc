@@ -27,12 +27,30 @@
 
 ; Configuration ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-.ifndef PENTLY_NTSC_ONLY
-PENTLY_NTSC_ONLY = 0
+; These default values are used if pentlyconfig.inc is not included.
+
+; Enable tvSystem-driven correction for PAL NES and Dendy
+.ifndef PENTLY_USE_PAL_ADJUST
+PENTLY_USE_PAL_ADJUST = 1
 .endif
+
+; Enable row callbacks
 .ifndef PENTLY_USE_ROW_CALLBACK
 PENTLY_USE_ROW_CALLBACK = 0
 .endif
+
+; Enable vibrato (sinusoidal pitch modulation with an LFO of
+; period 12 frames)
+.ifndef PENTLY_USE_VIBRATO
+PENTLY_USE_VIBRATO = 1
+.endif
+
+; Enable arpeggio (rapid pitch modulation producing warbly chords of
+; period 2 or 3 frames)
+.ifndef PENTLY_USE_ARPEGGIO
+PENTLY_USE_ARPEGGIO = 1
+.endif
+
 
 
 ; Methods ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

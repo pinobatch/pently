@@ -69,25 +69,6 @@ additionally assemble <code>math.s</code> and <code>bpmmath.s</code>.
 If not generating into the period table into <code>musicseq.s</code>,
 additionally assemble <code>ntscPeriods.s</code>.
 </p><p>
-If Pently is assembled with the command line switch
-<code>-DPENTLY_USE_ROW_CALLBACK=1</code>, your code must provide and
-<code>.export</code> two callback functions: <code>pently_row_callback</code>
-and <code>pently_dalsegno_callback</code>. These are called before each
-row is processed and when a <a href="#dalSegno"><code>dalSegno</code></a>
-or <a href="#fine"><code>fine</code></a> is processed, respectively.
-They can be useful for synchronizing animations to music.
-For <code>pently_dalsegno_callback</code>, carry is clear at the end
-of a track or set if looping.
-</p><p>
-Unless Pently is assembled with the command line switch
-<code>-DPENTLY_NTSC_ONLY=1</code>, the main program must <code>.export</code>
-a 1-byte RAM variable called <code>tvSystem</code>. Pently includes a
-subroutine to detect the TV system by measuring the length of a frame
-in cycles. An NES program that includes the file <code>paldetect.s</code> can
-call <code>getTVSystem</code> and store the result into <code>tvSystem</code>
-before calling Pently subroutines.
-In NSF, the NSF shell stores the TV system in <code>tvSystem</code>.
-</p><p>
 The file <code>musicseq.s</code> contains the sound effects,
 instruments, songs, and patterns that you define. It should
 <code>.include "pentlyseq.inc"</code> to use the macros described
@@ -96,6 +77,36 @@ below. For those familiar with
 Language (MML)</a> or <a href="http://lilypond.org/">LilyPond</a>,
 the distribution includes a processor for an MML-like music description
 language. (For more information, see <code>pentlyas.md</code>.)
+</p>
+<h3>Configuration</h3>
+<p>
+The file <code>pentlyconfig.inc</code> contains symbol definitions that
+enable or disable certain features of Pently that take more ROM space or
+require particular support from the host program. A project using a feature
+can enable it by setting the symbol associated with the feature to a nonzero
+number (<code>PENTLY_USE_this = 1</code>). A project not using a feature,
+especially an NROM-128 project in which ROM space is at a premium, can turn
+it off by setting its symbol to zero (<code>PENTLY_USE_this = 0</code>).
+</p><p>
+If <code>PENTLY_USE_ROW_CALLBACK</code> is enabled, your code must provide and
+<code>.export</code> two callback functions: <code>pently_row_callback</code>
+and <code>pently_dalsegno_callback</code>. These are called before each
+row is processed and when a <a href="#dalSegno"><code>dalSegno</code></a>
+or <a href="#fine"><code>fine</code></a> is processed, respectively.
+They can be useful for synchronizing animations to music.
+For <code>pently_dalsegno_callback</code>, carry is clear at the end
+of a track or set if looping.
+</p><p>
+If <code>PENTLY_USE_PAL_ADJUST</code> is enabled, the main program must
+<code>.export</code> a 1-byte RAM variable called <code>tvSystem</code>.
+Pently includes a subroutine to detect the TV system by measuring the
+length of a frame in cycles. An NES program that includes the file
+<code>paldetect.s</code> can call <code>getTVSystem</code> and store
+the result into <code>tvSystem</code> before calling Pently subroutines.
+In NSF, the NSF shell stores the TV system in <code>tvSystem</code>.
+</p><p>
+Disabling <code>PENTLY_USE_ARPEGGIO</code> saves about 60 bytes, and
+disabling <code>PENTLY_USE_VIBRATO</code> saves about 150.
 </p>
 
 <h2 id="Pitch">Pitch</h2>
