@@ -1,4 +1,4 @@
-0.05wip5 (future)
+0.05wip5 (2016-06)
 * Vibrato effect
 * Simplified zeroing of channel state during song start
 * Pattern effects use RTS dispatch

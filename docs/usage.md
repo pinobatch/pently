@@ -335,10 +335,10 @@ may pose a problem for some projects:
   incompatible with DPCM.  However, it won't interfere with your own
   sample player, which can be triggered from `pently_row_callback`.
 * No support for Famicom expansion synths, such as Nintendo MMC5,
-  Sunsoft 5B, and Konami VRC6 and VRC7.  This is a low priority for
-  two reasons: the NES sold in English-speaking regions did not
-  support expansion synths without modification, and no expansion
-  synth has a CPLD replica as of 2016.
+  Sunsoft 5B, Namco 163, and Konami VRC6 and VRC7.  This is a low
+  priority for two reasons: the NES sold in English-speaking regions
+  did not support expansion synths without modification, and no
+  expansion synth has a CPLD replica as of 2016.
 * Envelopes have no release phase; a note-off kills the note
   abruptly.
 * No error checking for certain combinations that cause undefined

@@ -1,6 +1,7 @@
 # Pently
 
-A NES music engine that supports both NES playback and NSF.
+A music engine for NES that supports both NES playback (with sound
+effects) and NSF.
 
 Documentation can be found in `docs/` and example tracks can be found in `musicseq.pently`.
 
@@ -9,7 +10,7 @@ Documentation can be found in `docs/` and example tracks can be found in `musics
 Prerequisites:
 
 - Python 3
-- Pillow (Python imaging library) - `pip install pillow`
+- Pillow (Python imaging library) for demo ROM - `pip install pillow`
 - [ca65](https://cc65.github.io/cc65/)
 - GNU Make and Coreutils - on Windows, install MSYS through
   [mingw-get](http://www.mingw.org/wiki/Getting_Started)

@@ -11,7 +11,7 @@
 
 # These are used in the title of the NES program and the zip file.
 title = pently
-version = 0.05wip4
+version = 0.05wip5
 
 # Space-separated list of asm files that make up the ROM,
 # whether source code or generated
@@ -47,7 +47,7 @@ run: $(title).nes
 dist: zip
 zip: $(title)-$(version).zip
 $(title)-$(version).zip: zip.in $(title).nes $(title).nsf \
-  TODO.txt README.md CHANGES.txt docs/pently_manual.html \
+  TODO.txt README.md CHANGES.txt docs/usage.md docs/pentlyas.md \
   $(objdir)/index.txt
 	zip -9 -u $@ -@ < $<
 
