@@ -5,8 +5,8 @@
 * Corrected namespacing of some APIs
 * Standardized names of feature defines (PENTLY_USE_*) and
   moved them to pentlyconfig.inc
-* Feature defines to disable vibrato and arpeggio effects,
-  attack track, and rows per beat
+* Feature defines to disable vibrato and arpeggio effects, counting
+  rows per beat, attack track, and the attack envelope entirely
 * Split manual into separate documents for concept overview and
   bytecode description because with pentlyas and ft2pently, few
   need to deal directly with bytecode

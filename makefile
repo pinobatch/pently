@@ -16,7 +16,7 @@ version = 0.05wip4
 # Space-separated list of asm files that make up the ROM,
 # whether source code or generated
 objlist := main \
-  pads ppuclear paldetect bcd math bpmmath \
+  pads ppuclear paldetect math bpmmath \
   pentlysound pentlymusic musicseq
 objlistnsf := nsfshell \
   pentlysound pentlymusic musicseq

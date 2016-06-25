@@ -472,7 +472,9 @@ isNoteCmd:
   bcc isTransposedNote
   beq notKeyOff
     lda #0
-    sta attack_remainlen,x
+    .if ::PENTLY_USE_ATTACK_PHASE
+      sta attack_remainlen,x
+    .endif
     .if ::PENTLY_USE_ATTACK_TRACK
       cpx #ATTACK_TRACK
       bcs notKeyOff
@@ -648,6 +650,7 @@ instrument_id = pently_zptemp + 1
       .endif
   skipSustainPart:
 
+.if ::PENTLY_USE_ATTACK_PHASE
   lda pently_instruments+4,y
   beq skipAttackPart
     txa
@@ -662,6 +665,7 @@ instrument_id = pently_zptemp + 1
     .endif
     lda notenum
     sta attackPitch,x
+    
     lda pently_instruments+4,y
     sta noteAttackPos+1,x
     lda pently_instruments+3,y
@@ -671,7 +675,9 @@ instrument_id = pently_zptemp + 1
     sta attack_remainlen,x
     pla
     tax
-  skipAttackPart:
+.endif
+
+skipAttackPart:
   rts
 .endproc
 
@@ -690,6 +696,9 @@ out_pitchadd = pently_zptemp + 4
   bne nograce
   jsr pently_update_music::processTrackPattern
 nograce:
+
+.if ::PENTLY_USE_ATTACK_PHASE
+
   lda attack_remainlen,x
   beq noAttack
   dec attack_remainlen,x
@@ -706,6 +715,9 @@ nograce:
 :
   clc
   adc attackPitch,x
+.else
+  jmp noAttack
+.endif
 
   ; At this point, A is the note pitch with envelope modification.
   ; Arpeggio still needs to be applied, but not to injected attacks.

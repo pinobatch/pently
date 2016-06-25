@@ -98,14 +98,19 @@ Disabling some features frees up a few bytes:
 * `PENTLY_USE_ARPEGGIO`: about 60 bytes
 * `PENTLY_USE_BPMMATH`: about 30 bytes
 * `PENTLY_USE_ATTACK_TRACK`: about 40 bytes
+* `PENTLY_USE_ATTACK_PHASE`: about 60 bytes; cannot be disabled while
+  `PENTLY_USE_ATTACK_TRACK` is enabled
+
+You can't use the attack track if the attack is disabled entirely.
 
 Pitch
 -----
 Pently expresses pitch in terms of a built-in table of wave periods
-in [equal temperament], sometimes called 12edo.  The following values
-are valid for the square wave channels; the triangle wave channel
-always plays one octave lower.  By default, the player compensates
-for the PAL NES's slower APU based on bit 0 of `tvSystem`.
+in [equal temperament], sometimes called "12edo" (12 equal divisions
+of the octave).  The following values are valid for the square wave
+channels; the triangle wave channel always plays one octave lower.
+By default, the player compensates for the PAL NES's slower APU
+based on bit 0 of `tvSystem`.
 
 Because of the NES's limited precision for wave period values, note
 frequencies become less precise at high pitches.  These frequencies
@@ -317,10 +322,10 @@ Bugs and limits
 No music engine is perfect for all projects.  These limits of Pently
 may pose a problem for some projects:
 
-* Though it's only 1.6 KiB and thus much smaller than the FamiTracker
-  or NerdTracker II player, it may still take up too much space in a
-  very tight NROM-128 game. A feature to disable unused effects is
-  under development (issue #8).
+* Pently is 1.5 kB with all features on or 1.2 kB with all features
+  off, which is much smaller than the FamiTracker or NerdTracker II
+  player.  But even this may be too large for a very tight NROM-128
+  game.
 * No way to split sequence data across multiple PRG ROM banks
   or stash it in CHR ROM (like in _Galaxian_).
 * No pitch bends.

@@ -51,16 +51,18 @@ PENTLY_USE_VIBRATO = 1
 PENTLY_USE_ARPEGGIO = 1
 .endif
 
+; Enable attack envelopes on instruments
+.ifndef PENTLY_USE_ATTACK_PHASE
+PENTLY_USE_ATTACK_PHASE = 1
+.endif
+
 ; Enable a fifth track that can inject attacks on top of the
 ; pulse 1, pulse 2, or triangle channel
 .ifndef PENTLY_USE_ATTACK_TRACK
-PENTLY_USE_ATTACK_TRACK = 1
+PENTLY_USE_ATTACK_TRACK = PENTLY_USE_ATTACK_PHASE
 .endif
 
-; Nonfunctional
-.ifndef PENTLY_USE_ATTACK
-PENTLY_USE_ATTACK = 1
-.endif
+.assert (!PENTLY_USE_ATTACK_TRACK) || PENTLY_USE_ATTACK_PHASE, error, "cannot use attack track without attack phase"
 
 ; Count rows per beat
 .ifndef PENTLY_USE_BPMMATH
