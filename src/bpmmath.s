@@ -41,6 +41,12 @@
 ; from 0 to 95.
 .proc pently_get_beat_fraction
 
+  ; If rows per beat is disabled, bpmmath will attempt to divide by
+  ; zero.  So instead, just return the playing position as 0.
+.if ::PENTLY_USE_BPMMATH = 0
+  lda #0
+.else
+
 .if ::PENTLY_USE_PAL_ADJUST
   ldx tvSystem
   beq isNTSC_1
@@ -112,6 +118,7 @@ loop_add_simple:
   dey
   bne loop_add_simple
 no_add_simple:  
+.endif
   rts
 .endproc
 

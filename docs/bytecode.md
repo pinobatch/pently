@@ -109,7 +109,7 @@ Some examples of conductor patterns:
   255 quarter notes per minute.  The player automatically adjusts the
   playback speed based on the value of the tvSystem variable (zero:
   60.1 Hz, nonzero: 50 Hz).  However, values greater than 1500 may
-  introduce playback issues.  
+  introduce playback issues.
 * `playPatSq2 4, 27, FLUTE` plays pattern 4 on the second pulse wave
   channel (`Sq2` for "square 2"), transposed up 27 semitones (setting
   the base to middle C), with instrument `FLUTE`.
@@ -121,7 +121,7 @@ Some examples of conductor patterns:
   instrument system, not the sound effect system, even on the noise
   channel.  This is most useful for cymbals.
 * `waitRows 48` waits 48 rows before processing the next command.
-  Use this to allow patterns to play through.  
+  Use this to allow patterns to play through.
 * `fine` stops music playback. Use this at the end of a piece.
   (_Fine_, pronounced fee-neh, is Italian for "end".  In sheet music,
   it directs the performer to stop playing in a piece of ternary
@@ -132,9 +132,9 @@ Some examples of conductor patterns:
   the end of an introduction and the start of a large portion of a
   piece that should be repeated.)
 * `dalSegno` rewinds playback to the most recently seen loop point.
-  (_Dal segno (D.S.)_ is Italian for "from the sign".)  If no `segno`
-  was seen, the position moves to the start of the piece; in music,
-  this is called _da capo_ (from the head). 
+  (_[Dal segno] (D.S.)_ is Italian for "from the sign".)  If no
+  `segno` was seen, the position moves to the start of the piece;
+  in music, this is called _[da capo]_ (from the head).
 * `stopPatSq2` stops the pattern playing on the second square wave
   channel.  Patterns ordinarily loop when they reach the end, so
   you'll need to stop the pattern if you're not starting another
@@ -163,15 +163,18 @@ the above descriptions.
   `playPatNoise`, `playPatAttack`
 * Stop pattern: `stopPatSq1`, `stopPatSq2`, `stopPatTri`,
   `stopPatNoise`, `stopPatAttack`
-* Play note on pattern: `noteOnSq1`, `noteOnSq2`, `noteOnTri`,  
+* Play note on pattern: `noteOnSq1`, `noteOnSq2`, `noteOnTri`,
   `noteOnNoise`, `noteOnAttack`
 * Set channel for attack track: `attackOnSq1`, `attackOnSq2`,
   `attackOnTri`
 * Loop control: `fine`, `segno`, `dalSegno`
 * Timing control: `setTempo`, `setBeatDuration`, `waitRows`
 
-Patterns
+[Dal segno]: https://en.wikipedia.org/wiki/Dal_Segno
+[da capo]: https://en.wikipedia.org/wiki/Da_capo
 
+Patterns
+--------
 Patterns are listed below `pently_patterns`:
 
     patdef name, patdata_addr
@@ -182,7 +185,7 @@ Patterns are listed below `pently_patterns`:
 Each note's pitch is relative to the transposition base in the `playPat` command in the conductor track.
   
 Code             | Note       | Interval name  | Semitones
----------------- | ---------- | -------------- | ---------
+---------------- | ---------- | -------------- | --------:
 `N_C`            | C          | Unison         | 0
 `N_CS`, `N_DB`   | C#/D♭      | Minor second   | 1
 `N_D`            | D          | Major second   | 2
@@ -217,7 +220,7 @@ a tie on the drum or attack track.
 
 Each note or rest is OR'd with a duration, or the number of rows to
 wait after the note is played.  The durations are in fractions of
-a 16-row "whole note", following standard practice for describing
+a 16-row "[whole note]", following standard practice for describing
 durations in U.S. and Canadian English, most other Germanic
 languages, Chinese, and Greek.  Available durations are 𝅘𝅥𝅯 sixteenth
 (default, 1 row), 𝅘𝅥𝅮 eighth (`|D_8`, 2 rows), 𝅘𝅥 quarter (`|D_4`,
@@ -226,13 +229,13 @@ Augmented (or "dotted") durations are 50 percent longer:
 𝅘𝅥𝅮𝅭 dotted eighth (`|D_D8`, 3 rows), 𝅘𝅥𝅭 dotted quarter (`|D_D4`,
 6 rows), and 𝅗𝅥𝅭 dotted half (`|D_D2`, 12 rows).  Not all durations
 can be expressed with one byte, but anything up to 20 rows can be
-made from two tied notes: a note with `D_4`, `D_2`, `D_D2`, or `D_1`
-followed by `N_TIE`, `N_TIE|D_8`, or `N_TIE|D_D8`.
+made from two [tied] notes: a note with `D_4`, `D_2`, `D_D2`, or
+`D_1` followed by `N_TIE`, `N_TIE|D_8`, or `N_TIE|D_D8`.
 
 Note G played with each of 16 durations
 
 Code                  | Duration name               | Length in rows
---------------------- | --------------------------- | --------------
+--------------------- | --------------------------- | -------------:
 `N_G`                 | Sixteenth                   | 1
 `N_G|D_8`             | Eighth                      | 2
 `N_G|D_D8`            | Dotted eighth               | 3
@@ -250,6 +253,11 @@ Code                  | Duration name               | Length in rows
 `N_G|D_D2,N_TIE|D_D8` | Dotted half + dotted eighth | 15
 `N_G|D_1`             | Whole                       | 16
 
+[whole note]: https://en.wikipedia.org/wiki/Whole_note
+[tied]: https://en.wikipedia.org/wiki/Tie_(music)
+
+### Effects
+
 A pattern can force a particular instrument to be used, such as when
 a pattern alternates between instruments. For this, use `INSTRUMENT`
 followed by the instrument's name, such as `INSTRUMENT,FLUTE`.
@@ -263,11 +271,11 @@ after the last.
 Arpeggio rapidly cycles a note among two or three different pitches,
 which produces the warbly chords heard in SIDs and NSFs by European
 composers. The arpeggio is specified as a hexadecimal number, similar
-to that used with the `J47` effect in S3M or IT or the `047` effect
-in MOD, XM, or FTM. with a first and second nibble representing
-intervals in semitones.  For example, `ARPEGGIO,$47` makes a major
-chord in root position including 4 semitones (a major third) and 7
-semitones (a perfect fifth) above the root note.
+to that used with the `J47` effect in [S3M] or [IT] or the `047`
+effect in [MOD], [XM], or FTM, with a first and second nibble
+representing intervals in semitones.  For example, `ARPEGGIO,$47`
+makes a major chord in root position including 4 semitones (a major
+third) and 7 semitones (a perfect fifth) above the root note.
 
 If the second nibble is 0, only two steps are used; otherwise, three
 steps are used.  Thus there are three ways to make an interval of
@@ -289,20 +297,21 @@ ca65's lack of support for signed bytes.
 The grace command shortens the next two rows to one row's length.
 The next byte specifies the length in frames of the first note in
 the pair.  Like the `EDx` command in MOD/XM or the `SDx` command in
-S3M/IT, it's designed for making an acciaccatura (grace note) or a
+S3M/IT, it's designed for making an [acciaccatura] (grace note) or a
 set of triplets (3 notes in the time of 4).  For example, to play a
 short C note for 4 frames followed by a B flat that is as long as a
 quarter note minus 4 frames, do `GRACE,4,N_CH,N_BB|D_Q4`.
 
-Finally, to end the pattern, use PATEND.  This isn't strictly
+Finally, to end the pattern, use `PATEND`.  This isn't strictly
 necessary if a pattern is always interrupted at its end, but if it
-isn't present, playback will fall through into the following pattern.
+isn't present, playback will [fall through] into the following
+pattern.
 
 The following are all the symbols that are valid in pattern code:
 
 * Notes, low octave: `N_C`, `N_CS`, `N_D`, `N_DS`, `N_E`, `N_F`,
   `N_FS`, `N_G`, `N_GS`, `N_A`, `N_AS`, `N_B`
-* Notes, high octave: `N_CH`, `N_CSH`, `N_DH`, `N_DSH`, `N_EH`,  
+* Notes, high octave: `N_CH`, `N_CSH`, `N_DH`, `N_DSH`, `N_EH`,
   `N_FH`, `N_FSH`, `N_GH`, `N_GSH`, `N_AH`, `N_ASH`, `N_BH`
 * Note, top of range: `N_CHH`
 * Notes, enharmonic synonyms: `N_DB`, `N_EB`, `N_GB`, `N_AB`, `N_BB`,
@@ -312,3 +321,10 @@ The following are all the symbols that are valid in pattern code:
   `D_D4` (6 rows), `D_2` (8 rows), `D_D2` (12 rows), `D_1` (16 rows)
 * Effects and controls: `INSTRUMENT`, `ARPEGGIO`, `LEGATO_ON`,
   `LEGATO_OFF`, `VIBRATO`, `TRANSPOSE`, `PATEND`
+
+[S3M]: https://en.wikipedia.org/wiki/S3M_(file_format)
+[IT]: https://en.wikipedia.org/wiki/Impulse_Tracker
+[MOD]: https://en.wikipedia.org/wiki/MOD_(file_format)
+[XM]: https://en.wikipedia.org/wiki/FastTracker_2
+[acciaccatura]: https://en.wikipedia.org/wiki/Ornament_%28music%29#Acciaccatura
+[fall through]: https://en.wikipedia.org/wiki/Switch_statement#Fallthrough

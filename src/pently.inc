@@ -51,7 +51,21 @@ PENTLY_USE_VIBRATO = 1
 PENTLY_USE_ARPEGGIO = 1
 .endif
 
+; Enable a fifth track that can inject attacks on top of the
+; pulse 1, pulse 2, or triangle channel
+.ifndef PENTLY_USE_ATTACK_TRACK
+PENTLY_USE_ATTACK_TRACK = 1
+.endif
 
+; Nonfunctional
+.ifndef PENTLY_USE_ATTACK
+PENTLY_USE_ATTACK = 1
+.endif
+
+; Count rows per beat
+.ifndef PENTLY_USE_BPMMATH
+PENTLY_USE_BPMMATH = 1
+.endif
 
 ; Methods ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

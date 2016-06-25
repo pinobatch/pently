@@ -46,6 +46,12 @@ NUM_CHANNELS = 4
 DRUM_TRACK = 12
 ATTACK_TRACK = 16
 
+.if PENTLY_USE_ATTACK_TRACK
+  LAST_TRACK = ATTACK_TRACK
+.else
+  LAST_TRACK = DRUM_TRACK
+.endif
+
 ; pently_zp_state:
 ;       +0                +1                +2                +3
 ;  0  | Sq1 sound effect data ptr           Sq1 envelope data ptr
@@ -146,7 +152,7 @@ vibratoPattern:
     dey
     bpl :-
 
-  ldx #ATTACK_TRACK
+  ldx #LAST_TRACK
   channelLoop:
     lda #<silentPattern
     sta musicPatternPos,x
@@ -159,14 +165,18 @@ vibratoPattern:
     dex
     dex
     bpl channelLoop
-  lda #0
-  sta attackChannel
-  lda #4
-  sta pently_rows_per_beat
+  .if ::PENTLY_USE_ATTACK_TRACK
+    lda #0
+    sta attackChannel
+  .endif
   lda #$FF
-  sta pently_row_beat_part
   sta pently_tempoCounterLo
   sta pently_tempoCounterHi
+  .if ::PENTLY_USE_BPMMATH
+    sta pently_row_beat_part
+    lda #4
+    sta pently_rows_per_beat
+  .endif
   lda #<300
   sta music_tempoLo
   lda #>300
@@ -215,15 +225,17 @@ is_ntsc_1:
   lda pently_tempoCounterHi
   sbc pently_fpmHi,y
   sta pently_tempoCounterHi
-  
-  ; Update row
-  ldy pently_row_beat_part
-  iny
-  cpy pently_rows_per_beat
-  bcc :+
-  ldy #0
-:
-  sty pently_row_beat_part
+
+  .if ::PENTLY_USE_BPMMATH
+    ; Update row
+    ldy pently_row_beat_part
+    iny
+    cpy pently_rows_per_beat
+    bcc :+
+    ldy #0
+  :
+    sty pently_row_beat_part
+  .endif
 
 .if ::PENTLY_USE_ROW_CALLBACK
   jsr pently_row_callback
@@ -248,12 +260,14 @@ conbyte = pently_zptemp + 0
   bcc @notTempoChange
   cmp #CON_SETBEAT
   bcc @isTempoChange
-    and #%00000111
-    tay
-    lda durations,y
-    sta pently_rows_per_beat
-    ldy #0
-    sty pently_row_beat_part
+    .if ::PENTLY_USE_BPMMATH
+      and #%00000111
+      tay
+      lda durations,y
+      sta pently_rows_per_beat
+      ldy #0
+      sty pently_row_beat_part
+    .endif
     jmp doConductor
   @isTempoChange:
     and #%00000111
@@ -277,10 +291,12 @@ conbyte = pently_zptemp + 0
   bcc @notAttackSet
   cmp #CON_NOTEON
   bcs @handleNoteOn
-    and #%00000011
-    asl a
-    asl a
-    sta attackChannel
+    .if ::PENTLY_USE_ATTACK_TRACK
+      and #%00000011
+      asl a
+      asl a
+      sta attackChannel
+    .endif
     jmp doConductor
   @handleNoteOn:
     and #%00000011
@@ -351,9 +367,16 @@ conductorPlayPattern:
 
   lda #0
   cpx #ATTACK_TRACK
-  bcs :+
+.if ::PENTLY_USE_ATTACK_TRACK
+  bcs skipClearLegato
+.else
+  bcc isValidTrack
+    lda #2
+    bcs skipAplusCconductor
+  isValidTrack:
+.endif
     sta noteLegato,x  ; start all patterns with legato off
-  :
+  skipClearLegato:
   sta noteRowsLeft,x
   lda (conductorPos),y
   sta musicPattern,x
@@ -365,6 +388,7 @@ conductorPlayPattern:
   sta noteInstrument,x
   tya
   sec
+skipAplusCconductor:
   adc conductorPos
   sta conductorPos
   bcc :+
@@ -392,8 +416,13 @@ skipConductor:
     dex
     dex
     bpl channelLoop
-  ldx #ATTACK_TRACK
-  ; fall through
+
+  ; Process attack track last
+  .if ::PENTLY_USE_ATTACK_TRACK
+    ldx #ATTACK_TRACK
+  .else
+    rts
+  .endif
 
 processTrackPattern:
   lda noteRowsLeft,x
@@ -444,8 +473,10 @@ isNoteCmd:
   beq notKeyOff
     lda #0
     sta attack_remainlen,x
-    cpx #ATTACK_TRACK
-    bcs notKeyOff
+    .if ::PENTLY_USE_ATTACK_TRACK
+      cpx #ATTACK_TRACK
+      bcs notKeyOff
+    .endif
     sta noteEnvVol,x
   notKeyOff:
   jmp skipNote
@@ -583,15 +614,17 @@ instrument_id = pently_zptemp + 1
   ; at this point:
   ; x = channel #
   ; y = offset in instrument table
+.if ::PENTLY_USE_ATTACK_TRACK
   cpx #ATTACK_TRACK
   bcs skipSustainPart
-    lda notenum
-    sta notePitch,x
     lda arpPhase,x  ; bit 7 set if attack is injected
     bmi dont_legato_injected_attack
+.endif
       lda notenum
       sta attackPitch,x
     dont_legato_injected_attack:
+    lda notenum
+    sta notePitch,x
     lda noteLegato,x
     bne skipAttackPart
     lda instrument_id
@@ -603,10 +636,12 @@ instrument_id = pently_zptemp + 1
     asl a
     ora #$0C
     sta noteEnvVol,x
-    cpx #12
+    cpx #DRUM_TRACK
     bcs skipSustainPart
-      lda #0
-      sta arpPhase,x  ; bits 2-0: arp phase; 7: is attack injected
+      .if ::PENTLY_USE_ATTACK_TRACK || ::PENTLY_USE_ARPEGGIO
+        lda #0
+        sta arpPhase,x  ; bits 2-0: arp phase; 7: is attack injected
+      .endif
       .if ::PENTLY_USE_VIBRATO
         lda #23
         sta vibratoPhase,x
@@ -617,12 +652,14 @@ instrument_id = pently_zptemp + 1
   beq skipAttackPart
     txa
     pha
-    cpx #ATTACK_TRACK
-    bcc notAttackChannel
-      ldx attackChannel
-      lda #$80  ; Disable arpeggio and vibrato until sustain
-      sta arpPhase,x
-    notAttackChannel:
+    .if ::PENTLY_USE_ATTACK_TRACK
+      cpx #ATTACK_TRACK
+      bcc notAttackChannel
+        ldx attackChannel
+        lda #$80  ; Disable arpeggio, vibrato, and legato until sustain
+        sta arpPhase,x
+      notAttackChannel:
+    .endif
     lda notenum
     sta attackPitch,x
     lda pently_instruments+4,y
@@ -672,11 +709,17 @@ nograce:
 
   ; At this point, A is the note pitch with envelope modification.
   ; Arpeggio still needs to be applied, but not to injected attacks.
-  ; Because bit 7 of arpPhase tells the rest of Pently whether an
-  ; attack is injected, storePitchWithArpeggio still clears this bit
-  ; during sustain phase even if arpeggio is disabled.
+  ; Because bit 7 of arpPhase tells the rest of Pently (particularly
+  ; legato and vibrato) whether an attack is injected,
+  ; storePitchWithArpeggio still clears this bit during sustain phase
+  ; even if arpeggio is disabled at build time.
+  ; But if both arpeggio and attack injection are disabled, treat
+  ; "with arpeggio" and "no arpeggio" the same.
+.if ::PENTLY_USE_ATTACK_TRACK
   ldy arpPhase,x
   bmi storePitchNoArpeggio
+.endif
+.if ::PENTLY_USE_ARPEGGIO || ::PENTLY_USE_ATTACK_TRACK
 storePitchWithArpeggio:
   sta out_pitch
 
@@ -713,6 +756,7 @@ noArpRestart:
   ldx xsave
   tya
 .else
+  ; If arpeggio is off, just clear the attack injection flag
   lda #0
 .endif
   sta arpPhase,x
@@ -721,6 +765,9 @@ noArpRestart:
   .else
     rts
   .endif
+.else
+storePitchWithArpeggio:
+.endif
 
 storePitchNoArpeggio:
   sta out_pitch
@@ -815,8 +862,10 @@ vibratoBits = xsave
   sta vibratoPhase,x
   cpy #11
   bcs not_vibrato
-  lda arpPhase,x      ; Suppress vibrato from injected attack
-  bmi not_vibrato     ; (even though we still clock it)
+  .if ::PENTLY_USE_ATTACK_TRACK
+    lda arpPhase,x      ; Suppress vibrato from injected attack
+    bmi not_vibrato     ; (even though we still clock it)
+  .endif
 
   ; Step 1: Calculate the delta to apply based on pitch
   lda vibratoPattern,y
