@@ -29,9 +29,10 @@
 ; of a beat, for use to synchronize a cut scene or a rhythm game.
 ; CAUTION:  Rhythm games will be a patent minefield until 2010.
 
+.include "pentlyconfig.inc"
 .include "pently.inc"
 .import mul8  ; from math.s
-.if !::PENTLY_NTSC_ONLY
+.if ::PENTLY_USE_PAL_ADJUST
   .importzp tvSystem
 .endif
 
@@ -40,7 +41,7 @@
 ; from 0 to 95.
 .proc pently_get_beat_fraction
 
-.if !::PENTLY_NTSC_ONLY
+.if ::PENTLY_USE_PAL_ADJUST
   ldx tvSystem
   beq isNTSC_1
   ldx #1
@@ -49,8 +50,8 @@ isNTSC_1:
   ldx #0
 .endif
 
-  ; as an optimization in the music engine, tempoCounter is
-  ; actually stored as a negative number: -3606 through -1
+  ; As an optimization in the music engine, tempoCounter is
+  ; actually stored as a negative number: -3606 through -1.
   clc
   lda pently_tempoCounterLo
   adc pently_fpmLo,x

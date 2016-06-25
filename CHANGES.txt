@@ -3,6 +3,9 @@
 * Simplified zeroing of channel state during song start
 * Pattern effects use RTS dispatch
 * Corrected namespacing of some APIs
+* Standardized names of feature defines (PENTLY_USE_*) and
+  moved them to pentlyconfig.inc
+* Feature defines to disable vibrato and arpeggio effects
 * Applied MIT License (Expat variant) throughout
 
 0.05wip4 (2016-06)
