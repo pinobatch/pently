@@ -1519,7 +1519,7 @@ def subseq_pack(subseqs):
         out_seqs[key] = handle_one_seq(inclen_seqs, i)
     return out_seqs
 
-def render_file(parser):
+def render_file(parser, segment='RODATA'):
     # each entry in this row is a tuple of the form
     # list, name of directory table, include asmnames in export,
     # include in dbyt subsequence packing
@@ -1552,7 +1552,7 @@ def render_file(parser):
 
     lines = [
         '.include "../../src/pentlyseq.inc"',
-        '.segment "RODATA"',
+        '.segment "%s"' % segment,
         'NUM_SONGS=%d' % len(parser.songs),
         '.exportzp NUM_SONGS',
     ]
@@ -1650,6 +1650,8 @@ def parse_argv(argv):
     parser.add_argument("--period-region", default='ntsc',
                         choices=sorted(region_period_numerator.keys()),
                         help='make period table for this region (default: ntsc)')
+    parser.add_argument("--segment", default='RODATA',
+                        help='place output in this segment (default: RODATA)')
     args = parser.parse_args(argv[1:])
     if not args.infilename and not args.periods:
         parser.error('at least one of infilename and --periods is required')
@@ -1686,7 +1688,7 @@ def main(argv=None):
                   % (infilename, parser.linenum, parser.cur_song.name),
                   file=sys.stderr)
         lines.append('; Music from ' + ('standard input' if is_stdin else args.infilename))
-        lines.extend(render_file(parser))
+        lines.extend(render_file(parser, args.segment))
 
     if args.periods > 0:
         periods = getPeriodValues(args.periods, args.period_region)
