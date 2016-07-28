@@ -114,7 +114,7 @@ pently_row_beat_part    = pentlyBSS + 79
 pently_tempoCounterLo   = pentlyBSS + 83
 pently_tempoCounterHi   = pentlyBSS + 87
 
-.segment "RODATA"
+.segment PENTLY_RODATA
 
 FRAMES_PER_MINUTE_PAL = 3000
 FRAMES_PER_MINUTE_NTSC = 3606
@@ -134,7 +134,7 @@ vibratoPattern:
   .byt 6,7,7,7,6,0,2,3,3,3,2
 .endif
 
-.segment "CODE"
+.segment PENTLY_CODE
 .proc pently_start_music
   asl a
   tax
@@ -525,7 +525,7 @@ startPattern:
   rts
 
 .pushseg
-.segment "RODATA"
+.segment PENTLY_RODATA
 patcmdhandlers:
   .addr handle_instrument-1
   .addr handle_arpeggio-1

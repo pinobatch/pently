@@ -1,3 +1,8 @@
+0.05wip6
+* pentlyas.py: Fixed diagnostics for play command
+* pentlyas.py: Command line option to change output segment
+* Change code and data segment in pentlyconfig.inc
+
 0.05wip5 (2016-06)
 * Vibrato effect
 * Simplified zeroing of channel state during song start

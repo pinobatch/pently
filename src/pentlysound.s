@@ -63,7 +63,7 @@ sfx_remainlen = pentlyBSS + 3
 .importzp tvSystem
 .endif
 
-.segment "CODE"
+.segment PENTLY_CODE
 
 ;;
 ; Initializes all sound channels.
