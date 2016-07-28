@@ -703,8 +703,8 @@ class PentlySong(PentlyRenderable):
                 pat = scopes.patterns[patname]
                 if track is None: track = pat.track
                 if track != 'drum' and pat.transpose is None:
-                    raise ValueError("pitched track %s has only rests; use stopPat instead"
-                                     % (patname,))
+                    raise ValueError("%s: pitched track %s has only rests; use stopPat instead"
+                                     % (self.name, patname))
                 if track == 'drum':
                     if pat.track != 'drum':
                         raise ValueError('cannot play pitched pattern %s on drum track'
@@ -712,18 +712,18 @@ class PentlySong(PentlyRenderable):
                     out.append("playPatNoise %s" % pat.asmname)
                     continue
                 if pat.track == 'drum':
-                    raise ValueError('cannot play drum pattern %s on pitched track'
-                                     % (patname,))
+                    raise ValueError('%s: cannot play drum pattern %s on pitched track'
+                                     % (self.name, patname))
                 if isinstance(track, str):
                     track = pitched_tracks[track]
                 if track is None:
                     raise ValueError("%s: no track for pitched pattern %s"
-                                     % (name, patname))
+                                     % (self.name, patname))
                 transpose += pat.transpose
                 if instrument is None: instrument = pat.instrument
                 if instrument is None:
                     raise ValueError("%s: no instrument for pattern %s"
-                                     % (song, patname))
+                                     % (self.name, patname))
                 instrument = self.resolve_scope(instrument, self.name, scopes.instruments)
                 instrument = scopes.instruments[instrument].asmname
                 suffix = track_suffixes[track]
