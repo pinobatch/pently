@@ -720,6 +720,9 @@ class PentlySong(PentlyRenderable):
                     raise ValueError("%s: no track for pitched pattern %s"
                                      % (self.name, patname))
                 transpose += pat.transpose
+                if transpose < 0:
+                    raise ValueError("%s: %s: trying to play %d semitones below lowest pitch"
+                                     % (self.name, patname, -transpose))
                 if instrument is None: instrument = pat.instrument
                 if instrument is None:
                     raise ValueError("%s: no instrument for pattern %s"
