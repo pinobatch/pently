@@ -32,10 +32,13 @@ imgdir = tilesets
 EMU := fceux --input1 GamePad.0
 # other options for EMU are start (Windows) or gnome-open (GNOME)
 
-.PHONY: run dist zip
+.PHONY: run dist zip clean
 
 run: $(title).nes
 	$(EMU) $<
+
+clean:
+	-rm $(objdir)/*.o $(objdir)/*.s $(objdir)/*.chr
 
 # Rule to create or update the distribution zipfile by adding all
 # files listed in zip.in.  Actually the zipfile depends on every
@@ -70,7 +73,8 @@ map.txt $(title).nes: nrom128.cfg $(objlistntsc)
 nsfmap.txt $(title).nsf: nsf.cfg $(objlistnsf)
 	$(LD65) -o $(title).nsf -C $^ -m nsfmap.txt
 
-$(objdir)/%.o: $(srcdir)/%.s $(srcdir)/nes.inc $(srcdir)/shell.inc
+$(objdir)/%.o: \
+  $(srcdir)/%.s $(srcdir)/nes.inc $(srcdir)/shell.inc $(srcdir)/pently.inc
 	$(AS65) $(CFLAGS65) $< -o $@
 
 $(objdir)/%.o: $(objdir)/%.s

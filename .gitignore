@@ -2,6 +2,7 @@
 *.o
 *~
 *.chr
+/obj/nes/*.s
 /zip.in
 *.nes.deb
 /map.txt

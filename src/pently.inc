@@ -69,6 +69,12 @@ PENTLY_USE_ATTACK_TRACK = PENTLY_USE_ATTACK_PHASE
 PENTLY_USE_BPMMATH = 1
 .endif
 
+.ifndef pently_zptemp
+pently_zptemp = $0000
+.endif
+
+.assert (pently_zptemp + 5) <= $100, error, "pently_zptemp must be within zero page"
+
 ; Methods ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;
@@ -130,9 +136,5 @@ PENTLY_USE_BPMMATH = 1
 ; The fraction of a row until the next row is processed.
 ; Will range from -3000 to 0 on PAL or -3606 to 0 on NTSC.
 .global pently_tempoCounterLo, pently_tempoCounterHi
-
-; Pently requires 5 bytes of temporary zero page scratch space
-; that need not be preserved from one call to the next.
-pently_zptemp = $0000
 
 .global pently_fpmLo, pently_fpmHi

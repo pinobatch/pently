@@ -103,6 +103,13 @@ Disabling some features frees up a few bytes:
 
 You can't use the attack track if the attack is disabled entirely.
 
+In addition, `pently_zptemp` needs to point at a 5-byte area of
+zero page used as scratch space.  Set it in one of two ways:
+
+    pently_zptemp = $00F0
+    ; or ;
+    .importzp pently_zptemp
+
 Pitch
 -----
 Pently expresses pitch in terms of a built-in table of wave periods
