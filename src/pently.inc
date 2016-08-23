@@ -69,12 +69,6 @@ PENTLY_USE_ATTACK_TRACK = PENTLY_USE_ATTACK_PHASE
 PENTLY_USE_BPMMATH = 1
 .endif
 
-.ifndef pently_zptemp
-pently_zptemp = $0000
-.endif
-
-.assert (pently_zptemp + 5) <= $100, error, "pently_zptemp must be within zero page"
-
 ; Methods ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;

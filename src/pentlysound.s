@@ -31,6 +31,8 @@
 .export pentlyBSS
 .exportzp PENTLYBSS_SIZE, pently_zp_state
 
+.assert (pently_zptemp + 5) <= $100, error, "pently_zptemp must be within zero page"
+
 SNDCHN = $4015
 
 ; Ordinarily, the effect engine will move a pulse sound effect from

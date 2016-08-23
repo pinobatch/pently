@@ -110,6 +110,9 @@ zero page used as scratch space.  Set it in one of two ways:
     ; or ;
     .importzp pently_zptemp
 
+If you use `.importzp`, you'll need to `.exportzp` in the file in
+your main project that defines `pently_zptemp`.
+
 Pitch
 -----
 Pently expresses pitch in terms of a built-in table of wave periods
