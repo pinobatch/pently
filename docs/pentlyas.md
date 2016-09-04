@@ -24,8 +24,8 @@ Arguments:
 * `-o OUTFILENAME`  
   Write output to a file instead of standard output.
 * `--periods NUMSEMITONES`  
-  Include a period table in the output; `NUMSEMITONES` is usually
-  64 to 80.
+  Include an equal-temperament period table in the output;
+  `NUMSEMITONES` is usually 64 to 80.
 * `--period-region {dendy,ntsc,pal}`  
   Make period table for this region (default: `ntsc`).
 
@@ -49,8 +49,7 @@ Defining pitches
 Pently works by setting the period of a tone generator to periods
 associated with musical pitches.  On the pulse and triangle channels,
 both sound effects and musical notes are defined on a logarithmic
-scale in units of semitones above 55 Hz, where a semitone is
-one-twelfth of an octave, and an octave is a 2 to 1 frequency ratio.
+scale in units of semitones above 55 Hz.
 
 The **note names** `c d e f g a b` refer to notes in the C major
 scale, or 0, 2, 4, 5, 7, 9, and 11 semitones above the octave's base.
@@ -469,20 +468,20 @@ studied music theory and MIDI.
   Like other NES music engines, Pently counts frames based on the
   vertical retrace of the picture generator.  An NTSC PPU produces
   60.1 frames per second, and a PAL PPU produces 50.0 frames per
-  second.  This usually ends up assigning three to ten frames per
+  second.  This usually ends up assigning three to fifteen frames per
   row depending on the tempo and scale.
 * HOPO: Instantaneous change in a note's pitch.  (After guitar
   techniques called "hammer-on" and "pull-off" that produce this.)
 * Illusory continuity: The tendency of the human auditory system to
   fill in gaps in a continuous tone when these gaps coincide with
   another sufficiently loud tone or noise.
-* Instrument: A set of pitch, volumes, and timbre envelopes that are
+* Instrument: A set of pitch, volume, and timbre envelopes that is
   used to play notes.
 * Note: A musical event with a pitch and a duration.
 * Note value: A duration expressed as a binary fraction of a
   whole note.
-* Pattern: A musical phrase, consisting of a list of notes with
-  durations.
+* Octave: A frequency ratio of 2 to 1 between two pitches.
+* Pattern: A musical phrase, consisting of a list of notes and rests.
 * Pickup measure: A partial measure at the start of a piece of music.
   Also called "anacrusis".
 * Pitch: The frequency of a tone expressed using a logarithmic scale.
@@ -491,9 +490,12 @@ studied music theory and MIDI.
 * Polyphony: Playing more than one note at once.
 * Prolation: The division of a beat into two parts (simple) or
   three parts (compound).
+* Rest: A musical event consisting of silence for a duration.
 * Row: The shortest rhythmically significant duration in a piece of
   sequenced music.  Also called a subdivision, tick, or tatum (after
   American jazz pianist Art Tatum).
+* Semitone: One-twelfth of an octave, or a frequency ratio of 1.0595
+  (the twelfth root of 2) to 1 between pitches.
 * Song: A piece of music, which plays patterns at various times.
 * Sound effect: A set of pitch, volumes, and timbre envelopes
   without necessarily a definite pitch.
