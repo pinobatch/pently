@@ -35,19 +35,6 @@
 
 SNDCHN = $4015
 
-; Ordinarily, the effect engine will move a pulse sound effect from
-; $4000 to $4004 if $4004 is idle and $4000 is not, or if $4004 has
-; less sfx data left to play than $4000.  Turn this off to force all
-; pulse sfx to be played on $4000.
-SQUARE_POOLING = 1
-
-; As of 2011-03-10, a sound effect interrupts a musical instrument on
-; the same channel only if the volume of the sfx is greater than that
-; of the instrument.  Turn this off to force sound fx to interrupt
-; the music whenever sfx data remains on that channel, even if the
-; music is louder.
-KEEP_MUSIC_IF_LOUDER = 1
-
 .segment "ZEROPAGE"
 pently_zp_state: .res 36
 .segment "BSS"
@@ -139,7 +126,7 @@ sndrate   = pently_zptemp + 4
 
   ; Split up square wave sounds between pulse 1 ($4000) and
   ; pulse 2 ($4004) depending on which has less data left to play
-  .if ::SQUARE_POOLING
+  .if ::PENTLY_USE_SQUARE_POOLING
     lda sndchno
     bne not_ch0to4  ; if not ch 0, don't try moving it
       lda sfx_remainlen+4
@@ -170,7 +157,6 @@ sndrate   = pently_zptemp + 4
 ch_full:
   rts
 .endproc
-
 
 ;;
 ; Updates sound effect channels.
@@ -234,7 +220,7 @@ ch_not_done:
     inc sfx_datahi,x
   :
   ldy #0
-  .if ::KEEP_MUSIC_IF_LOUDER
+  .if ::PENTLY_USE_MUSIC_IF_LOUDER
     lda tvol
     pha
     and #$0F

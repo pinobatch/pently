@@ -34,9 +34,11 @@ The following methods, declared in the assembly language include file
 * `pently_resume_music` resumes the playing song. If this is called
   before `pently_start_music` or after a song stops, the behavior is
   undefined.
-* `pently_play_note` plays the note with pitch A (0 to 63) on channel
-  X (0, 4, 8, 12, or 16) with instrument Y from `pently_instruments`.
-  See "Pitch" below.
+* `pently_play_note` plays the note with pitch A on channel X with
+  instrument Y.  Pitch ranges from 0 to 63; see "Pitch" below.
+  Channel is 0, 4, 8, 12, or 16, representing pulse 1, pulse 2,
+  triangle, noise, and attack.  Instrument is an element of the
+  `pently_instruments` table.
 * `getTVSystem`, defined in `paldetect.s`, waits for two NMIs and
   counts the time between them to determine which TV system is in
   use.  It returns a region value in A: 0 means NTSC, 1 means PAL
@@ -92,6 +94,20 @@ tempo and pitch for PAL machines.  The main program must `.export` a
     jsr getTVSystem
     sta tvSystem
 
+If `PENTLY_USE_SQUARE_POOLING` is enabled, Pently treats the pulse 1
+and pulse 2 channels as a pool, and if pulse 1 is busy, it moves a
+pulse sound effect to pulse 2 if pulse 2 is idle or has less sound
+effect data left to play than pulse 1.  If this is disabled, it plays
+all pulse sound effects on pulse 1.
+
+If `PENTLY_USE_MUSIC_IF_LOUDER` is enabled, and a sound effect and
+musical instrument are playing at the same time on the same channel,
+Pently switches between the two frame by frame based on which is
+louder.  This allows a loud note to cover up the long tail of a sound
+effect or a triangle kick drum to stop sooner if a note is playing.
+Turn this off to force a sound effect to silence notes on the same
+channel for its entire duration.
+
 Disabling some features frees up a few bytes:
 
 * `PENTLY_USE_VIBRATO`: about 150 bytes
@@ -117,7 +133,7 @@ Pitch
 -----
 Pently expresses pitch in terms of a built-in table of wave periods
 in [equal temperament], sometimes called "12edo" (12 equal divisions
-of the octave).  The following values are valid for the square wave
+of the octave).  The following values are valid for the pulse
 channels; the triangle wave channel always plays one octave lower.
 By default, the player compensates for the PAL NES's slower APU
 based on bit 0 of `tvSystem`.
@@ -209,44 +225,51 @@ you do, it helps to understand the way Pently represents music.
 
 ### Sound effects
 
-At any moment, the mixer chooses to play either the music or the
-sound effect based on whatever is louder on each channel.  If there
-is already a sound effect playing on the first square wave channel,
-another sound effect played at the same time will automatically be
-moved to the second, but a sound effect for the triangle or noise
-channel will not be moved. A sound effect will never interrupt
-another sound effect that has more frames remaining.
+There can be up to 64 different sound effects.  Each is a list of
+(duty, volume, pitch) triples.
 
-There can be up to 64 different sound effects.
+Each sound effect is specific to a particular type of channel (pulse,
+triangle, or noise).  When a sound effect is played, it covers up
+the musical note on the same channel.  It uses remaining length as a
+rough priority scheme; a sound effect will never interrupt another
+sound effect that has more frames remaining.
+
+At any moment, the mixer chooses to play either the music or the
+sound effect based on whatever is louder on each channel.  If a
+sound effect is playing on pulse 1, another pulse sound effect
+played at the same time will be moved to pulse 2, but a sound
+effect for the triangle or noise channel will not be moved.
+The `PENTLY_USE_SQUARE_POOLING` and `PENTLY_USE_MUSIC_IF_LOUDER`
+configuration options change these behaviors.
 
 ### Instruments
 
-Each instrument defines an envelope, which determines the volume and
-timbre of an instrument over time.  We take a cue from the Roland
-[D-50] and D-550 synthesizers that a note's attack is the hardest thing
-to synthesize.  An instrument for the D-50 can play a PCM sample to
-sweeten the attack and leave the decay, sustain, and release to a
-subtractive synthesizer.  Likewise in Pently, an envelope has two
-parts: attack and sustain.
+Each instrument defines an envelope, which determines the volume
+and timbre of an instrument over time.  We take a cue from the
+Roland [D-50] and D-550 synthesizers that a note's attack is the
+hardest thing to synthesize.  An instrument for the D-50 can play
+a PCM sample to sweeten the attack and leave the decay, sustain,
+and release to a subtractive synthesizer.  Likewise in Pently,
+an envelope has two parts: attack and sustain.
 
 An attack is like a short sound effect that specifies the timbre,
-volume, and pitch for the first few frames of a note.  It's analogous
-to the duty, volume, and arpeggio envelopes in FamiTracker, but in a
-compact format similar to that of sound effects.  After the attack
-finishes, the channel continues into the sustain.  The timbre and
-initial volume of the channel are set, and then the volume gradually
-decreases if desired.
+volume, and pitch for the first few frames of a note.  It's
+analogous to the duty, volume, and arpeggio envelopes in FamiTracker,
+but in a compact format similar to that of sound effects.
+After the attack finishes, the channel continues into the sustain.
+The timbre and initial volume of the channel are set, and then
+the volume gradually decreases if desired.
 
 The drum track uses a different kind of instrument.  Each drum
-specifies one or two sound effects to be played.  A common pattern is
-for a kick or snare drum to have a triangle component and a noise
-component, each represented as its own sound effect.
+specifies one or two sound effects to be played.  A common pattern
+is for a kick or snare drum to have a triangle component and a
+noise component, each represented as its own sound effect.
 
-The fifth track can only play attacks, not sustains.  It plays them
-on top of the pulse 1, pulse 2, or triangle channel, replacing the
-attack phase of that channel's instrument (if any).  This is useful
-for playing staccato notes on top of something else, interrupting the
-notes much like sound effects do.
+The fifth track can only play attacks, not sustains.  It plays
+them on top of the pulse 1, pulse 2, or triangle channel,
+replacing the attack phase of that channel's instrument (if any).
+This is useful for playing staccato notes on top of something
+else, interrupting the notes much like sound effects do.
 
 There can be up to 51 instruments and 25 drums in `musicseq.s`.
 
@@ -345,21 +368,21 @@ may pose a problem for some projects:
   incompatible with DPCM.  However, it won't interfere with your own
   sample player, which can be triggered from `pently_row_callback`.
 * No support for Famicom expansion synths, such as Nintendo MMC5,
-  Sunsoft 5B, Namco 163, and Konami VRC6 and VRC7.  This is a low
-  priority for two reasons: the NES sold in English-speaking regions
-  did not support expansion synths without modification, and no
-  expansion synth has a CPLD replica as of 2016.
+  Sunsoft 5B, Namco 163, and Konami VRC6 and VRC7.  This is a
+  low priority for two reasons: the NES sold in English-speaking
+  regions did not support expansion synths without modification,
+  and no expansion synth has a CPLD replica as of 2016.
 * Envelopes have no release phase; a note-off kills the note
   abruptly.
 * No error checking for certain combinations that cause undefined
   behavior.
 * No graphical editor, unless you count using FamiTracker with
   ft2pently.
-* Limit of 51 instruments, 64 sound effects, 25 different drums, 128
-  patterns, and 128 songs.
+* Limit of 51 instruments, 64 sound effects, 25 different drums,
+  128 patterns, and 128 songs.
 * The bottom octave of the 88-key piano is missing from the pulse
-  channel and the top octave from the triangle channel, reflecting an
-  NES limit.
+  channel and the top octave from the triangle channel, reflecting
+  an NES limit.
 * The row grid cannot be swung.
 * Pently does not [compose music for you].  Writing an improvisation
   engine that calls `pently_play_note` is left as an exercise.
