@@ -287,6 +287,10 @@ low, low, and high; `ARPEGGIO,$C0` is two steps low and high; and
 The depth of vibrato can be set from off (`VIBRATO,0`) to subtle
 (`VIBRATO,1`) through very strong (`VIBRATO,4`).
 
+The volume of an instrument's attack and sustain phases can be scaled
+by channel volume, from 25% (`CHVOLUME,1`) to full (`CHVOLUME,4`;
+default).  Drums are unaffected.
+
 A pattern spanning more than two octaves needs to use the transpose
 command, which changes the pitch of the rest of a pattern by a given
 number of semitones.  For example, `TRANSPOSE,5` moves the rest of

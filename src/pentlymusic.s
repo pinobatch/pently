@@ -45,7 +45,7 @@
 NUM_CHANNELS = 4
 DRUM_TRACK = 12
 ATTACK_TRACK = 16
-MAX_CHANNEL_VOLUME = 3
+MAX_CHANNEL_VOLUME = 4
 
 .if PENTLY_USE_ATTACK_TRACK
   LAST_TRACK = ATTACK_TRACK
@@ -609,7 +609,7 @@ handle_vibrato:
 .if ::PENTLY_USE_CHANNEL_VOLUME
 handle_ch_volume:
   lda (musicPatternPos,x)
-  sta vibratoDepth,x
+  sta channelVolume,x
   jmp nextPatternByte
 .else
   handle_ch_volume = nextPatternByte 

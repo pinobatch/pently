@@ -61,6 +61,9 @@ durcodes = {
     1: '0', 2: 'D_8', 3: 'D_D8', 4: 'D_4',
     6: 'D_D4', 8: 'D_2', 12: 'D_D2', 16: 'D_1'
 }
+volcodes = {
+    'pp': 1, 'mp': 2, 'mf': 3, 'ff': 4
+}
 pitched_tracks = {'pulse1': 0, 'pulse2': 1, 'triangle': 2, 'attack': 4}
 track_suffixes = ['Sq1', 'Sq2', 'Tri', 'Noise', 'Attack']
 pattern_pitchoffsets = [
@@ -824,6 +827,12 @@ class PentlyPattern(PentlyRenderable):
             self.pitchctx.octave_mode = word
             return
 
+        volmatch = volcodes.get(word)
+        if volmatch is not None:
+            self.notes.append("CHVOLUME,%d" % volmatch)
+            return
+
+        # ENxx: Arpeggio
         arpmatch = (self.arpeggioRE.match(word)
                     if self.pitchctx.octave_mode != 'drum'
                     else None)
@@ -835,6 +844,7 @@ class PentlyPattern(PentlyRenderable):
             self.notes.append("ARPEGGIO,$"+arpargument)
             return
 
+        # MPxx: Vibrato
         vibratomatch = (self.vibratoRE.match(word)
                         if self.pitchctx.octave_mode != 'drum'
                         else None)
@@ -846,7 +856,7 @@ class PentlyPattern(PentlyRenderable):
             self.notes.append("VIBRATO,"+vibargument)
             return
 
-        # Other @ marks are instrument changes.  Resolve them later
+        # @ marks are instrument changes.  Resolve them later
         # once asmname values have been assigned.
         if word.startswith('@'):
             self.notes.append(word)

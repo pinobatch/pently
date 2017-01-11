@@ -350,6 +350,11 @@ The `MP` (modulate period) command controls vibrato: `MP1` through
 `MP0` or `MPOF` disables it.  Only the depth can be controlled, not
 the rate (which is fixed to a musically sane 12 frame period).
 
+**Channel volume** scales the volume of the instrument's envelope.
+Commands `pp`, `mp`, `mf`, and `ff` change the channel volume to
+25%, 50%, 75%, and 100% respectively.  Volume is set to 100% at the
+start of a piece.  Drums and other sound effects are unaffected.
+
 Songs
 =====
 Like patterns, songs also have `time` and `scale`.  They are used to

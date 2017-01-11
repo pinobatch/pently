@@ -116,7 +116,7 @@ instrument dut
   volume 12 12 11 8 6 5 4 2 1 0
   decay 16
   timbre 2 1 0
-  pitch -3 -2 -1 0 0 -1 -1 -2 -4 -6
+  pitch -3 -1 0 0 -1 -1 -2 -3 -5 -7
 
 instrument feat_wah
   volume 8 8 7 7 6 6 5 5 5 4 4 4 3
