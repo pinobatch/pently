@@ -9,6 +9,7 @@
 /nsfmap.txt
 __pycache__/
 *.pyc
+/pently-*.zip
 
 # this is NES homebrew, not DSiWare
 *.DS_Store

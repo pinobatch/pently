@@ -319,8 +319,9 @@ The following are all the symbols that are valid in pattern code:
 * Duration carriers that are not notes: `N_TIE`, `REST`
 * Durations: `D_8` (2 rows), `D_D8` (3 rows), `D_4` (4 rows),
   `D_D4` (6 rows), `D_2` (8 rows), `D_D2` (12 rows), `D_1` (16 rows)
-* Effects and controls: `INSTRUMENT`, `ARPEGGIO`, `LEGATO_ON`,
-  `LEGATO_OFF`, `VIBRATO`, `TRANSPOSE`, `PATEND`
+* Effects and controls: `INSTRUMENT,id`; `ARPEGGIO,$xy`; `LEGATO_ON`
+  and `LEGATO_OFF`; `VIBRATO,depth`; `TRANSPOSE,interval`;
+  `CHVOLUME,vol`; and `PATEND`
 
 [S3M]: https://en.wikipedia.org/wiki/S3M_(file_format)
 [IT]: https://en.wikipedia.org/wiki/Impulse_Tracker

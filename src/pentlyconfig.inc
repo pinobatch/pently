@@ -10,6 +10,7 @@ PENTLY_USE_ATTACK_TRACK = 1
 PENTLY_USE_ATTACK_PHASE = 1
 PENTLY_USE_SQUARE_POOLING = 1
 PENTLY_USE_MUSIC_IF_LOUDER = 1
+PENTLY_USE_CHANNEL_VOLUME = 1
 
 ; Five bytes of scratch space on zero page that need not be preserved
 ; across calls.  This needs to be either an = or an .importzp

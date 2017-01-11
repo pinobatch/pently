@@ -116,6 +116,7 @@ Disabling some features frees up a few bytes:
 * `PENTLY_USE_ATTACK_TRACK`: about 40 bytes
 * `PENTLY_USE_ATTACK_PHASE`: about 60 bytes; cannot be disabled while
   `PENTLY_USE_ATTACK_TRACK` is enabled
+* `PENTLY_USE_CHANNEL_VOLUME`: about 60 bytes?
 
 You can't use the attack track if the attack is disabled entirely.
 
@@ -312,6 +313,8 @@ In addition to notes and rests, patterns can also contain effects:
   specifying the length of the first in frames and giving the rest
   of the row to the second.  This may be used for acciaccatura
   or triplets.
+* Channel volume changes allow for dynamics without duplicating an
+  instrument.
   
 Legato, arpeggio, and vibrato apply only to the pulse and triangle
 channels, not the drum or attack track.
@@ -355,7 +358,7 @@ Bugs and limits
 No music engine is perfect for all projects.  These limits of Pently
 may pose a problem for some projects:
 
-* Pently is 1.5 kB with all features on or 1.2 kB with all features
+* Pently is 1.6 kB with all features on or 1.2 kB with all features
   off, which is much smaller than the FamiTracker or NerdTracker II
   player.  But even this may be too large for a very tight NROM-128
   game.

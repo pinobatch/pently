@@ -45,6 +45,7 @@
 NUM_CHANNELS = 4
 DRUM_TRACK = 12
 ATTACK_TRACK = 16
+MAX_CHANNEL_VOLUME = 3
 
 .if PENTLY_USE_ATTACK_TRACK
   LAST_TRACK = ATTACK_TRACK
@@ -74,9 +75,10 @@ ATTACK_TRACK = 16
 ; 32  | Legato enable     Arpeggio phase    Arp interval 1    Arp interval 2
 ; 48-57 Instrument vibrato state for channels
 ; 50-67 Pattern reader state for tracks
-; 48  | Vibrato depth     Vibrato phase     Note time left    Transpose amt
-; 68  | Grace time        Instrument ID     Pattern ID        Conductor use
-; 88 End of allocation
+; 48  | Vibrato depth     Vibrato phase     Channel volume    Note time left
+; 68  | Grace time        Instrument ID     Pattern ID        Transpose amt
+; 88-91 Conductor use
+; 96 End of allocation
 ;
 ; Noise envelope is NOT unused.  Conductor track cymbals use it.
 
@@ -92,11 +94,12 @@ arpInterval1    = pentlyBSS + 34
 arpInterval2    = pentlyBSS + 35
 vibratoDepth    = pentlyBSS + 48
 vibratoPhase    = pentlyBSS + 49
-noteRowsLeft    = pentlyBSS + 50
-patternTranspose= pentlyBSS + 51
+channelVolume   = pentlyBSS + 50
+noteRowsLeft    = pentlyBSS + 51
 graceTime       = pentlyBSS + 68
 noteInstrument  = pentlyBSS + 69
 musicPattern    = pentlyBSS + 70
+patternTranspose= pentlyBSS + 71
 
 ; Shared state
 
@@ -108,11 +111,11 @@ conductorSegnoLo        = pently_zp_state + 30
 conductorSegnoHi        = pently_zp_state + 31
 conductorPos            = pently_zp_state + 34
 
-conductorWaitRows       = pentlyBSS + 71
-pently_rows_per_beat    = pentlyBSS + 75
-pently_row_beat_part    = pentlyBSS + 79
-pently_tempoCounterLo   = pentlyBSS + 83
-pently_tempoCounterHi   = pentlyBSS + 87
+conductorWaitRows       = pentlyBSS + 91
+pently_rows_per_beat    = pentlyBSS + 92
+pently_row_beat_part    = pentlyBSS + 93
+pently_tempoCounterLo   = pentlyBSS + 94
+pently_tempoCounterHi   = pentlyBSS + 95
 
 .segment PENTLY_RODATA
 
@@ -160,6 +163,10 @@ vibratoPattern:
     sta musicPatternPos+1,x
     lda #$FF
     sta musicPattern,x
+    .if ::PENTLY_USE_CHANNEL_VOLUME
+      lda #MAX_CHANNEL_VOLUME
+      sta channelVolume,x
+    .endif
     dex
     dex
     dex
@@ -524,6 +531,8 @@ startPattern:
   sta musicPatternPos+1,x
   rts
 
+; Effect handlers
+
 .pushseg
 .segment PENTLY_RODATA
 patcmdhandlers:
@@ -534,6 +543,7 @@ patcmdhandlers:
   .addr handle_transpose-1
   .addr handle_grace-1
   .addr handle_vibrato-1
+  .addr handle_ch_volume-1
 num_patcmdhandlers = (* - patcmdhandlers) / 2
 .popseg
 
@@ -594,6 +604,15 @@ handle_vibrato:
   jmp nextPatternByte
 .else
   handle_vibrato = nextPatternByte 
+.endif
+
+.if ::PENTLY_USE_CHANNEL_VOLUME
+handle_ch_volume:
+  lda (musicPatternPos,x)
+  sta vibratoDepth,x
+  jmp nextPatternByte
+.else
+  handle_ch_volume = nextPatternByte 
 .endif
 
 .endproc
@@ -707,7 +726,11 @@ nograce:
   bne :+
   inc noteAttackPos+1,x
 :
-  sta out_volume
+  .if ::PENTLY_USE_CHANNEL_VOLUME
+    jsr write_out_volume
+  .else
+    sta out_volume
+  .endif
   lda (noteAttackPos,x)
   inc noteAttackPos,x
   bne :+
@@ -801,7 +824,11 @@ silenced:
   sta out_volume
   rts
 notSilenced:
-  sta out_volume
+  .if ::PENTLY_USE_CHANNEL_VOLUME
+    jsr write_out_volume
+  .else
+    sta out_volume
+  .endif
   lda noteInstrument,x
   asl a
   asl a
@@ -929,6 +956,40 @@ vibratoBits = xsave
 not_vibrato:
   rts
 .endif
+
+.if ::PENTLY_USE_CHANNEL_VOLUME
+write_out_volume:
+  ldy channelVolume,x
+  bne chvol_nonzero
+  and #$F0
+chvol_unchanged:
+  sta out_volume
+  rts
+chvol_nonzero:
+  cpy #MAX_CHANNEL_VOLUME
+  bcs chvol_unchanged
+  pha
+  and #$0F
+  sta out_volume
+  lda #0
+  chvol_loop:
+    adc out_volume
+    dey
+    bne chvol_loop
+  lsr a
+  lsr a
+  adc #0
+  sta out_volume
+
+  ; combine with duty bits from out_volume
+  pla
+  eor out_volume
+  and #$F0
+  eor out_volume
+  sta out_volume
+  rts
+.endif
+
 
 .endproc
 

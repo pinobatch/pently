@@ -245,6 +245,7 @@ LEGATO_ON = $DB
 TRANSPOSE = $DC
 GRACE = $DD
 VIBRATO = $DE
+CHVOLUME = $DF
 PATEND = $FF
 
 ; The default duration is one row (a sixteenth note in the tracker).
