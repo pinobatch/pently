@@ -25,13 +25,19 @@
 ; THE SOFTWARE.
 ;
 
-.import pently_init, pently_start_music, pently_update
-.importzp NUM_SONGS
+.import pently_init, pently_start_sound, pently_start_music, pently_update
+.importzp NUM_SONGS, NUM_SOUNDS
 .exportzp psg_sfx_state, tvSystem
+
+.include "pentlyconfig.inc"
 
 .segment "NSFHDR"
   .byt "NESM", $1A, $01  ; signature
-  .byt NUM_SONGS
+  .if PENTLY_USE_NSF_SOUND_FX
+    .byt NUM_SONGS+NUM_SOUNDS
+  .else
+    .byt NUM_SONGS
+  .endif
   .byt 1  ; first song to play
   .addr $C000  ; load address (should match link script)
   .addr init_sound_and_music
@@ -59,6 +65,13 @@ tvSystem: .res 1
   pha
   jsr pently_init
   pla
+  .if ::PENTLY_USE_NSF_SOUND_FX
+    cmp #NUM_SONGS
+    bcc is_music
+      sbc #NUM_SONGS
+      jmp pently_start_sound
+    is_music:
+  .endif
   jmp pently_start_music
 .endproc
 

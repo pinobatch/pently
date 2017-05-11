@@ -1564,7 +1564,8 @@ def render_file(parser, segment='RODATA'):
         '.include "../../src/pentlyseq.inc"',
         '.segment "%s"' % segment,
         'NUM_SONGS=%d' % len(parser.songs),
-        '.exportzp NUM_SONGS',
+        'NUM_SOUNDS=%d' % len(parser.sfxs),
+        '.exportzp NUM_SONGS, NUM_SOUNDS',
     ]
     all_export = []
     all_exportzp = []

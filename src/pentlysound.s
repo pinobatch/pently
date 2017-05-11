@@ -87,7 +87,7 @@ sfx_remainlen = pentlyBSS + 3
   sta sfx_ratecd+8
   sta sfx_ratecd+12
   sta pently_music_playing
-  lda #64
+  lda #PENTLY_INITIAL_4011
   sta $4011
   rts
 .endproc

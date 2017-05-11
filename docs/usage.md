@@ -110,6 +110,9 @@ effect or a triangle kick drum to stop sooner if a note is playing.
 Turn this off to force a sound effect to silence notes on the same
 channel for its entire duration.
 
+If `PENTLY_USE_NSF_SOUND_FX` is enabled, sound effects are placed
+after music when building an NSF.
+
 Disabling some features frees up a few bytes:
 
 * `PENTLY_USE_VIBRATO`: about 150 bytes
@@ -121,6 +124,13 @@ Disabling some features frees up a few bytes:
 * `PENTLY_USE_CHANNEL_VOLUME`: about 60 bytes?
 
 You can't use the attack track if the attack is disabled entirely.
+
+`PENTLY_INITIAL_4011` controls what's written to the DMC's value in
+`pently_init`.  Because of nonlinearity in the NES's audio output,
+this ends up controlling the balance between the pulse channels and
+the triangle and noise channels.  Values range from 0 to 127, with
+0 making triangle and noise the loudest.  Programs using the DMC
+alongside Pently may want to set this to 64 or thereabouts.
 
 In addition, `pently_zptemp` needs to point at a 5-byte area of
 zero page used as scratch space.  Set it in one of two ways:
