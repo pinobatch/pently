@@ -1,7 +1,7 @@
 Pently
 ======
 This document describes Pently, the audio engine used in Pin Eight
-NES games since 2009. 
+NES games since 2009.
 
 Introduction
 ------------
@@ -15,7 +15,7 @@ and _Sliding Blaster_.
 The name comes from Polish _pętla_ meaning a loop. It also reminds
 one of Greek _πέντε (pénte)_ meaning "five", as it supports five
 tracks (pulse 1, pulse 2, triangle, drums, and attack injection)
-mapped onto the NES audio circuit's four tone generator channels. 
+mapped onto the NES audio circuit's four tone generator channels.
 
 API
 ---
@@ -27,6 +27,8 @@ The following methods, declared in the assembly language include file
   stretch of code where you don't call `pently_update`.
 * `pently_update` updates the sound channels. Call this once each
   frame.
+* `pently_start_sound` starts a sound effect in `pently_sfx_table`.
+  The value in register A chooses which sound effect.
 * `pently_start_music` starts a song in `pently_songs`.  The value
   in register A chooses which song.
 * `pently_stop_music` stops the song, allowing sound effects to
