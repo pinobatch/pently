@@ -26,6 +26,7 @@
 ;
 
 .import pently_init, pently_start_sound, pently_start_music, pently_update
+.import __ROM7_START__
 .importzp NUM_SONGS, NUM_SOUNDS
 .exportzp psg_sfx_state, tvSystem
 
@@ -39,7 +40,7 @@
     .byt NUM_SONGS
   .endif
   .byt 1  ; first song to play
-  .addr $C000  ; load address (should match link script)
+  .addr __ROM7_START__  ; load address (should match link script)
   .addr init_sound_and_music
   .addr pently_update
 names_start:

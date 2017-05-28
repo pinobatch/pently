@@ -819,7 +819,7 @@ class PentlyPattern(PentlyRenderable):
         return notename, duration, duraugment, False
 
     arpeggioRE = re.compile("EN(OF|[0-9a-fA-F]{1,2})$")
-    vibratoRE = re.compile("MP(OF|[0-7])$")
+    vibratoRE = re.compile("MP(OF|[0-9a-fA-F])$")
     def add_pattern_note(self, word):
         if word in ('absolute', 'orelative', 'relative'):
             if self.pitchctx.octave_mode == 'drum':
@@ -853,6 +853,9 @@ class PentlyPattern(PentlyRenderable):
             vibargument = vibratomatch.group(1)
             if vibargument == 'OF':  # Treat MPOF as MP0
                 vibargument = '0'
+            else:
+                vibargument = int(vibargument, 16)
+                vibargument = "%d" % min(vibargument, 4)
             self.notes.append("VIBRATO,"+vibargument)
             return
 
@@ -871,7 +874,7 @@ class PentlyPattern(PentlyRenderable):
                 if notematch[0] not in ('l', 'r'):
                     raise ValueError("%s is ambiguous: it could be a drum or a pitch"
                                      % word)
-                f = self.fix_note_duration(drummatch)
+                f = self.rhyctx.fix_note_duration(drummatch)
                 if f: self.notes.append(f)
                 return
             elif drummatch[0] is not None:
@@ -1187,7 +1190,8 @@ Used to find the target of a time, scale, durations, or notenames command.
         if len(words) < 2:
             raise ValueError("volume requires at least one step")
         obj = self.cur_obj[1]
-        obj.set_volume([int(x) for x in words[1:]], linenum=self.linenum)
+        obj.set_volume([int(x) for x in words[1:] if x != '|'],
+                       linenum=self.linenum)
 
     def add_decay(self, words):
         self.ensure_in_object('decay', 'instrument')
