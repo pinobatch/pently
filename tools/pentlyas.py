@@ -1700,7 +1700,7 @@ def main(argv=None):
 
         if parser.cur_song:
             print("%s:%d: warning: song %s was not ended"
-                  % (infilename, parser.linenum, parser.cur_song.name),
+                  % (args.infilename, parser.linenum, parser.cur_song.name),
                   file=sys.stderr)
         lines.append('; Music from ' + ('standard input' if is_stdin else args.infilename))
         lines.extend(render_file(parser, args.segment))

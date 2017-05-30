@@ -479,12 +479,12 @@ isNoteCmd:
   bcc isTransposedNote
   beq notKeyOff
     lda #0
-    .if ::PENTLY_USE_ATTACK_PHASE
-      sta attack_remainlen,x
-    .endif
     .if ::PENTLY_USE_ATTACK_TRACK
       cpx #ATTACK_TRACK
       bcs notKeyOff
+    .endif
+    .if ::PENTLY_USE_ATTACK_PHASE
+      sta attack_remainlen,x
     .endif
     sta noteEnvVol,x
   notKeyOff:
@@ -516,7 +516,7 @@ noSecondDrum:
 
 startPattern:
   lda musicPattern,x
-  asl a
+  cmp #255
   bcc @notSilentPattern
     lda #<silentPattern
     sta musicPatternPos,x
@@ -524,7 +524,15 @@ startPattern:
     sta musicPatternPos+1,x
     rts
   @notSilentPattern:
+  asl a
   tay
+  bcc @isLoPattern
+    lda pently_patterns+256,y
+    sta musicPatternPos,x
+    lda pently_patterns+257,y
+    sta musicPatternPos+1,x
+    rts
+  @isLoPattern:
   lda pently_patterns,y
   sta musicPatternPos,x
   lda pently_patterns+1,y
