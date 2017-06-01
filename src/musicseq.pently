@@ -74,6 +74,16 @@ sfx arghatbuzz on noise
   pitch 12 12 7
   timbre 0 1
 
+sfx stickskick on noise
+  volume 4 6 5 4 3 3 2 2 1 1 1 1 0 
+  pitch 3 4 5 5 5 4 5 4
+  timbre 1
+
+sfx stickshatlo on noise
+  volume 4 6 3 2 1 1 0 
+  pitch 6
+  timbre 1
+
 drum kick kick
 drum snare snare
 drum clhat hihat
@@ -84,6 +94,9 @@ drum tsohat snarehat trisnare
 drum tubkick kick tubfloorA
 drum arghatbuzz arghatbuzz
 drum quiethat quiethat
+drum stickskick stickskick
+drum stickshatlo stickshatlo
+ 
 
 instrument bass
 
@@ -180,6 +193,14 @@ instrument argdive
 instrument arg2bass
   volume 10
   decay 20
+
+instrument toot0
+  volume 4 7 8 8 7 5 3 2 1 1 0 
+  timbre 2
+
+instrument toot1
+  volume 4 7 8 8 7 5 0 
+  timbre 2
 
 # argument
 # by Damian Yerrick, 2001
@@ -421,6 +442,116 @@ song argument
   at 161
   stop triangle
   da capo
+
+# from picking up sticks video
+
+song sticks
+  time 12/8
+  scale 16
+  tempo 100
+  
+  at 1
+  pattern introbanjo1 with banjo on pulse1
+    relative
+    w8 r d'4. a2 c4 d8
+  pattern introch2 with toot0 on pulse2
+    relative
+    d4. @banjo c' @tubbass d,,2. @toot0
+    f'4. @banjo c' @tubbass f,,2. @toot0
+    g'4. @banjo c @tubbass g, @banjo d'
+    @tubbass a, @banjo EN37 a''' EN00
+    @tubbass c,,, @banjo EN47 c'''4 EN00
+    @tubbass c,,,8 d2. w4. r
+  play introbanjo1
+  play introch2
+
+  at 3:3
+  pattern introbanjo2 with banjo on pulse1
+    relative
+    b4. c4 d8 e4 d8 e4. e4 g4. a8
+    EN47 d2. w4. EN00 r
+  play introbanjo2
+  
+  at 4
+  pattern introbass with bass on triangle
+    relative
+    a,,2. c4. w4 c8 d2. w4. r
+  pattern introdrum
+    clhat4. w4 clhat8
+    clhat4. w4 clhat8
+    clhat2. w4. stickskick
+    w2. w4. clhat
+
+  play introbass
+  play introdrum
+
+  pattern bassstart with toot1 on triangle
+    relative
+    w4 g''2 g w8 f2 f4. w2.
+  pattern bass with toot0 on triangle
+    relative
+    @toot0 c4 @toot1 g'''2 g w8 f2 f4. w2.
+  pattern chords1start with toot0 on pulse1
+    relative
+    w4 @toot0 c''2 bb w8 a2 a4. w2.
+  pattern chords1 with toot0 on pulse1
+    relative
+    @tubbass c,4 @toot0 c'''2 bb w8 a2 a4.
+      w4 w16 w4g a' w2g bb c w4
+    @tubbass c,,,,4 @toot0 c'''2 bb w8 a2 a4.
+      a'4 a8 g4.
+  pattern chords2 with toot0 on pulse2
+    relative
+    w4 e''2 d w8 c2 c4. w2.
+  pattern drum
+    stickskick2. clhat2. stickshatlo2. clhat2.
+
+  pattern v_iv_bass with toot0 on triangle
+    relative
+    @toot0 g4 @toot1 g''2 g w8 bb2
+    bb w8 g2
+    f w8 f2 f4.
+    w2. @toot0 f,,
+  pattern v_iv_chords1 with toot0 on pulse1
+    relative
+    r4 bb'2 c w8 d2
+    d w8 bb2
+    bb w8 a2 a4.
+    @banjo f a, a2.
+  pattern v_iv_chords2 with tubbass on pulse2
+    relative
+    g,4 @toot0 d'''2 e w8 f2
+    f w8 d2
+    d w8 c2 c4.
+    @banjo r4 c,4. c8 @tubbass f,,4 @banjo f'8 e4 d8
+
+  at 6
+  play chords2
+  play chords1start
+  stop triangle
+  at 7
+  stop drum
+
+  at 8
+  play bassstart
+  
+  at 10
+  segno
+  play chords1
+  play chords2
+  play bass
+  play drum
+
+  at 26
+  play v_iv_bass
+  play v_iv_chords1
+  play v_iv_chords2
+  
+  at 29
+  stop drum
+    
+  at 30
+  dal segno
 
 # The Naive Confidence
 # aka Twinkle, Twinkle, Little Star
