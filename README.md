@@ -15,9 +15,14 @@ Prerequisites:
 - GNU Make and Coreutils - on Windows, install MSYS through
   [mingw-get](http://www.mingw.org/wiki/Getting_Started)
 
+For help setting these up, see the README file for
+[nrom-template](https://github.com/pinobatch/nrom-template).
+
 Building:
 
-Run `make`. It's that simple.
+Once you have the above installed, run `make`.
+Then edit the score and run `make` again to hear the changes.
 
 # License
-Copyright &copy; 2010-2016 Damian Yerrick. Licensed under the [MIT License](LICENSE).
+Copyright &copy; 2009-2017 Damian Yerrick.
+Pently is free software, under the zlib License.

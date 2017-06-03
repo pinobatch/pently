@@ -406,30 +406,25 @@ may pose a problem for some projects:
 
 License
 -------
-The Pently audio engine is distributed under the MIT License (Expat variant):
+The Pently audio engine and its manual is distributed under the
+zlib License, a non-copyleft free software license:
 
 > Copyright 2010-2016 Damian Yerrick
 > 
-> Permission is hereby granted, free of charge, to any person obtaining a copy
-> of this software and associated documentation files (the "Software"), to deal
-> in the Software without restriction, including without limitation the rights
-> to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-> copies of the Software, and to permit persons to whom the Software is
-> furnished to do so, subject to the following conditions:
+> This software is provided 'as-is', without any express or implied
+> warranty.  In no event will the authors be held liable for any damages
+> arising from the use of this software.
 > 
-> The above copyright notice and this permission notice shall be included in
-> all copies or substantial portions of the Software.
+> Permission is granted to anyone to use this software for any purpose,
+> including commercial applications, and to alter it and redistribute it
+> freely, subject to the following restrictions:
 > 
-> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-> THE SOFTWARE.
+> 1. The origin of this software must not be misrepresented; you must not
+>    claim that you wrote the original software. If you use this software
+>    in a product, an acknowledgment in the product documentation would be
+>    appreciated but is not required.
+> 2. Altered source versions must be plainly marked as such, and must not be
+>    misrepresented as being the original software.
+> 3. This notice may not be removed or altered from any source distribution.
 
-This means that yes, you may use Pently in games that you are
-selling on cartridge.  And no, you do not have to make your game
-free software; this is not a copyleft.  If a game is distributed
-with a manual, you may place the full notice in the manual so long
-as the author is credited within the game.
+tl;dr: Yes, you may use Pently in games that you sell on cartridge.

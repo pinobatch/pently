@@ -1,6 +1,10 @@
+0.05wip7 (future)
+* Change to zlib license, which preserves the spirit of the
+  original license but is recognizable by GitHub
+
 0.05wip6 (2017-06)
 * Patterns can change channel volume in 25% steps
-* Rest in attack track no longer corrupts pulse 1 arpeggioq
+* Rest in attack track no longer corrupts pulse 1 arpeggio
 * pentlyconfig.inc: Change engine's code and data segment; disable
   pulse channel effect pooling and volume comparison; change
   initial $4011 value
