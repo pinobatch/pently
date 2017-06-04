@@ -890,8 +890,8 @@ song allfeatures
   at 4
   pattern chords on pulse2 with feat_wah
     orelative
-    EN37 r4. eb'1 r2
-    EN47 db1 r8
+    ENm r4. eb'1 r2
+    ENM db1 r8
   pattern bass on triangle with bass
     orelative
     eb'4 r8 gb4. r4 gb8 eb4 gb8

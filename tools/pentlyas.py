@@ -69,7 +69,17 @@ pattern_pitchoffsets = [
     'N_FSH', 'N_GH', 'N_GSH', 'N_AH', 'N_ASH', 'N_BH',
     'N_CHH'
 ]
-
+default_arp_names = {
+    'OF':   '00',     # off
+    'M':    '47',     # major
+    'm':    '37',     # minor
+    'maj7': '4B',     # major 7
+    'm7':   '37',     # minor 7
+    'dom7': '4A',     # dominant 7
+    'dim':  '36',     # diminished
+    'dim7': '39',     # diminished 7
+    'aug':  '48',     # augmented
+}
 
 class PentlyPitchContext(object):
     """
@@ -103,7 +113,7 @@ arp_names
             self.reset_octave(octave_mode=None)
             self.reset_arp()
             self.simul_notes = False
-            self.arp_names = {'OF': '00'}
+            self.arp_names = dict(default_arp_names)
         else:
             self.set_language(other.language)
             self.last_octave = other.last_octave
@@ -855,7 +865,7 @@ class PentlyPattern(PentlyRenderable):
 (,*|'*)           # LilyPond style octave
 ([0-9]*)          # duration
 (|\.|\.\.|g)      # duration augment
-(|:[0-9a-zA-Z]+)  # arpeggio
+(|:[a-zA-Z][0-9a-zA-Z]*|:[0-9a-fA-F]{1,2})  # arpeggio
 ([~()]?)$         # tie/slur?
 """, re.VERBOSE)
 
@@ -887,7 +897,7 @@ class PentlyPattern(PentlyRenderable):
             notename = 'w'
         return notename, duration, duraugment, False
 
-    arpeggioRE = re.compile("EN(OF|[0-9a-fA-F]{1,2})$")
+    arpeggioRE = re.compile("EN([a-zA-Z][0-9a-zA-Z]*|[0-9a-fA-F]{1,2})$")
     vibratoRE = re.compile("MP(OF|[0-9a-fA-F])$")
     def add_pattern_note(self, word):
         if word in ('absolute', 'orelative', 'relative'):

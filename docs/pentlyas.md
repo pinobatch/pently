@@ -4,11 +4,10 @@ notation software or MML tools such as PPMCK to pick up.
 
 Invoking
 ========
-The Pently assembler takes a music description file and produces an
-assembly language file suitable for ca65.  Like other command-line
-programs, it should be run from a Terminal or Command Prompt.
-Double-clicking it in Finder or File Explorer won't do anything
-useful.
+The Pently assembler takes a score file and produces an assembly
+language file suitable for ca65.  Like other command-line programs,
+it should be run from a Terminal or Command Prompt.  Double-clicking
+it in Finder or File Explorer won't do anything useful.
 
 Usage:
 
@@ -19,10 +18,10 @@ Usage:
 Arguments:
 
 * `infilename`  
-  Music file to process or `-` for standard input; omit for period
+  Score file to process or `-` for standard input; omit for period
   table only.
 * `-o OUTFILENAME`  
-  Write output to a file instead of standard output.
+  Write assembly output to a file instead of standard output.
 * `--periods NUMSEMITONES`  
   Include an equal-temperament period table in the output;
   `NUMSEMITONES` is usually 64 to 80.
@@ -36,7 +35,7 @@ Indentation is not important.
 A sound effect, drum, instrument, or pattern can be defined inside
 or outside a song.  Sound effects, drums, instruments, and patterns
 defined outside a song are called "global" can be used by any song
-in the project.  Those defined inside a song are scoped to that song.
+in the score.  Those defined inside a song are scoped to that song.
 
 A **comment** consists of zero or more spaces, a number sign (`#`)
 or two slashes (`//`), and the rest of the line.  The parser ignores
@@ -163,7 +162,7 @@ one triangle effect, which interrupts the bass line on the triangle
 channel.
 
 The following sets up two drums, called `clhat` and `kick`.  The
-former plays only one sound effect, the latter two.  
+former plays only one sound effect, the latter two.
 
     drum clhat closed_hihat
     drum kick noise_kick tri_kick
@@ -187,14 +186,14 @@ The `timbre` of an instrument played on the triangle channel must be
 2, or the note will cut prematurely.
 
 On the last step of the volume envelope, the instrument enters
-sustain.  (The portion envelope prior to sustain is called "attack".)
-A sustaining note's timbre stays constant, its pitch returns to the
-note's own pitch, and its volume stays constant or decreases linearly
-over time.  (This means that steps in an instrument's `timbre` or
-`pitch` envelope past the attack _will be ignored._)  The `decay`
-command sets the rate of decrease in volume units per 16 frames, from
-`decay 0` (no decrease; default) through `decay 1` (a slow fade) and
-`decay 16` (much faster).
+sustain.  (The portion of the envelope prior to sustain is called
+"attack".)  A sustaining note's timbre stays constant, its pitch
+returns to the note's own pitch, and its volume stays constant
+or decreases linearly over time.  (This means that steps in
+an instrument's `timbre` or `pitch` envelope past the attack
+*will be ignored.*)  The `decay` command sets the rate of decrease
+in volume units per 16 frames, from `decay 0` (no decrease; default)
+through `decay 1` (a slow fade) and `decay 16` (much faster).
 
 The `detached` attribute cuts the note half a row early, so that
 notes don't run into each other.  This is especially useful with
@@ -230,6 +229,29 @@ Example:
     # An instrument like this is useful for the attack track
     instrument one_frame_pop
     volume 8 0
+
+Chords
+======
+Arpeggio is rapid alternation among two or three pitches to create a
+warbly chord on one pulse or triangle channel.  It can be specified
+using a pair of hexadecimal intervals.  For example, `37` represents
+a minor chord as three and seven semitones above the lowest note.
+
+Arpeggio can also be specified using a chord name. These nine chords
+are predefined:
+
+* `OF`: `00`, turn off arpeggio
+* `M`: `47`, major
+* `dom7`: `4A`, dominant 7
+* `maj7`: `4B`, major 7
+* `aug`: `48`, augmented
+* `m`: `37`, minor
+* `m7`: `37`, minor 7
+* `dim`: `36`, diminished
+* `dim7`: `39`, diminished 7
+
+**TODO:** A future version of Pently will allow a score to define
+additional chord names.
 
 Patterns
 ========
@@ -270,7 +292,7 @@ shortest duration.  A larger `scale` will cause durations of 24 rows
 or longer to use more bytes.  The default is `scale 16`.
 
 Notes
--------
+-----
 Each note command consists of up to five parts:
 
 * Note name
@@ -334,21 +356,19 @@ a measure.
 
 Pattern effects
 ---------------
-To change the **instrument** within a pattern, use `@` followed
-by the instrument name, such as `@piano`.  Notes before the first
-change use the instrument specified in the song's play command.
+To change the **instrument** within a pitched pattern, use `@`
+followed by the instrument name, such as `@piano`.  Notes before the
+first change use the instrument specified in the song's play command.
+If a pattern repeats, notes before the first change use the
+instrument specified in the last change.
 
-**Arpeggio** is rapid alternation among two or three pitches to
-create a warbly chord on one channel.  The `EN` command controls
-arpeggio: `EN00` or `ENOF` turns it off, `EN04` sets it to a major
-third interval (four semitones above the note), and `EN37` sets it
-to a minor chord (three and seven semitones above the note).
-
-An arpeggio can be overridden for a single note, much as in LilyPond
-chord mode.  Once the note finishes, the arpeggio reverts to that set
-by the last `EN` command or to off if no `EN` has been seen in this
-pattern.  After a note's pitch and duration, add `:` followed by
-the intervals: `c'4.:47` makes a dotted quarter C major chord.
+To set the **arpeggio** for a single note in a pitched pattern,
+add `:` followed by the chord name or intervals of the arpeggio.
+For example, `eis'2.:47` makes a dotted half note E flat major chord,
+and `c:m` makes its relative minor, a C minor chord.  To set the
+arpeggio for all subsequent notes in a pattern, use the `EN` command
+followed by a chord name or intervals, such as `EN4A` or `ENdom7`
+for dominant 7th chords or `EN00` or `ENOF` to turn off arpeggio.
 
 **Vibrato** is a subtle pitch slide up and down while a note is held.
 The `MP` (modulate period) command controls vibrato: `MP1` through
