@@ -454,8 +454,8 @@ song sticks
     d4. @banjo c' @tubbass d,,2. @toot0
     f'4. @banjo c' @tubbass f,,2. @toot0
     g'4. @banjo c @tubbass g, @banjo d'
-    @tubbass a, @banjo EN37 a''' EN00
-    @tubbass c,,, @banjo EN47 c'''4 EN00
+    @tubbass a, @banjo a''':37
+    @tubbass c,,, @banjo c'''4:47
     @tubbass c,,,8 d2. w4. r
   play introbanjo1
   play introch2
@@ -464,7 +464,7 @@ song sticks
   pattern introbanjo2 with banjo on pulse1
     relative
     b4. c4 d8 e4 d8 e4. e4 g4. a8
-    EN47 d2. w4. EN00 r
+    d2.:47 w4. r
   play introbanjo2
   
   at 4

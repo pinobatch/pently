@@ -80,11 +80,20 @@ Six octave modes are recognized at various places:
 'noise' -- 0 to 15 is a pitch; the result is subtracted from 15
     because NES APU treats 15 as the longest period and thus
     the lowest pitch
-'absolute': Always guess the octave below C
-'orelative': Guess the octave of the previous note.
-'relative': Guess the octave of the note with the given scale degree
+'absolute' -- Always guess the octave below C
+'orelative' -- Guess the octave of the previous note.
+'relative' -- Guess the octave of the note with the given scale degree
     closest to the previous note, disregarding accidentals.
 None: Wait for the first thing that looks like a pitch or drum.
+
+Arpeggio-related:
+
+last_arp -- last arpeggio value set with EN
+arp_top -- if true, transpose notes down by the top of the chord
+arp_mod -- if not None, the current note has a single-note arpeggio
+    modifier, and subsequent 'w' commands should get the same
+last_chord -- last (pitch, arpeggio) used in an o; used for note 'q'
+arp_names
 
 """
 
@@ -94,14 +103,17 @@ None: Wait for the first thing that looks like a pitch or drum.
             self.reset_octave(octave_mode=None)
             self.reset_arp()
             self.simul_notes = False
+            self.arp_names = {'OF': '00'}
         else:
             self.set_language(other.language)
             self.last_octave = other.last_octave
             self.octave_mode = other.octave_mode
-            self.last_chord = other.last_chord
             self.last_arp = other.last_arp
+            self.arp_mod = other.arp_mod
             self.arp_top = other.arp_top
+            self.last_chord = other.last_chord
             self.simul_notes = other.simul_notes
+            self.arp_names = dict(other.arp_names)
 
     def set_language(self, language):
         language = language.lower()
@@ -114,13 +126,22 @@ None: Wait for the first thing that looks like a pitch or drum.
             raise ValueError("unknown notenames language %s; try english or deutsch"
                              % language)
 
+    def reset_octave(self, octave_mode='unchanged'):
+        self.last_octave = (3, 0)
+        if octave_mode != 'unchanged':
+            self.octave_mode = octave_mode
+
+    def reset_arp(self):
+        self.last_arp = self.arp_mod = None
+        self.last_chord = None
+        self.arp_top = False
+
     def set_pitched_mode(self):
         """Set the octave mode to absolute if None."""
         if self.octave_mode is None: self.octave_mode = 'absolute'
 
     def parse_pitch(self, preoctave, notename, accidental, postoctave, arp):
         arp = arp or None
-        # TODO: figure out what e4:47 w8 means
         if notename in ('r', 'w', 'l'):
             if not (preoctave or accidental or postoctave):
                 return notename, self.last_arp
@@ -161,7 +182,18 @@ None: Wait for the first thing that looks like a pitch or drum.
 
         self.last_octave = scaledegree, octave
         notenum = semi + accidentalmeanings[accidental] + 12 * octave + 15
-        arp = arp or self.last_arp
+
+        arp = self.arp_names.get(arp, arp)
+
+        # Waits continue the last arp modifier; anything else
+        # replaces the arp modifier.  Only EN changes last_arp,
+        # except that a single-note arp changes last_arp from
+        # unspecified to 00.
+        if notename != 'w':
+            self.arp_mod = arp
+            if arp:
+                self.last_arp = self.last_arp or '00'
+        arp = arp or self.arp_mod or self.last_arp
         return notenum, arp
 
     pitchRE = re.compile(r"""
@@ -187,16 +219,6 @@ None: Wait for the first thing that looks like a pitch or drum.
         g.append(None)  # no arpeggio
         notenum, arp = self.parse_pitch(*g)
         return notenum
-
-    def reset_octave(self, octave_mode='unchanged'):
-        self.last_octave = (3, 0)
-        if octave_mode != 'unchanged':
-            self.octave_mode = octave_mode
-
-    def reset_arp(self):
-        self.last_arp = None
-        self.last_chord = None
-        self.arp_top = False
 
 
 class PentlyRhythmContext(object):
@@ -815,7 +837,7 @@ class PentlyPattern(PentlyRenderable):
         (preoctave, notename, accidental, postoctave,
          duration, duraugment, arp, slur) = m.groups()
         semi = self.pitchctx.parse_pitch(
-            preoctave, notename, accidental, postoctave, arp
+            preoctave, notename, accidental, postoctave, arp.lstrip(':')
         )
         duration, duraugment = self.rhyctx.parse_duration(duration, duraugment)
         return semi, duration, duraugment, slur
@@ -857,8 +879,7 @@ class PentlyPattern(PentlyRenderable):
         if arpmatch:
             self.pitchctx.set_pitched_mode()
             arpargument = arpmatch.group(1)
-            if arpargument == 'OF':  # Treat ENOF as EN00
-                arpargument = '00'
+            arpargument = self.pitchctx.arp_names.get(arpargument, arpargument)
             self.pitchctx.last_arp = arpargument
             return
 
@@ -963,7 +984,6 @@ tie_rests -- True if track has no concept of a "note off"
 
             pitch, numrows, slur = note
             if slur == '(':
-                print("Lparen")
                 sluropen = True
             elif slur == ')':
                 sluropen = False
@@ -987,8 +1007,10 @@ tie_rests -- True if track has no concept of a "note off"
                 arp = None
 
             if arp is not None and arp != curarp:
+                print("arp %s to %s" % (curarp, arp))
                 arp = str(arp)
                 out.append("ARPEGGIO,$" + arp)
+                lastwasnote = False
                 curarp = arp
 
             # slur
@@ -1002,6 +1024,7 @@ tie_rests -- True if track has no concept of a "note off"
                 and numrows > 0
                 and (pitch == 'w'
                      or (out[-1][0] == pitch and out[-1][2]))):
+                print(repr(out[-1]), repr(numrows))
                 out[-1][1] += numrows
                 out[-1][2] = slur
             else:
