@@ -344,6 +344,12 @@ arpeggio: `EN00` or `ENOF` turns it off, `EN04` sets it to a major
 third interval (four semitones above the note), and `EN37` sets it
 to a minor chord (three and seven semitones above the note).
 
+An arpeggio can be overridden for a single note, much as in LilyPond
+chord mode.  Once the note finishes, the arpeggio reverts to that set
+by the last `EN` command or to off if no `EN` has been seen in this
+pattern.  After a note's pitch and duration, add `:` followed by
+the intervals: `c'4.:47` makes a dotted quarter C major chord.
+
 **Vibrato** is a subtle pitch slide up and down while a note is held.
 The `MP` (modulate period) command controls vibrato: `MP1` through
 `MP4` set depth between 1 (very subtle) and 4 (very strong), and

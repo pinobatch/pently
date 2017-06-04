@@ -140,11 +140,45 @@ arp_names
         """Set the octave mode to absolute if None."""
         if self.octave_mode is None: self.octave_mode = 'absolute'
 
+    def translate_arp_name(self, arp):
+        """Normalize an arpeggio name to 2 hex digits or raise KeyError."""
+        if not arp: return None
+        if len(arp) < 3:
+            try:
+                arp = int(arp, 16)
+            except ValueError:  # invalid literal
+                pass
+            else:
+                return "%02x" % arp
+        return self.arp_names[arp]
+
+    def add_arp_name(self, name, definition):
+        definition = self.translate_arp_name(definition)
+        if not name[:1].isalpha():
+            raise ValueError("chord name %s must begin with a letter"
+                             % name)
+        try:
+            olddefinition = self.translate_arp_name(name)
+        except KeyError:
+            raise ValueError("chord name %s already defined as %s"
+                             % (name, definition))
+        self.arp_names[name] = definition
+
+    def set_arp(self, arp):
+        """Set the arpeggio for subsequent notes to arp."""
+        self.set_pitched_mode()
+        self.last_arp = self.translate_arp_name(arp)
+
     def parse_pitch(self, preoctave, notename, accidental, postoctave, arp):
-        arp = arp or None
+        arp = self.translate_arp_name(arp)
         if notename in ('r', 'w', 'l'):
             if not (preoctave or accidental or postoctave):
-                return notename, self.last_arp
+                # Rests kill a single-note arpeggio.
+                # Waits and length changes preserve it.
+                if notename == 'r':
+                    self.arp_mod = arp
+                arp = arp or self.arp_mod or self.last_arp
+                return notename, arp
             nonpitchtypes = {'r': 'rests', 'w': 'waits', 'l': 'length changes'}
             modifier = ("octave changes" if postoctave or preoctave
                         else "accidentals")
@@ -183,16 +217,11 @@ arp_names
         self.last_octave = scaledegree, octave
         notenum = semi + accidentalmeanings[accidental] + 12 * octave + 15
 
-        arp = self.arp_names.get(arp, arp)
-
-        # Waits continue the last arp modifier; anything else
-        # replaces the arp modifier.  Only EN changes last_arp,
-        # except that a single-note arp changes last_arp from
-        # unspecified to 00.
-        if notename != 'w':
-            self.arp_mod = arp
-            if arp:
-                self.last_arp = self.last_arp or '00'
+        # Save the single-note arpeggio if any, and if there is one,
+        # have it return to 00 instead of unspecified
+        self.arp_mod = arp
+        if arp:
+            self.last_arp = self.last_arp or '00'
         arp = arp or self.arp_mod or self.last_arp
         return notenum, arp
 
@@ -877,10 +906,7 @@ class PentlyPattern(PentlyRenderable):
                     if self.pitchctx.octave_mode != 'drum'
                     else None)
         if arpmatch:
-            self.pitchctx.set_pitched_mode()
-            arpargument = arpmatch.group(1)
-            arpargument = self.pitchctx.arp_names.get(arpargument, arpargument)
-            self.pitchctx.last_arp = arpargument
+            self.pitchctx.set_arp(arpmatch.group(1))
             return
 
         # MPxx: Vibrato
@@ -1007,7 +1033,6 @@ tie_rests -- True if track has no concept of a "note off"
                 arp = None
 
             if arp is not None and arp != curarp:
-                print("arp %s to %s" % (curarp, arp))
                 arp = str(arp)
                 out.append("ARPEGGIO,$" + arp)
                 lastwasnote = False
@@ -1024,13 +1049,38 @@ tie_rests -- True if track has no concept of a "note off"
                 and numrows > 0
                 and (pitch == 'w'
                      or (out[-1][0] == pitch and out[-1][2]))):
-                print(repr(out[-1]), repr(numrows))
                 out[-1][1] += numrows
                 out[-1][2] = slur
             else:
                 out.append([pitch, numrows, slur])
             lastwasnote = hasnote = True
         return [tuple(i) if not isinstance(i, str) else i for i in out]
+
+    @staticmethod
+    def collapse_effects(notes):
+
+        # Size optimization: If there are only rests and other effect
+        # changes between an arp and the following arp, not notes or
+        # waits, remove the first of the two.
+        rnotes = []
+        keep_prev_arp = True
+        for item in reversed(notes):
+            if isinstance(item, str):
+                if item.startswith("ARPEGGIO,$"):
+                    if not keep_prev_arp:
+                        print("warning: removing %s" % item, file=sys.stderr)
+                        continue
+                    keep_prev_arp = False
+            elif item[0] != 'r':
+                keep_prev_arp = True
+            rnotes.append(item)
+        rnotes.reverse()
+
+        # Size optimization: Remove instruments identical to the
+        # previous with no notes or waits in between
+        # TODO
+
+        return rnotes
 
     row_to_duration = [
         (16, '|D_1'), (12, '|D_D2'), (8, '|D_2'), (6, '|D_D4'),
@@ -1049,7 +1099,8 @@ tie_rests -- True if track has no concept of a "note off"
 
     def render(self, scopes):
         is_drum = self.track == 'drum'
-        self.notes = notes = self.collapse_ties(self.notes, is_drum)
+        notes = self.collapse_ties(self.notes, is_drum)
+        self.notes = notes = self.collapse_effects(notes)
 
         bytedata = []
 
