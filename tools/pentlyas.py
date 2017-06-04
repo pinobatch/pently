@@ -78,7 +78,7 @@ Six octave modes are recognized at various places:
 
 'drum' -- any word that starts and ends with a letter a pitch
 'noise' -- 0 to 15 is a pitch; the result is subtracted from 15
-    because NES hardware treats 15 as the longest period and thus
+    because NES APU treats 15 as the longest period and thus
     the lowest pitch
 'absolute': Always guess the octave below C
 'orelative': Guess the octave of the previous note.
@@ -92,10 +92,16 @@ None: Wait for the first thing that looks like a pitch or drum.
         if other is None:
             self.set_language(language)
             self.reset_octave(octave_mode=None)
+            self.reset_arp()
+            self.simul_notes = False
         else:
             self.set_language(other.language)
             self.last_octave = other.last_octave
             self.octave_mode = other.octave_mode
+            self.last_chord = other.last_chord
+            self.last_arp = other.last_arp
+            self.arp_top = other.arp_top
+            self.simul_notes = other.simul_notes
 
     def set_language(self, language):
         language = language.lower()
@@ -112,10 +118,12 @@ None: Wait for the first thing that looks like a pitch or drum.
         """Set the octave mode to absolute if None."""
         if self.octave_mode is None: self.octave_mode = 'absolute'
 
-    def parse_pitch(self, preoctave, notename, accidental, postoctave):
-        if notename in ('r','w','l'):
+    def parse_pitch(self, preoctave, notename, accidental, postoctave, arp):
+        arp = arp or None
+        # TODO: figure out what e4:47 w8 means
+        if notename in ('r', 'w', 'l'):
             if not (preoctave or accidental or postoctave):
-                return notename
+                return notename, self.last_arp
             nonpitchtypes = {'r': 'rests', 'w': 'waits', 'l': 'length changes'}
             modifier = ("octave changes" if postoctave or preoctave
                         else "accidentals")
@@ -152,16 +160,18 @@ None: Wait for the first thing that looks like a pitch or drum.
             semi = notenamesemis[notename]
 
         self.last_octave = scaledegree, octave
-        return semi + accidentalmeanings[accidental] + 12 * octave + 15
+        notenum = semi + accidentalmeanings[accidental] + 12 * octave + 15
+        arp = arp or self.last_arp
+        return notenum, arp
 
     pitchRE = re.compile(r"""
 (>*|<*)       # MML style octave
-([a-hrwl])    # note name
+([a-hrwlq])    # note name
 (b|bb|-|--|es|eses|s|ss|is|isis|\#|\#\#|\+|\+\+|x|)  # accidental
 (,*|'*)$      # LilyPond style octave
 """, re.VERBOSE)
 
-    def parse_pitch_str(self, pitch):
+    def parse_absolute_pitch(self, pitch):
         """Parse an absolute pitch: a note or a noise frequency."""
         if self.octave_mode == 'noise':
             pitch = int(pitch)
@@ -173,12 +183,21 @@ None: Wait for the first thing that looks like a pitch or drum.
         if not m:
             raise ValueError("%s doesn't look like a pitch in %s mode"
                              % (pitch, self.octave_mode))
-        return self.parse_pitch(*m.groups())
+        g = list(m.groups())
+        g.append(None)  # no arpeggio
+        notenum, arp = self.parse_pitch(*g)
+        return notenum
 
     def reset_octave(self, octave_mode='unchanged'):
         self.last_octave = (3, 0)
         if octave_mode != 'unchanged':
             self.octave_mode = octave_mode
+
+    def reset_arp(self):
+        self.last_arp = None
+        self.last_chord = None
+        self.arp_top = False
+
 
 class PentlyRhythmContext(object):
 
@@ -539,7 +558,7 @@ name, linenum -- used in duplicate error messages
 This is equivalent to a "fixed" arpeggio envelope in FamiTracker.
 
 """
-        return self.pitchctx.parse_pitch_str(pitch)
+        return self.pitchctx.parse_absolute_pitch(pitch)
 
     def get_default_timbre(self):
         return 0 if self.channel_type == 3 else 2
@@ -652,7 +671,7 @@ class PentlySong(PentlyRenderable):
                 if ch >= 3:
                     raise ValueError("cannot play conductor note on a track without its own channel")
             try:
-                transpose = self.pitchctx.parse_pitch_str(patname)
+                transpose = self.pitchctx.parse_absolute_pitch(patname)
             except ValueError as e:
                 pass
             else:
@@ -779,22 +798,25 @@ class PentlyPattern(PentlyRenderable):
         self.fallthrough = bool(value)
 
     noteRE = re.compile(r"""
-(>*|<*)       # MML style octave
-([a-hrwl])    # note name
+(>*|<*)           # MML style octave
+([a-hrwl])        # note name
 (b|bb|-|--|es|eses|s|ss|is|isis|\#|\#\#|\+|\+\+|x|)  # accidental
-(,*|'*)       # LilyPond style octave
-([0-9]*)      # duration
-(|\.|\.\.|g)  # duration augment
-([~()]?)$     # slur?
+(,*|'*)           # LilyPond style octave
+([0-9]*)          # duration
+(|\.|\.\.|g)      # duration augment
+(|:[0-9a-zA-Z]+)  # arpeggio
+([~()]?)$         # tie/slur?
 """, re.VERBOSE)
 
     def parse_note(self, pitch):
         m = self.noteRE.match(pitch)
         if not m:
-            return None, None, None, None
+            return None, None, None, None, None
         (preoctave, notename, accidental, postoctave,
-         duration, duraugment, slur) = m.groups()
-        semi = self.pitchctx.parse_pitch(preoctave, notename, accidental, postoctave)
+         duration, duraugment, arp, slur) = m.groups()
+        semi = self.pitchctx.parse_pitch(
+            preoctave, notename, accidental, postoctave, arp
+        )
         duration, duraugment = self.rhyctx.parse_duration(duration, duraugment)
         return semi, duration, duraugment, slur
 
@@ -837,7 +859,7 @@ class PentlyPattern(PentlyRenderable):
             arpargument = arpmatch.group(1)
             if arpargument == 'OF':  # Treat ENOF as EN00
                 arpargument = '00'
-            self.notes.append("ARPEGGIO,$"+arpargument)
+            self.pitchctx.last_arp = arpargument
             return
 
         # MPxx: Vibrato
@@ -938,9 +960,10 @@ tie_rests -- True if track has no concept of a "note off"
             if isinstance(note, str):
                 slurnotes.append(note)
                 continue
-            
+
             pitch, numrows, slur = note
             if slur == '(':
+                print("Lparen")
                 sluropen = True
             elif slur == ')':
                 sluropen = False
@@ -950,6 +973,7 @@ tie_rests -- True if track has no concept of a "note off"
 
         out = []
         lastwasnote = hasnote = False
+        curarp = None
         for note in notes:
             if isinstance(note, str):
                 lastwasnote = False
@@ -957,6 +981,16 @@ tie_rests -- True if track has no concept of a "note off"
                 continue
 
             pitch, numrows, slur = note
+            if isinstance(pitch, tuple):
+                pitch, arp = pitch
+            else:
+                arp = None
+
+            if arp is not None and arp != curarp:
+                arp = str(arp)
+                out.append("ARPEGGIO,$" + arp)
+                curarp = arp
+
             # slur
             if tie_rests and pitch == 'r':
                 pitch = 'w'
