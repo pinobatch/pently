@@ -332,14 +332,14 @@ Return (pitch, number of rows, slur) or None if it's not actually a note.
 
 """
 
-        pitch, denom, augment, slur = notematch[:4]
-        if pitch == 'l':
+        pitcharp, denom, augment, slur = notematch[:4]
+        if pitcharp[0] == 'l':
             if denom is None:
                 raise ValueError("length requires a duration argument")
             self.last_duration = denom, augment
             return None
         if augment == 0:  # 0: grace note
-            return pitch, -denom, slur
+            return pitcharp, -denom, slur
 
         if denom is None:
 
@@ -369,7 +369,7 @@ Return (pitch, number of rows, slur) or None if it's not actually a note.
                    % (augmentname, denom, self.scale,
                       wholerows + partrows / (denom * 4)))
             raise ValueError(msg)
-        return pitch, wholerows, slur
+        return pitcharp, wholerows, slur
 
     def parse_measure(self, measure=1, beat=1, row=0):
         if beat < 1:
@@ -882,7 +882,7 @@ class PentlyPattern(PentlyRenderable):
         return semi, duration, duraugment, slur
 
     drumnoteRE = re.compile(r"""
-([a-zA-Z_].*[a-zA-Z_]|l|r|w)  # drum name, length, rest, or wait
+([a-zA-Z_].*[a-zA-Z_]|[lrw])  # drum name, length, rest, or wait
 ([0-9]*)       # duration
 (|\.|\.\.|g)$  # duration augment
 """, re.VERBOSE)
