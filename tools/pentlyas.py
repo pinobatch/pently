@@ -944,9 +944,9 @@ class PentlyPattern(PentlyRenderable):
             drummatch = self.parse_drum_note(word)
             notematch = self.parse_note(word)
             if drummatch[0] is not None and notematch[0] is not None:
-                # Only note length and rest commands keep the pattern
+                # Only note length and rest/wait commands keep the pattern
                 # in an indeterminate state between pitched and drum
-                if notematch[0] not in ('l', 'r'):
+                if notematch[0][0] not in ('l', 'r', 'w'):
                     raise ValueError("%s is ambiguous: it could be a drum or a pitch"
                                      % word)
                 f = self.rhyctx.fix_note_duration(drummatch)

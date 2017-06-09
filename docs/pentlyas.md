@@ -250,6 +250,10 @@ are predefined:
 * `dim`: `36`, diminished
 * `dim7`: `39`, diminished 7
 
+In LilyPond's chord mode, major is the default chord, and `maj` is a
+confusing synonym for `maj7`.  Pently does not support `maj`, instead
+using `M` and `maj7`.
+
 **TODO:** A future version of Pently will allow a score to define
 additional chord names.
 
