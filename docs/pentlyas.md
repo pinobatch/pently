@@ -243,13 +243,13 @@ are predefined:
 
 * `OF`: `00`, turn off arpeggio
 * `M`: `47`, major (see note)
-* `dom7`: `4A`, dominant 7
-* `maj7`: `4B`, major 7
+* `dom7`: `4A`, dominant 7th
+* `maj7`: `4B`, major 7th
 * `aug`: `48`, augmented
 * `m`: `37`, minor
-* `m7`: `37`, minor 7
+* `m7`: `37`, minor 7th
 * `dim`: `36`, diminished
-* `dim7`: `39`, diminished 7
+* `dim7`: `39`, diminished 7th
 
 Note: In LilyPond's chord mode, major is the default chord, and `maj`
 is a confusing synonym for `maj7`.  Pently does not support `maj`,
@@ -263,6 +263,19 @@ causes notes to be transposed down by the highest interval in the
 chord.  For example, both `c:M` and `g:-M` spell a C major chord,
 the first based on the root, and the second based on the highest
 note.  This may prove convenient for writing multipart harmony.
+
+A chord may be inverted, which moves one or two notes on the bottom
+up by an octave to the top.  This is specified with `/1` or `/2`
+after the nibble pair or chord name.  To understand how this works,
+the first inversion of a dominant 7th (`dom7/1`, `4A/1`) is `68`:
+
+1. All three intervals of original chord: `04A`
+2. Replace all `0` with `C`: `C4A`
+3. Subtract the lowest interval (`4`) from all intervals: `806`
+4. Rotate to left until `0` is in first position: `068`
+
+Inversion requires both intervals to be less than an octave.
+It is an error to invert a chord containing `C`, `D`, `E`, or `F`.
 
 Patterns
 ========

@@ -202,7 +202,7 @@ instrument stringlead
   timbre 0
 
 # Waltz to test new arpeggio features
-# (chord names, single-note, top interval relative)
+# (chord names, single-note, top interval relative, inversion)
 # by Damian Yerrick, 2017
 song arp_waltz
   time 3/4	
@@ -225,14 +225,15 @@ song arp_waltz
   pattern melody with stringlead on pulse2
     relative
     EN-M
-    a'2:-59 bb4:-dim c2 d4:-m
-    c bb2:-38 w4 bb:-38 c
-    d2:-m c4 bb2:-38 a4:-m
+    a'2:-M/2 bb4:-dim c2 d4:-m
+    c bb2:-M/1 w4 bb:-M/1 c
+    d2:-m c4 bb2:-M/1 a4:-m
     g bb2:-dim w2.
-    a2:-59 bb4:-dim c2 a4:-59
-    bb:-38 d2:-59 w4 c:-38 d:-59
-    c2:-38 bb4:-38 a2:-49 g4
-    f2.:-38 w4 r2
+    EN-M/2
+    a2 bb4:-dim c2:-M a4
+    bb:-M/1 d2 w4 c:-M/1 d
+    c2:-M/1 bb4:-M/1 a2:-49 g4:-M
+    f2.:-M/1 w4 r2
 
   at 1
   play bassintro

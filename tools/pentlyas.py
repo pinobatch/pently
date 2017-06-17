@@ -24,8 +24,8 @@
 #
 
 from __future__ import with_statement, division, print_function
-# The above features are available by default in Python 3, but I
-# need to declare them anyway in case someone runs it on Python 2
+# The above features are available by default in Python 3, but
+# declaring them anyway makes a cleaner error message on Python 2
 # for Windows, which is the default IDLE on many Windows PCs
 import sys
 import json
@@ -154,6 +154,32 @@ arp_names
         """Set the octave mode to absolute if None."""
         if self.octave_mode is None: self.octave_mode = 'absolute'
 
+    @staticmethod
+    def calc_arp_inversion(arp):
+        if len(arp) != 2:
+            raise ValueError("internal error: %s not length 2" % repr(arp))
+
+        # Only an arpeggio within an octave can be inverted
+        nibbles = [int(c, 16) for c in arp]
+        if max(nibbles) >= 12:
+            raise ValueError("interval in %s too large to invert; must be smaller than an octave (C)"
+                             % arp)
+
+        # 070 -> 050, preserving ratio of 50:50 arps
+        if nibbles[1] == 0:
+            return "%x0" % (12 - nibbles[0])
+
+        # Replace 0 with C and subtract the lowest nonzero
+        nibbles = [12] + [c or 12 for c in nibbles]
+        lowest = min(nibbles)
+        nibbles = [c - lowest for c in nibbles]
+
+        # Rotate to the left until 0 leads
+        while nibbles[0]:
+            nibbles.append(nibbles[0])
+            del nibbles[0]
+        return "%X%X" % (nibbles[1], nibbles[2])
+
     def translate_arp_name(self, arp):
         """Normalize an arpeggio name to 2 hex digits or raise KeyError.
 
@@ -161,23 +187,38 @@ Return None (if arp is falsey), 2 hex digits, or '-' followed by
 2 hex digits.
 """
         if not arp: return None
+
+        # Chop off modifiers (downward, chord inversion)
         arp_prefix = ''
         if arp.startswith('-'):
             arp_prefix, arp = '-', arp[1:]
+        arp = arp.split('/', 1)
+        inversion = int(arp[1] if len(arp) > 1 else 0)
+        arp = arp[0]
+
+        # If not a nibble pair, look it up
+        arpvalue = None
         if len(arp) < 3:
             try:
-                arp = int(arp, 16)
-            except ValueError:  # invalid literal
+                arpvalue = int(arp, 16)
+            except ValueError:
                 pass
             else:
-                return arp_prefix + "%02x" % (arp,)
-        return arp_prefix + self.arp_names[arp]
+                arpvalue = ("00" + arp)[-2:]
+        if arpvalue is None:
+            arp = self.arp_names[arp]
+
+        # Process inversion
+        for _ in range(inversion):
+            arp = self.calc_arp_inversion(arp)
+
+        return arp_prefix + arp
 
     def add_arp_name(self, name, definition):
-        definition = self.translate_arp_name(definition)
         if definition.startswith('-'):
             raise ValueError("%s: downward sign goes in pattern, not definition"
                              % definition)
+        definition = self.translate_arp_name(definition)
         if not name[:1].isalpha():
             raise ValueError("chord name %s must begin with a letter"
                              % name)
@@ -889,7 +930,9 @@ class PentlyPattern(PentlyRenderable):
 (,*|'*)           # LilyPond style octave
 ([0-9]*)          # duration
 (|\.|\.\.|g)      # duration augment
-(|:-?[a-zA-Z][0-9a-zA-Z]*|:-?[0-9a-fA-F]{1,2})  # arpeggio
+(|:-?(?:
+  [a-zA-Z][0-9a-zA-Z]*|[0-9a-fA-F]{1,2}  # arpeggio chord name
+)(?:/[12]|))      # inversion
 ([~()]?)$         # tie/slur?
 """, re.VERBOSE)
 
@@ -923,7 +966,11 @@ class PentlyPattern(PentlyRenderable):
             notename = 'w'
         return notename, duration, duraugment, False
 
-    arpeggioRE = re.compile("EN(-?[a-zA-Z][0-9a-zA-Z]*|-?[0-9a-fA-F]{1,2})$")
+    arpeggioRE = re.compile(r"""
+EN(-?(?:
+  [a-zA-Z][0-9a-zA-Z]*|[0-9a-fA-F]{1,2}  # arpeggio chord name
+)(?:/[12]|))      # inversion
+""", re.VERBOSE)
     vibratoRE = re.compile("MP(OF|[0-9a-fA-F])$")
     def add_pattern_note(self, word):
         if word in ('absolute', 'orelative', 'relative'):
