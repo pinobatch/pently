@@ -31,6 +31,10 @@ import sys
 import json
 import re
 import argparse
+try:
+    from collections import ChainMap
+except ImportError:
+    print("pentlyas.py: Python 3.3 or later is required", file=sys.stderr)
 
 scaledegrees = {
     'c': 0, 'd': 1, 'e': 2, 'f': 3, 'g': 4, 'a': 5, 'h': 6, 'b': 6
@@ -113,7 +117,7 @@ arp_names
             self.reset_octave(octave_mode=None)
             self.reset_arp()
             self.simul_notes = False
-            self.arp_names = dict(default_arp_names)
+            self.arp_names = ChainMap({}, default_arp_names)
         else:
             self.set_language(other.language)
             self.last_octave = other.last_octave
@@ -123,7 +127,7 @@ arp_names
             self.arp_top = other.arp_top
             self.last_chord = other.last_chord
             self.simul_notes = other.simul_notes
-            self.arp_names = dict(other.arp_names)
+            self.arp_names = other.arp_names.new_child()
 
     def set_language(self, language):
         language = language.lower()
@@ -151,19 +155,29 @@ arp_names
         if self.octave_mode is None: self.octave_mode = 'absolute'
 
     def translate_arp_name(self, arp):
-        """Normalize an arpeggio name to 2 hex digits or raise KeyError."""
+        """Normalize an arpeggio name to 2 hex digits or raise KeyError.
+
+Return None (if arp is falsey), 2 hex digits, or '-' followed by
+2 hex digits.
+"""
         if not arp: return None
+        arp_prefix = ''
+        if arp.startswith('-'):
+            arp_prefix, arp = '-', arp[1:]
         if len(arp) < 3:
             try:
                 arp = int(arp, 16)
             except ValueError:  # invalid literal
                 pass
             else:
-                return "%02x" % arp
-        return self.arp_names[arp]
+                return arp_prefix + "%02x" % (arp,)
+        return arp_prefix + self.arp_names[arp]
 
     def add_arp_name(self, name, definition):
         definition = self.translate_arp_name(definition)
+        if definition.startswith('-'):
+            raise ValueError("%s: downward sign goes in pattern, not definition"
+                             % definition)
         if not name[:1].isalpha():
             raise ValueError("chord name %s must begin with a letter"
                              % name)
@@ -179,6 +193,16 @@ arp_names
         self.set_pitched_mode()
         self.last_arp = self.translate_arp_name(arp)
 
+    @staticmethod
+    def fixup_downward_arp(notenum, arp):
+        # - means transpose the note down by the larger nibble
+        # but it's ignored for waits
+        if arp and arp.startswith('-'):
+            arp = arp[1:]
+            if isinstance(notenum, int):
+                notenum -= max(int(c, 16) for c in arp)
+        return notenum, arp
+
     def parse_pitch(self, preoctave, notename, accidental, postoctave, arp):
         arp = self.translate_arp_name(arp)
         if notename in ('r', 'w', 'l'):
@@ -188,7 +212,7 @@ arp_names
                 if notename == 'r':
                     self.arp_mod = arp
                 arp = arp or self.arp_mod or self.last_arp
-                return notename, arp
+                return self.fixup_downward_arp(notename, arp)
             nonpitchtypes = {'r': 'rests', 'w': 'waits', 'l': 'length changes'}
             modifier = ("octave changes" if postoctave or preoctave
                         else "accidentals")
@@ -233,7 +257,7 @@ arp_names
         if arp:
             self.last_arp = self.last_arp or '00'
         arp = arp or self.arp_mod or self.last_arp
-        return notenum, arp
+        return self.fixup_downward_arp(notenum, arp)
 
     pitchRE = re.compile(r"""
 (>*|<*)       # MML style octave
@@ -865,7 +889,7 @@ class PentlyPattern(PentlyRenderable):
 (,*|'*)           # LilyPond style octave
 ([0-9]*)          # duration
 (|\.|\.\.|g)      # duration augment
-(|:[a-zA-Z][0-9a-zA-Z]*|:[0-9a-fA-F]{1,2})  # arpeggio
+(|:-?[a-zA-Z][0-9a-zA-Z]*|:-?[0-9a-fA-F]{1,2})  # arpeggio
 ([~()]?)$         # tie/slur?
 """, re.VERBOSE)
 
@@ -878,6 +902,8 @@ class PentlyPattern(PentlyRenderable):
         semi = self.pitchctx.parse_pitch(
             preoctave, notename, accidental, postoctave, arp.lstrip(':')
         )
+        if isinstance(semi, tuple) and semi[1]:
+            assert not semi[1].startswith('-')
         duration, duraugment = self.rhyctx.parse_duration(duration, duraugment)
         return semi, duration, duraugment, slur
 
@@ -897,7 +923,7 @@ class PentlyPattern(PentlyRenderable):
             notename = 'w'
         return notename, duration, duraugment, False
 
-    arpeggioRE = re.compile("EN([a-zA-Z][0-9a-zA-Z]*|[0-9a-fA-F]{1,2})$")
+    arpeggioRE = re.compile("EN(-?[a-zA-Z][0-9a-zA-Z]*|-?[0-9a-fA-F]{1,2})$")
     vibratoRE = re.compile("MP(OF|[0-9a-fA-F])$")
     def add_pattern_note(self, word):
         if word in ('absolute', 'orelative', 'relative'):
@@ -918,6 +944,8 @@ class PentlyPattern(PentlyRenderable):
         if arpmatch:
             self.pitchctx.set_arp(arpmatch.group(1))
             return
+        if word.startswith("EN") and not arpmatch:
+            print("Bad arpeggio?", repr(word))
 
         # MPxx: Vibrato
         vibratomatch = (self.vibratoRE.match(word)

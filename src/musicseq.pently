@@ -197,6 +197,57 @@ instrument toot1
   volume 4 7 8 8 7 5 0 
   timbre 2
 
+instrument stringlead
+  volume 4 7 8 8 7 7 5 4 4 3 
+  timbre 0
+
+# Waltz to test new arpeggio features
+# (chord names, single-note, top interval relative)
+# by Damian Yerrick, 2017
+song arp_waltz
+  time 3/4	
+  scale 4
+  tempo 180
+  
+  pattern bassintro with toot0 on pulse1
+    absolute
+    f,4 a a c, a a
+  pattern bass1 with toot0 on pulse1
+    absolute
+    f,4 a a c, a a
+    bb,, bb bb f, bb bb
+    g, bb bb d, bb bb
+    c, g g g, bb bb
+  pattern bass2 with toot0 on pulse1
+    absolute
+    c,4 bb bb
+    f, a a c, d, e,
+  pattern melody with stringlead on pulse2
+    relative
+    EN-M
+    a'2:-59 bb4:-dim c2 d4:-m
+    c bb2:-38 w4 bb:-38 c
+    d2:-m c4 bb2:-38 a4:-m
+    g bb2:-dim w2.
+    a2:-59 bb4:-dim c2 a4:-59
+    bb:-38 d2:-59 w4 c:-38 d:-59
+    c2:-38 bb4:-38 a2:-49 g4
+    f2.:-38 w4 r2
+
+  at 1
+  play bassintro
+  
+  at 5
+  segno
+  play melody
+  play bass1
+  
+  at 18
+  play bass2
+
+  at 21
+  dal segno
+
 # argument
 # by Damian Yerrick, 2001
 # the instrumental from a "stupid statement dance mix" of some

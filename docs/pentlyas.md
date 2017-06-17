@@ -234,14 +234,15 @@ Chords
 ======
 Arpeggio is rapid alternation among two or three pitches to create a
 warbly chord on one pulse or triangle channel.  It can be specified
-using a pair of hexadecimal intervals.  For example, `37` represents
-a minor chord as three and seven semitones above the lowest note.
+using a nibble pair, or two hexadecimal digits representing semitone
+intervals.  For example, `37` represents a minor chord as three and
+seven semitones above the lowest note.
 
 Arpeggio can also be specified using a chord name. These nine chords
 are predefined:
 
 * `OF`: `00`, turn off arpeggio
-* `M`: `47`, major
+* `M`: `47`, major (see note)
 * `dom7`: `4A`, dominant 7
 * `maj7`: `4B`, major 7
 * `aug`: `48`, augmented
@@ -250,12 +251,18 @@ are predefined:
 * `dim`: `36`, diminished
 * `dim7`: `39`, diminished 7
 
-In LilyPond's chord mode, major is the default chord, and `maj` is a
-confusing synonym for `maj7`.  Pently does not support `maj`, instead
-using `M` and `maj7`.
+Note: In LilyPond's chord mode, major is the default chord, and `maj`
+is a confusing synonym for `maj7`.  Pently does not support `maj`,
+instead using `M` and `maj7`.
 
 **TODO:** A future version of Pently will allow a score to define
 additional chord names.
+
+A nibble pair or chord name may be preceded by a minus sign.  This
+causes notes to be transposed down by the highest interval in the
+chord.  For example, both `c:M` and `g:-M` spell a C major chord,
+the first based on the root, and the second based on the highest
+note.  This may prove convenient for writing multipart harmony.
 
 Patterns
 ========
