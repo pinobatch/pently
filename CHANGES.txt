@@ -1,12 +1,14 @@
 0.05wip7 (future)
 * Change to zlib license, which preserves the spirit of the
   original license but is recognizable by GitHub
-* pentlyas: Add 8 predefined chord names
+* pentlyas.py: Add 8 predefined chord names
   (M, maj7, dom7, aug, m, m7, dim, dim7)
-* pentlyas: Add single-note arpeggio syntax similar to LilyPond
+* pentlyas.py: Score can define new chord names
+* pentlyas.py: Add single-note arpeggio syntax similar to LilyPond
   chord mode (thanks to retrodpc for testing)
-* pentlyas: Option to name chord by its top note instead of bottom
-* pentlyas: First and second inversions of chords
+* pentlyas.py: Option to name chord by its top note instead of bottom
+* pentlyas.py: First and second inversions of chords
+* Add "Arpeggio Waltz" song demonstrating new features
 
 0.05wip6 (2017-06)
 * Patterns can change channel volume in 25% steps

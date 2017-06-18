@@ -201,53 +201,11 @@ instrument stringlead
   volume 4 7 8 8 7 7 5 4 4 3 
   timbre 0
 
-# Waltz to test new arpeggio features
-# (chord names, single-note, top interval relative, inversion)
-# by Damian Yerrick, 2017
-song arp_waltz
-  time 3/4	
-  scale 4
-  tempo 180
-  
-  pattern bassintro with toot0 on pulse1
-    absolute
-    f,4 a a c, a a
-  pattern bass1 with toot0 on pulse1
-    absolute
-    f,4 a a c, a a
-    bb,, bb bb f, bb bb
-    g, bb bb d, bb bb
-    c, g g g, bb bb
-  pattern bass2 with toot0 on pulse1
-    absolute
-    c,4 bb bb
-    f, a a c, d, e,
-  pattern melody with stringlead on pulse2
-    relative
-    EN-M
-    a'2:-M/2 bb4:-dim c2 d4:-m
-    c bb2:-M/1 w4 bb:-M/1 c
-    d2:-m c4 bb2:-M/1 a4:-m
-    g bb2:-dim w2.
-    EN-M/2
-    a2 bb4:-dim c2:-M a4
-    bb:-M/1 d2 w4 c:-M/1 d
-    c2:-M/1 bb4:-M/1 a2:-49 g4:-M
-    f2.:-M/1 w4 r2
+@ENno3 = 70
+@ENpower = 7C
+@ENsus4 = 57
+@ENMno5 = 4C
 
-  at 1
-  play bassintro
-  
-  at 5
-  segno
-  play melody
-  play bass1
-  
-  at 18
-  play bass2
-
-  at 21
-  dal segno
 
 # argument
 # by Damian Yerrick, 2001
@@ -914,6 +872,72 @@ song bf98
   play drums_resumefill
 
   at 57
+  dal segno
+
+# Waltz to test new arpeggio features
+# (chord names, single-note, top interval relative, inversion)
+# by Damian Yerrick, 2017
+song arp_waltz
+  time 3/4	
+  scale 4
+  tempo 180
+  
+  pattern bassintro with toot0 on pulse1
+    absolute
+    f,4 a a c, a a
+  pattern bass1 with toot0 on pulse1
+    absolute
+    f,4 a a c, a a
+    bb,, bb bb f, bb bb
+    g, bb bb d, bb bb
+    c, g g g, bb bb
+  pattern bass2 with toot0 on pulse1
+    absolute
+    c,4 bb bb
+    f, a a c, d, e,
+  pattern melody with stringlead on pulse2
+    relative
+    EN-M
+    a'2:-M/2 bb4:-dim c2 d4:-m
+    c bb2:-M/1 w4 bb:-M/1 c
+    d2:-m c4 bb2:-M/1 a4:-m
+    g bb2:-dim w2.
+    EN-M/2
+    a2 bb4:-dim c2:-M a4
+    bb:-M/1 d2 w4 c:-M/1 d
+    c2:-M/1 bb4:-M/1 a2:-49 g4:-M
+    f2.:-M/1 w4 r2
+
+  pattern interlude with argtwinkle on pulse2
+    relative
+    f''2.:no3 f:power
+    bb:no3 f:M/2
+    g:no3 g:power
+    c:sus4 g:M/2
+    f2.:no3 f:power
+    bb:no3 bb:Mno5
+    g:power g:M/2
+    f:Mno5 w
+
+  at 1
+  play bassintro
+  
+  at 5
+  segno
+  play melody
+  play bass1
+  
+  at 18
+  play bass2
+  
+  at 21
+  play interlude
+  play bass1
+  
+  at 34
+  play bass2
+
+  at 37
   dal segno
 
 # Individual Features

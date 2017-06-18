@@ -225,6 +225,8 @@ Return None (if arp is falsey), 2 hex digits, or '-' followed by
         try:
             olddefinition = self.translate_arp_name(name)
         except KeyError:
+            pass
+        else:
             raise ValueError("chord name %s already defined as %s"
                              % (name, definition))
         self.arp_names[name] = definition
@@ -1607,6 +1609,13 @@ Used to find the target of a time, scale, durations, or notenames command.
         self.cur_obj[1].set_fallthrough(True)
         self.cur_obj = None
 
+    def add_definition(self, name, value):
+        if name.startswith('EN'):
+            self.get_pitchrhy_parent().pitchctx.add_arp_name(name[2:], value)
+            return
+
+        raise ValueError("unknown definable %s" % repr(name))
+
     keywordhandlers = {
         'notenames': add_notenames,
         'durations': add_durations,
@@ -1639,6 +1648,12 @@ Used to find the target of a time, scale, durations, or notenames command.
     }
 
     def dokeyword(self, words):
+        if words[0].startswith('@'):
+            defmatch = ' '.join(words).split("=", 1)
+            if len(defmatch) > 1:
+                self.add_definition(defmatch[0][1:].rstrip(), defmatch[1].strip())
+                return
+
         try:
             kwh = self.keywordhandlers[words[0]]
         except KeyError:

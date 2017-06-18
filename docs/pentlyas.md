@@ -251,12 +251,12 @@ are predefined:
 * `dim`: `36`, diminished
 * `dim7`: `39`, diminished 7th
 
-Note: In LilyPond's chord mode, major is the default chord, and `maj`
-is a confusing synonym for `maj7`.  Pently does not support `maj`,
-instead using `M` and `maj7`.
+(Note: In LilyPond's chord mode, major is the default chord, and
+`maj` is a confusing synonym for `maj7`.  Pently does not support
+`maj`, instead using `M` and `maj7`.)
 
-**TODO:** A future version of Pently will allow a score to define
-additional chord names.
+To define an additional chord name, use e.g. `@ENsus4 = 57` at the
+top level, in a song, or in a pattern.
 
 A nibble pair or chord name may be preceded by a minus sign.  This
 causes notes to be transposed down by the highest interval in the

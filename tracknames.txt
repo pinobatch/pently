@@ -1,12 +1,12 @@
-Arpeggio harmony
 Argument?
 Sticks
 The Naive Confidence
 Canon in D
 Happy Flappy Crappy
+Arpeggio Waltz
 Individual features
 Stairs
 Attack channel (no pulse!)
 
-Pently demo 0.05wip4
-Copr. 2016 Damian Yerrick
+Pently demo 0.05wip7
+Copr. 2017 Damian Yerrick
