@@ -30,12 +30,21 @@ Arguments:
 
 Overall structure
 =================
-Indentation is not important.
+An **object** is a sound effect, drum, instrument, or pattern.  Each
+object has a name, which must follow identifier rules: begin with a
+letter and use only ASCII letters, digits, and the underscore `_`.
+Objects of different types can share a name, such as a sound effect
+called `snare` and a drum called `snare`.
 
-A sound effect, drum, instrument, or pattern can be defined inside
-or outside a song.  Sound effects, drums, instruments, and patterns
-defined outside a song are called "global" can be used by any song
-in the score.  Those defined inside a song are scoped to that song.
+Objects can be defined inside or outside a song.  Objects defined
+outside a song are called "global" and can be used by any song in
+the score.  Those defined inside a song are scoped to that song.
+If an object in a song shares a name with a global object of the
+same type, it will hide the global object inside the song.
+
+**Indentation** is not important.  An object definition instead ends
+at a keyword that starts another object.  A song definition ends at
+a stop (`fine`) or repeat (`da capo` or `dal segno`) command.
 
 A **comment** consists of zero or more spaces, a number sign (`#`)
 or two slashes (`//`), and the rest of the line.  The parser ignores
@@ -55,12 +64,16 @@ scale, or 0, 2, 4, 5, 7, 9, and 11 semitones above the octave's base.
 
 The meaning of `b` can be changed with the `notenames` option.  Both
 `notenames english` and `notenames deutsch` allow `c d e f g a h`
-for the C major scale. The difference is how they define `b`:
-`english` makes it equal to `h`, while `deutsch` places it between
-`a` and `h`, treating it as an H flat (or what English speakers would
-call a B flat).  (The solfege-inspired names that LilyPond uses for
-Catalan, Flemish, French, Portuguese, and Spanish are not supported
-because of clashes with rest and length commands from MML.)
+for the C major scale.
+
+* `notenames english` (the default) treats `b` the same as `h`, 11
+  semitones above `c`.
+* `notenames deutsch` treats `b` as `h-` (H flat), 10 semitones
+  above `c`.  (English speakers call it a B flat.)
+
+The solfege-inspired names that LilyPond uses for Catalan, Flemish,
+French, Portuguese, and Spanish are not supported because of clashes
+with rest and length commands from MML.
 
 **Accidentals** add or subtract semitones from a note's pitch:
 
@@ -80,8 +93,8 @@ A pitched sound effect or pattern can specify the octave of each
 pitch by specifying an octave mode inside the pattern:
 
 * `absolute` means that notes `c` through `h` fall in the octave
-  below middle C.  The low octave is `c,` through `b,` or `<c`
-  through `<b`, and middle C is `c'` or `>c`.  The lowest note that
+  below middle C.  The low octave is `c,` through `h,` or `<c`
+  through `<h`, and middle C is `c'` or `>c`.  The lowest note that
   works on an NES is `a,,`, and the highest depends on the size of
   the period table.
 * `orelative` assumes that an octave will be in the same octave as
@@ -89,7 +102,7 @@ pitch by specifying an octave mode inside the pattern:
   This behavior is familiar to MML users.
 * `relative` guesses the octave by trying to move no more than three
   note names up or down, ignoring accidentals.  A G major scale, for
-  example, is `g a b c d e fis g`.  This means you don't need to
+  example, is `g a h c d e fis g`.  This means you don't need to
   indicate octaves after the first note unless you're leaping a fifth
   or more.  This behavior is familiar to LilyPond users.
   
@@ -117,7 +130,7 @@ pulse channels will play on whichever one isn't already in use.
 
 **Triangle** pitch plays one octave lower than pulse: `c''` plays
 a middle C.  It has no timbre control, and the volume control is
-somewhat crippled: any volume greater than zero produces full power,
+somewhat crippled: any volume 1 through 15 produces full power,
 but it still determines priority when a note and sound effect are
 played at once.
 
@@ -300,8 +313,9 @@ and no greater than 64. For example, `time 2/4` puts two quarter
 notes in each measure. The default is `time 4/4`, or common time.
 A `time` numerator that is a multiple of 3 greater than 3, such as
 6 or 9, triggers a special-case behavior for compound prolation,
-making the beat three times as long.  For example, each measure in
-`time 6/8` is two beats, each beat a dotted quarter note.
+making the beat three times as long.  For example, each measure
+in `time 6/8` is two beats, each beat a dotted quarter note.
+
 A few time signatures have shortcut notations:
 
 * `time c` means `time 4/4` (common time).
@@ -344,19 +358,24 @@ Durations may be augmented by 50% or 75% by adding `.` or `..`
 after the number.
 
 Duration is optional for each note.  The `durations` command controls
-how missing durations are assigned.  In `durations temporary`, as
-in MML, numbers after a note change the duration only for that
-note; only `l` commands affect later notes' implicit duration.
-By contrast, `durations stick` means numbers after a note apply
-to later notes in the pattern, as in LilyPond.  If the first note
-lacks an explicit duration, its duration is one beat as defined
-by `time`.  The default is `durations temporary`.
+how missing durations are assigned.
 
-A note's duration can be set in frames (1/60 second) instead
-of rows using the `g` (grace note) command, with the following
-note taking the remainder of the row.  For example, `d4g e4 d2`
-produces a short D, an E taking the remainder of the quarter note,
-followed by a D half note.  Grace note durations never stick.
+* In `durations temporary` (the default), as in MML, numbers after
+  a note change the duration only for that note.  Only `l` commands
+  affect later notes' implicit duration.
+* In `durations stick`, numbers after a note apply to later notes
+  in the pattern, as in LilyPond.
+
+Unless otherwise specified, the first notes in a pattern last one
+beat as defined by `time`.
+
+A note's duration can be set in frames (1/60 second) instead of
+rows using the `g` (grace note) command, with the following note
+taking the remainder of the row.  For example, `d4g e4 d2` produces
+a short D, an E taking the remainder of the quarter note, followed
+by a D half note.  Grace note durations never stick.  Be aware that
+grace notes longer than one row have poorly specified effects,
+particularly with the 20 percent longer frames of PAL.
 
 A note followed by a tilde `~` will not be retriggered but instead
 will be slurred into the following note.  A note followed by a left
@@ -365,6 +384,15 @@ followed by a right parenthesis `)` represents the end of such a
 slurred group.  This is useful for tying notes together or producing
 legato (HOPO).  Slurring into a note with the same pitch is the same
 as a wait: `eb2~ eb8`, `eb2( eb8)`, and `eb2 w8` mean the same.
+
+A simple pattern might look like this:
+
+    pattern melody with violin on pulse2
+      orelative
+      c'4. c g g a a g2.
+      f4. f e e d d c2.
+      g4. g f f e e d2.
+      g4. g f f e e d2.
 
 **TODO:** A future version of Pently may introduce a command to
 modify durations in compound prolation for a swing feel.
@@ -375,8 +403,6 @@ automatically introduce rests between notes for staccato feel.
 **TODO:** A future version of Pently may introduce a command to
 "bar check", or pad a pattern with rests or notes to the end of
 a measure.
-
-**TODO: Example of a pattern**
 
 Pattern effects
 ---------------
@@ -412,9 +438,9 @@ interpret the `tempo` and `at` commands.
 
 Patterns may be defined inside or outside a song.  A pattern defined
 inside a song inherits the song's `time` and `scale`.  If a pattern
-is defined  outside a song, and its `scale` does not match that
+is defined outside a song, and its `scale` does not match that
 of the song, it will be played with rows in all tracks the same
-duration, which may not be what you want.
+duration, which may or may not be what you want.
 
 The **`tempo`** command tells how many beats are played per minute.
 This can be a decimal, which will be rounded to the nearest whole
@@ -450,11 +476,6 @@ to sustain, not attack.)  To select a channel for the attack track,
 use `attack on pulse1`, `attack on pulse2`, or `attack on triangle`.
 (There is no channel called `titan`.)  It's not recommended to use
 attack on the same channel as the sound effects that make up drums.
-
-The loop point is set with the **`segno`** (sen-yoh) command.  A song
-ends with the **`fine`** (fee-neh) command, which stops playback, or
-the **`dal segno`** command, which loops back to `segno` if it exists
-or the beginning of the song otherwise.
 
 To **play a pattern,** use `play pattern_name`.  Pitched patterns
 default to the `pulse2` track; to specify another track, add
@@ -492,6 +513,11 @@ a pitch from 0 to 15.  They're good for crash cymbals and the like,
 as they can be interrupted by other drums.  But make sure to play
 single notes _after_ patterns in the same `at` block, or the
 instrument may change unexpectedly.
+
+The loop point is set with the **`segno`** (sen-yoh) command.  A song
+ends with the **`fine`** (fee-neh) command, which stops playback, or
+the **`dal segno`** command, which loops back to `segno` if it exists
+or the beginning of the song otherwise.
   
 Glossary
 ========
