@@ -953,7 +953,7 @@ class PentlyPattern(PentlyRenderable):
         return semi, duration, duraugment, slur
 
     drumnoteRE = re.compile(r"""
-([a-zA-Z_].*[a-zA-Z_]|[lrw])  # drum name, length, rest, or wait
+([a-zA-Z_][0-9a-zA-Z_]*[a-zA-Z_]|[lrw])  # drum name, length, rest, or wait
 ([0-9]*)       # duration
 (|\.|\.\.|g)$  # duration augment
 """, re.VERBOSE)
@@ -1431,12 +1431,13 @@ Used to find the target of a time, scale, durations, or notenames command.
             raise ValueError("must have 2 words: song SONGNAME")
         if self.cur_song:
             raise ValueError("song %s began on line %d and was not ended with fine or dal segno"
-                             % (songname, self.songs['linenum']))
+                             % (self.cur_song.name, self.cur_song.linenum))
         self.cur_obj = None
         songname = words[1]
         if songname in self.songs:
+            oldlinenum = self.songs[songname].linenum
             raise ValueError("song %s was already defined on line %d"
-                             % (songname, self.songs['linenum']))
+                             % (songname, oldlinenum))
         song = PentlySong(pitchctx=self.pitchctx, rhyctx=self.rhyctx,
                           name=songname, linenum=self.linenum)
         self.cur_song = self.songs[songname] = song
