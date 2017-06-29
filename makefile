@@ -29,14 +29,25 @@ srcdir = src
 imgdir = tilesets
 
 #EMU := "/C/Program Files/Nintendulator/Nintendulator.exe"
-EMU := fceux --input1 GamePad.0
+EMU := fceux --input1 GamePad.0\
+DEBUGEMU := ~/.wine/drive_c/Program\ Files\ \(x86\)/FCEUX/fceux.exe
 # other options for EMU are start (Windows) or gnome-open (GNOME)
 
-.PHONY: run dist zip clean
+# Work around a quirk of how Python for Windows installer
+# sets up the PATH
+ifdef COMSPEC
+PY:=py
+else
+PY:=
+endif
+
+
+.PHONY: run debug clean dist zip all 
 
 run: $(title).nes
 	$(EMU) $<
-
+debug: $(title).nes
+	$(DEBUGEMU) $<
 clean:
 	-rm $(objdir)/*.o $(objdir)/*.s $(objdir)/*.chr
 
@@ -49,7 +60,7 @@ clean:
 # makefile changes.
 dist: zip
 zip: $(title)-$(version).zip
-$(title)-$(version).zip: zip.in $(title).nes $(title).nsf \
+$(title)-$(version).zip: zip.in all \
   TODO.txt README.md CHANGES.txt docs/usage.md docs/pentlyas.md \
   $(objdir)/index.txt
 	zip -9 -u $@ -@ < $<
@@ -66,6 +77,8 @@ $(objdir)/index.txt: makefile
 
 objlistntsc := $(foreach o,$(objlist),$(objdir)/$(o).o)
 objlistnsf := $(foreach o,$(objlistnsf),$(objdir)/$(o).o)
+
+all: $(title).nes $(title).nsf
 
 map.txt $(title).nes: nrom128.cfg $(objlistntsc)
 	$(LD65) -o $(title).nes -C $^ -m map.txt
@@ -90,9 +103,9 @@ $(objdir)/main.o: tracknames.txt $(objdir)/bggfx.chr
 
 # Translate music project
 $(objdir)/%.s: tools/pentlyas.py src/%.pently
-	$^ -o $@ --periods 76
+	$(PY) $^ -o $@ --periods 76
 
 # Rules for CHR ROM
 
 $(objdir)/%.chr: $(imgdir)/%.png
-	tools/pilbmp2nes.py $< $@
+	$(PY) tools/pilbmp2nes.py $< $@

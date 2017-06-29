@@ -9,6 +9,8 @@
 * pentlyas.py: Option to name chord by its top note instead of bottom
 * pentlyas.py: First and second inversions of chords
 * Add "Arpeggio Waltz" song demonstrating new features
+* Document that object names follow identifier rules
+* makefile: Launch Python tools with py.exe on Windows
 
 0.05wip6 (2017-06)
 * Patterns can change channel volume in 25% steps
