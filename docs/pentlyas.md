@@ -265,11 +265,12 @@ are predefined:
 * `dim7`: `39`, diminished 7th
 
 (Note: In LilyPond's chord mode, major is the default chord, and
-`maj` is a confusing synonym for `maj7`.  Pently does not support
-`maj`, instead using `M` and `maj7`.)
+`maj` is a confusing synonym for `maj7`.  Pently does not define
+`maj`, instead defining `M` and `maj7`.)
 
-To define an additional chord name, use e.g. `@ENsus4 = 57` at the
-top level, in a song, or in a pattern.
+To define an additional chord name, use the `@EN` (define chord)
+command at the top level, in a song, or in a pattern.  For example,
+`@ENsus4 = 57` defines `sus4` as `57`.
 
 A nibble pair or chord name may be preceded by a minus sign.  This
 causes notes to be transposed down by the highest interval in the
@@ -413,8 +414,9 @@ If a pattern repeats, notes before the first change use the
 instrument specified in the last change.
 
 To set the **arpeggio** for a single note in a pitched pattern,
-add `:` followed by the chord name or intervals of the arpeggio.
-For example, `eis'2.:47` makes a dotted half note E flat major chord,
+add `:` after the note's pitch and duration followed by the chord
+name or intervals of the arpeggio.
+For example, `eb'2.:47` makes a dotted half note E flat major chord,
 and `c:m` makes its relative minor, a C minor chord.  To set the
 arpeggio for all subsequent notes in a pattern, use the `EN` command
 followed by a chord name or intervals, such as `EN4A` or `ENdom7`
