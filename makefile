@@ -33,7 +33,7 @@ EMU := fceux --input1 GamePad.0\
 DEBUGEMU := ~/.wine/drive_c/Program\ Files\ \(x86\)/FCEUX/fceux.exe
 # other options for EMU are start (Windows) or gnome-open (GNOME)
 
-# Work around a quirk of how Python for Windows installer
+# Work around a quirk of how the Python 3 for Windows installer
 # sets up the PATH
 ifdef COMSPEC
 PY:=py

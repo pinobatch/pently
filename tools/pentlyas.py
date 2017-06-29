@@ -78,7 +78,7 @@ default_arp_names = {
     'M':    '47',     # major
     'm':    '37',     # minor
     'maj7': '4B',     # major 7
-    'm7':   '37',     # minor 7
+    'm7':   '3A',     # minor 7
     'dom7': '4A',     # dominant 7
     'dim':  '36',     # diminished
     'dim7': '39',     # diminished 7

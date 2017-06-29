@@ -260,7 +260,7 @@ are predefined:
 * `maj7`: `4B`, major 7th
 * `aug`: `48`, augmented
 * `m`: `37`, minor
-* `m7`: `37`, minor 7th
+* `m7`: `3A`, minor 7th
 * `dim`: `36`, diminished
 * `dim7`: `39`, diminished 7th
 
