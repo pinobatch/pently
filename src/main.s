@@ -88,42 +88,28 @@ tvSystem:   .res 1
   stx $4010       ; Disable DMC IRQ
   dex             ; Subtracting 1 from $00 gives $FF, which is a
   txs             ; quick way to set the stack pointer to $01FF
-  bit PPUSTATUS   ; Acknowledge stray vblank NMI across reset
   bit SNDCHN      ; Acknowledge DMC IRQ
   lda #$40
   sta P2          ; Disable APU Frame IRQ
   lda #$0F
   sta SNDCHN      ; Disable DMC playback, initialize other channels
+  cld             ; Turn off decimal mode on certain famiclones
 
-vwait1:
-  bit PPUSTATUS   ; It takes one full frame for the PPU to become
-  bpl vwait1      ; stable.  Wait for the first frame's vblank.
-
-  ; Turn off decimal mode for post-patent famiclones
-  cld
-
-  ; Clear OAM and the zero page here.
-  ldx #0
-  stx cur_song
-  jsr ppu_clear_oam  ; clear out OAM from X to end and set X to 0
-  jsr pently_init
-
-vwait2:
-  bit PPUSTATUS  ; After the second vblank, we know the PPU has
-  bpl vwait2     ; fully stabilized.  After this use only NMI.
-  
-  jsr display_todo
-  jsr getTVSystem
+  jsr getTVSystem ; Wait for the PPU to stabilize
   sta tvSystem
-  lda cur_song
+
+  ; Initialize used memory
+  jsr pently_init
+  jsr display_todo
+  lda #0
+  sta cur_song
   jsr pently_start_music
 
 forever:
   lda #0
   sta oam_used
 
-  lda #8
-  tax
+  ldx #8
   lda cur_song
   asl a
   asl a
