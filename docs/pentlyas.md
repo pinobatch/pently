@@ -150,6 +150,9 @@ By default, a sound effect plays one step every frame, which is 60
 steps per second.  But this can be slowed down with `rate 2` through
 `rate 16`.
 
+Sound effect names are exported with the `PE_` prefix, such as
+`PE_closed_hihat`. Use these values with `pently_start_sound`.
+
 Examples:
 
     sfx closed_hihat on noise
@@ -212,11 +215,14 @@ The `detached` attribute cuts the note half a row early, so that
 notes don't run into each other.  This is especially useful with
 envelopes that do not decay.
 
+Instrument names are exported with the `PI_` prefix, such as
+`PI_piano`. Use these values with `pently_play_note`.
+
 Example:
 
     # Not specifying anything will make an instrument with all
     # default settings: timbre 2, pitch 0, volume 8, decay 0,
-    # and no detached
+    # and no detached, suitable for e.g. triangle channel use.
     instrument bass
 
     instrument flute
@@ -438,6 +444,10 @@ Songs
 Like patterns, songs also have `time` and `scale`.  They are used to
 interpret the `tempo` and `at` commands.
 
+The `song` command begins and names a song.  Song names are exported
+with the `PS_` suffix, such as `PS_twinkle`.  Use these values with
+`pently_start_music`.
+
 Patterns may be defined inside or outside a song.  A pattern defined
 inside a song inherits the song's `time` and `scale`.  If a pattern
 is defined outside a song, and its `scale` does not match that
@@ -520,6 +530,8 @@ The loop point is set with the **`segno`** (sen-yoh) command.  A song
 ends with the **`fine`** (fee-neh) command, which stops playback, or
 the **`dal segno`** command, which loops back to `segno` if it exists
 or the beginning of the song otherwise.
+
+The included `musicseq.pently` file contains examples of complete songs.
   
 Glossary
 ========

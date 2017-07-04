@@ -41,13 +41,12 @@ The following methods, declared in the assembly language include file
   Channel is 0, 4, 8, 12, or 16, representing pulse 1, pulse 2,
   triangle, noise, and attack.  Instrument is an element of the
   `pently_instruments` table.
-* `getTVSystem`, defined in `paldetect.s`, waits for two NMIs and
-  counts the time between them to determine which TV system is in
-  use.  It returns a region value in A: 0 means NTSC, 1 means PAL
-  NES, and 2 means PAL famiclones such as [Dendy].  Make sure your
-  NMI handler finishes within 1500 cycles (not taking the whole
-  vertical blanking period or waiting for sprite 0) while calling
-  this, or the result will be wrong.
+* `getTVSystem`, defined in `paldetect.s`, waits for the PPU to
+  stabilize and counts the time between vertical blanking periods
+  to determine which TV system is in use.  It returns a region
+  value in A: 0 means NTSC, 1 means PAL NES, and 2 means PAL
+  famiclones such as [Dendy].  It should be called with NMI off
+  and can replace the PPU wait spin loop in your game's init code.
 * `pently_get_beat_fraction`, defined in `bpmmath.s`, reads the
   fraction of the current beat. Returns a value from 0 to 95 in A.
 
