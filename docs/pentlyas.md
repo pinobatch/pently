@@ -433,6 +433,9 @@ The `MP` (modulate period) command controls vibrato: `MP1` through
 `MP4` set depth between 1 (very subtle) and 4 (very strong), and
 `MP0` or `MPOF` disables it.  Only the depth can be controlled, not
 the rate (which is fixed to a musically sane 12 frame period).
+Because of a 2A03 quirk, a few pitches played with vibrato on a
+pulse channel may cause audible jitter: `a'`, `a`, `d`, `a,`, `f,`,
+`d,`, and `h,,`.
 
 **Channel volume** scales the volume of the instrument's envelope.
 Commands `pp`, `mp`, `mf`, and `ff` change the channel volume to

@@ -158,29 +158,29 @@ Value | Name          | Frequency (Hz)
 ----- | ------------- | --------------
 0     | A1            | 55.0
 1     | A#1/B♭1       | 58.3
-2     | B1            | 61.7
+2     | B1            | 61.7 (PR)
 3     | C2            | 65.4
 4     | C#2/D♭2       | 69.3
-5     | D2            | 73.4
+5     | D2            | 73.4 (PR)
 6     | D#2/E♭2       | 77.8
 7     | E2            | 82.4
-8     | F2            | 87.3
+8     | F2            | 87.3 (PR)
 9     | F#2/G♭2       | 92.5
 10    | G2            | 98.0
 11    | G#2/A♭2       | 103.9
-12    | A2            | 110.0
+12    | A2            | 110.0 (PR)
 13    | A#2/B♭2       | 116.5
 14    | B2            | 123.5
 15    | C3            | 130.8
 16    | C#3/D♭3       | 138.6
-17    | D3            | 146.8
+17    | D3            | 146.8 (PR)
 18    | D#3/E♭3       | 155.6
 19    | E3            | 164.7
 20    | F3            | 174.5
 21    | F#3/G♭3       | 184.9
 22    | G3            | 195.9
 23    | G#3/A♭3       | 207.5
-24    | A3            | 220.2
+24    | A3            | 220.2 (PR)
 25    | A#3/B♭3       | 233.0
 26    | B3            | 246.9
 27    | C4 (middle C) | 261.4
@@ -192,7 +192,7 @@ Value | Name          | Frequency (Hz)
 33    | F#4/G♭4       | 370.4
 34    | G4            | 392.5
 35    | G#4/A♭4       | 415.8
-36    | A4            | 440.4
+36    | A4            | 440.4 (PR)
 37    | A#4/B♭4       | 466.1
 38    | B4            | 495.0
 39    | C5            | 522.7
@@ -220,6 +220,12 @@ Value | Name          | Frequency (Hz)
 61    | A#6/B♭6       | 1864.3
 62    | B6            | 1962.5
 63    | C7            | 2110.6
+
+Pitches marked (PR) are close to the CPU clock rate (1.79 MHz)
+divided by a multiple of 4096.  Vibrato effects on a (PR) pitch
+may produce audible jitter due to phase reset, a 2A03 quirk when
+changing the most significant bits of a pulse channel's period.
+The triangle channel is not affected.
 
 The pitch table `ntscPeriods.s` is generated with
 `pentlyas.py --periods 64 -o ntscPeriods.s`.  To make another octave
@@ -393,7 +399,7 @@ may pose a problem for some projects:
 * No graphical editor, unless you count using FamiTracker with
   ft2pently.
 * Limit of 51 instruments, 64 sound effects, 25 different drums,
-  128 patterns, and 128 songs.
+  255 patterns, and 128 songs.
 * The bottom octave of the 88-key piano is missing from the pulse
   channel and the top octave from the triangle channel, reflecting
   an NES limit.
