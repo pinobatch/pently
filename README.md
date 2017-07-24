@@ -7,7 +7,7 @@ Documentation can be found in `docs/` and example tracks can be found in `musics
 
 ## Building
 
-Prerequisites:
+### Prerequisites
 
 - Python 3
 - Pillow (Python imaging library) for demo ROM - `pip install pillow`
@@ -18,11 +18,12 @@ Prerequisites:
 For help setting these up, see the README file for
 [nrom-template](https://github.com/pinobatch/nrom-template).
 
-Building:
+### Building
 
 Once you have the above installed, run `make`.
 Then edit the score and run `make` again to hear the changes.
 
-# License
+## License
+
 Copyright &copy; 2009-2017 Damian Yerrick.
 Pently is free software, under the zlib License.
