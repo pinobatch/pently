@@ -29,7 +29,7 @@ srcdir = src
 imgdir = tilesets
 
 #EMU := "/C/Program Files/Nintendulator/Nintendulator.exe"
-EMU := fceux --input1 GamePad.0\
+EMU := fceux --input1 GamePad.0
 DEBUGEMU := ~/.wine/drive_c/Program\ Files\ \(x86\)/FCEUX/fceux.exe
 # other options for EMU are start (Windows) or gnome-open (GNOME)
 

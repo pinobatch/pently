@@ -20,6 +20,7 @@
 ;    misrepresented as being the original software.
 ; 3. This notice may not be removed or altered from any source distribution.
 ;
+
 ; The NES CPU has no FPU, nor does it have a multiplier or divider
 ; for integer math.  So we have to implement these in software.
 ; 
@@ -41,12 +42,12 @@
 .proc mul8
 factor2 = 1
 prodlo = 0
+  sty factor2
 
   ; Factor 1 is stored in the lower bits of prodlo; the low byte of
   ; the product is stored in the upper bits.
   lsr a  ; prime the carry bit for the loop
   sta prodlo
-  sty factor2
   lda #0
   ldy #8
 loop:

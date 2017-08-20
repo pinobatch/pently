@@ -128,9 +128,9 @@ durations:
   .byt 1, 2, 3, 4, 6, 8, 12, 16
 
 .if PENTLY_USE_VIBRATO
-; bit 2: negate; bits 1-0: amplitude
+; bit 7: negate; bits 6-0: amplitude in units of 1/128 semitone
 vibratoPattern:
-  .byt 6,7,7,7,6,0,2,3,3,3,2
+  .byt $88,$8B,$8C,$8B,$88,$00,$08,$0B,$0C,$0B,$08
 .endif
 
 .segment PENTLY_CODE
@@ -704,6 +704,12 @@ skipAttackPart:
   rts
 .endproc
 
+;;
+; Calculates the pitch, detune amount, and volume for channel X.
+; @return out_volume: value for $4000/$4004/$4008/$400C
+;   out_pitch: semitone number
+;   out_pitchadd: amount to add to semitone
+;   X: preserved
 .proc pently_update_music_ch
 xsave        = pently_zptemp + 0
 pitchadd_lo  = pently_zptemp + 1
@@ -910,53 +916,23 @@ vibratoBits = xsave
     bmi not_vibrato     ; (even though we still clock it)
   .endif
 
-  ; Step 1: Calculate the delta to apply based on pitch
   lda vibratoPattern,y
-  ldy notePitch,x
-  lsr a
-  sta vibratoBits
-  bcc notvibratobit0  ; Bit 0: add P/2
-    lda periodTableHi,y
-    lsr a
-    sta out_pitchadd
-    lda periodTableLo,y
-    ror a
-    sta pitchadd_lo
-  notvibratobit0:
-
-  lsr vibratoBits
-  bcc notvibratobit1  ; Bit 1: add P
-    clc
-    lda periodTableLo,y
-    adc pitchadd_lo
-    sta pitchadd_lo
-    lda periodTableHi,y
-    adc out_pitchadd
-    sta out_pitchadd
-  notvibratobit1:
-
-  lsr vibratoBits
-  bcc notvibratobit2  ; Bit 2: negate
-    lda #$FF
-    eor pitchadd_lo
-    sta pitchadd_lo
-    lda #$FF
-    eor out_pitchadd
-    sta out_pitchadd
-  notvibratobit2:
-
   ldy vibratoDepth,x
-  dey
-  beq not_vibrato
-  lda pitchadd_lo
   vibratodepthloop:
     asl a
-    rol out_pitchadd
     dey
     bne vibratodepthloop
-  cmp #$80
+
+  jsr calc_frac_pitch
+  sta out_pitchadd
+  ldy vibratoPhase,x
+  lda vibratoPattern,y
+  asl a
   bcc not_vibrato
-    inc out_pitchadd
+    lda #0
+    sbc out_pitchadd
+    sta out_pitchadd
+
 not_vibrato:
   rts
 .endif
@@ -994,6 +970,50 @@ chvol_nonzero:
   rts
 .endif
 
-
 .endproc
 
+.if ::PENTLY_USE_VIBRATO
+
+;;
+; Calculates the amount of period reduction needed to raise a note
+; by a fraction of a semitone.
+; @param out_pitch the semitone number to calculate around
+; @param A the fraction of semitones
+; @return the additional distance in period units
+.proc calc_frac_pitch
+prodlo       = pently_zptemp + 0
+pitch_sub    = pently_zptemp + 1
+out_pitch    = pently_zptemp + 3
+
+  ; Find the difference between the next note's period and that of
+  ; this note
+  sta pitch_sub
+  sec
+  ldy out_pitch
+  lda periodTableLo,y
+  sbc periodTableLo+1,y
+
+  ; Multiply the difference by pitch_sub.
+  ; The period difference is stored in the lower bits of prodlo; the
+  ; low byte of the product is stored in the upper bits.
+  lsr a  ; prime the carry bit for the loop
+  sta prodlo
+  lda #0
+  ldy #8
+loop:
+  ; At the start of the loop, one bit of prodlo has already been
+  ; shifted out into the carry.
+  bcc noadd
+  clc
+  adc pitch_sub
+noadd:
+  ror a
+  ror prodlo  ; pull another bit out for the next iteration
+  dey         ; inc/dec don't modify carry; only shifts and adds do
+  bne loop
+
+  asl prodlo  ; Rounding: Set carry iff result low byte >= 128
+  adc #0
+  rts
+.endproc
+.endif
