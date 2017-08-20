@@ -25,11 +25,11 @@ durations stick
 notenames english
 
 sfx kick on noise
-  volume 12 10 8 6 4 3 2 1 1
+  volume 12 10 8 6 5 4 3 2 1 1
   pitch 10 0
 
 sfx snare on noise
-  volume 12 10 8 6 4 3 2 1 1
+  volume 12 10 8 6 5 4 3 2 1 1
   pitch 4 10
 
 sfx hihat on noise

@@ -285,7 +285,8 @@ low, low, and high; `ARPEGGIO,$C0` is two steps low and high; and
 `ARPEGGIO,$CC` is three steps low, high, and high. 
 
 The depth of vibrato can be set from off (`VIBRATO,0`) to subtle
-(`VIBRATO,1`) through very strong (`VIBRATO,4`).
+(`VIBRATO,1`) through very strong (`VIBRATO,4`).  These correspond to
+amplitudes of 0, 9, 18, 38, and 75 [cents].
 
 The volume of an instrument's attack and sustain phases can be scaled
 by channel volume, from 25% (`CHVOLUME,1`) to full (`CHVOLUME,4`;
@@ -306,6 +307,11 @@ set of triplets (3 notes in the time of 4).  For example, to play a
 short C note for 4 frames followed by a B flat that is as long as a
 quarter note minus 4 frames, do `GRACE,4,N_CH,N_BB|D_Q4`.
 
+The bend command controls pitch bend.  In `BEND,$xy`, `x` chooses the
+rate scale, and `y` chooses the rate.  Currently the player ignores
+pitch bend, instead snapping immediately to the target pitch as if
+`BEND,$00` were specified.
+
 Finally, to end the pattern, use `PATEND`.  This isn't strictly
 necessary if a pattern is always interrupted at its end, but if it
 isn't present, playback will [fall through] into the following
@@ -325,11 +331,12 @@ The following are all the symbols that are valid in pattern code:
   `D_D4` (6 rows), `D_2` (8 rows), `D_D2` (12 rows), `D_1` (16 rows)
 * Effects and controls: `INSTRUMENT,id`; `ARPEGGIO,$xy`; `LEGATO_ON`
   and `LEGATO_OFF`; `VIBRATO,depth`; `TRANSPOSE,interval`;
-  `CHVOLUME,vol`; and `PATEND`
+  `CHVOLUME,vol`; `BEND,type`; and `PATEND`
 
 [S3M]: https://en.wikipedia.org/wiki/S3M_(file_format)
 [IT]: https://en.wikipedia.org/wiki/Impulse_Tracker
 [MOD]: https://en.wikipedia.org/wiki/MOD_(file_format)
 [XM]: https://en.wikipedia.org/wiki/FastTracker_2
+[cents]: https://en.wikipedia.org/wiki/Cent_(music)
 [acciaccatura]: https://en.wikipedia.org/wiki/Ornament_%28music%29#Acciaccatura
 [fall through]: https://en.wikipedia.org/wiki/Switch_statement#Fallthrough

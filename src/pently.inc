@@ -47,6 +47,12 @@ PENTLY_USE_VIBRATO = 1
 PENTLY_USE_ARPEGGIO = 1
 .endif
 
+; Enable vibrato (sinusoidal pitch modulation with an LFO of
+; period 12 frames)
+.ifndef PENTLY_USE_PORTAMENTO
+PENTLY_USE_PORTAMENTO = 1
+.endif
+
 ; Enable attack envelopes on instruments
 .ifndef PENTLY_USE_ATTACK_PHASE
 PENTLY_USE_ATTACK_PHASE = 1

@@ -437,6 +437,18 @@ Because of a 2A03 quirk, a few pitches played with vibrato on a
 pulse channel may cause audible jitter: `a'`, `a`, `d`, `a,`, `f,`,
 `d,`, and `h,,`.
 
+**Portamento**, also called **pitch bend** or **pitch slide**,
+approaches each pitch gradually rather than immediately changing from
+the previous pitch.  In a future version, the following commands will
+set the rate of this change:
+
+* `EP00`, `EPOF`: Snap to target pitch (default)
+* `EP01` through `EP0F`: Change by 1 to 15 semitones per frame
+* `EP10` through `EP1A`: Change by an increasing fraction of a
+  semitone per frame
+* `EP20` through `EP27`: Change by a decreasing fraction of the
+  distance to the target pitch per frame, like Roland TB-303
+
 **Channel volume** scales the volume of the instrument's envelope.
 Commands `pp`, `mp`, `mf`, and `ff` change the channel volume to
 25%, 50%, 75%, and 100% respectively.  Volume is set to 100% at the

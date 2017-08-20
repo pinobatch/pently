@@ -21,6 +21,9 @@
 ; 3. This notice may not be removed or altered from any source distribution.
 ;
 
+.ifndef PENTLYSEQ_INC
+PENTLYSEQ_INC = 1
+
 .global pently_sfx_table, pently_drums
 .global pently_instruments, pently_patterns, pently_songs
 .globalzp NUM_SONGS
@@ -34,7 +37,6 @@ name = <((* - pently_sfx_table) / 4)
   .byt (channel<<2)|((period - 1)<<4)
   .byt length
 .endmacro
-
 
 ; each entry in sound effect frames is four nibbles, big endian:
 ; FEDC BA98 7654 3210
@@ -242,6 +244,7 @@ TRANSPOSE = $DC
 GRACE = $DD
 VIBRATO = $DE
 CHVOLUME = $DF
+BEND = $E0
 PATEND = $FF
 
 ; The default duration is one row (a sixteenth note in the tracker).
@@ -254,3 +257,4 @@ D_2  = 5
 D_D2 = 6
 D_1  = 7
 
+.endif

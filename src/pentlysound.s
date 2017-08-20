@@ -34,7 +34,7 @@ SNDCHN = $4015
 .segment "ZEROPAGE"
 pently_zp_state: .res 36
 .segment "BSS"
-PENTLYBSS_SIZE = 96
+PENTLYBSS_SIZE = 104
 pentlyBSS: .res PENTLYBSS_SIZE
 
 sfx_datalo = pently_zp_state + 0

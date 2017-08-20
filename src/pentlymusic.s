@@ -57,7 +57,7 @@ MAX_CHANNEL_VOLUME = 4
 ; 12  | Noise sound effect data ptr         Noise envelope data ptr
 ; 16  | Sq1 music pattern data ptr          Play/Pause        Attack channel
 ; 20  | Sq2 music pattern data ptr          Tempo
-; 24  | Tri music pattern data ptr          Unused            Unused
+; 24  | Tri music pattern data ptr          Tempo counter
 ; 28  | Noise music pattern data ptr        Conductor segno
 ; 32  | Attack music pattern data ptr       Conductor track position
 
@@ -67,14 +67,15 @@ MAX_CHANNEL_VOLUME = 4
 ;  0  | Effect rate       Rate counter      Last period MSB   Effect length
 ; 16-31 Instrument envelope state for channels
 ; 16  | Sustain vol       Note pitch        Attack length     Attack pitch
-; 32-47 Instrument arpeggio state for channels
-; 32  | Legato enable     Arpeggio phase    Arp interval 1    Arp interval 2
-; 48-57 Instrument vibrato state for channels
-; 50-67 Pattern reader state for tracks
-; 48  | Vibrato depth     Vibrato phase     Channel volume    Note time left
-; 68  | Grace time        Instrument ID     Pattern ID        Transpose amt
-; 88-91 Conductor use
-; 96 End of allocation
+; 32-47 Portamento state for channels
+; 32  | Current pitch/256 Current pitch     Portamento rate   (conductor)
+; 48-63 Instrument arpeggio state for channels
+; 48  | Legato enable     Arpeggio phase    Arp interval 1    Arp interval 2
+; 64-83 Instrument vibrato state for channels
+; 67-103 Pattern reader state for tracks
+; 64  | Vibrato depth     Vibrato phase     Channel volume    Note time left
+; 84  | Grace time        Instrument ID     Pattern ID        Transpose amt
+; 104 End of allocation
 ;
 ; Noise envelope is NOT unused.  Conductor track cymbals use it.
 
@@ -84,18 +85,22 @@ noteEnvVol      = pentlyBSS + 16
 notePitch       = pentlyBSS + 17
 attack_remainlen= pentlyBSS + 18
 attackPitch     = pentlyBSS + 19
-noteLegato      = pentlyBSS + 32
-arpPhase        = pentlyBSS + 33
-arpInterval1    = pentlyBSS + 34
-arpInterval2    = pentlyBSS + 35
-vibratoDepth    = pentlyBSS + 48
-vibratoPhase    = pentlyBSS + 49
-channelVolume   = pentlyBSS + 50
-noteRowsLeft    = pentlyBSS + 51
-graceTime       = pentlyBSS + 68
-noteInstrument  = pentlyBSS + 69
-musicPattern    = pentlyBSS + 70
-patternTranspose= pentlyBSS + 71
+chPitchLo       = pentlyBSS + 32
+chPitchHi       = pentlyBSS + 33
+chPortamento    = pentlyBSS + 34
+chPortaUnused   = pentlyBSS + 35
+noteLegato      = pentlyBSS + 48
+arpPhase        = pentlyBSS + 49
+arpInterval1    = pentlyBSS + 50
+arpInterval2    = pentlyBSS + 51
+vibratoDepth    = pentlyBSS + 64
+vibratoPhase    = pentlyBSS + 65
+channelVolume   = pentlyBSS + 66
+noteRowsLeft    = pentlyBSS + 67
+graceTime       = pentlyBSS + 84
+noteInstrument  = pentlyBSS + 85
+musicPattern    = pentlyBSS + 86
+patternTranspose= pentlyBSS + 87
 
 ; Shared state
 
@@ -103,15 +108,15 @@ pently_music_playing    = pently_zp_state + 18
 attackChannel           = pently_zp_state + 19
 music_tempoLo           = pently_zp_state + 22
 music_tempoHi           = pently_zp_state + 23
+pently_tempoCounterLo   = pently_zp_state + 26
+pently_tempoCounterHi   = pently_zp_state + 27
 conductorSegnoLo        = pently_zp_state + 30
 conductorSegnoHi        = pently_zp_state + 31
 conductorPos            = pently_zp_state + 34
 
-conductorWaitRows       = pentlyBSS + 91
-pently_rows_per_beat    = pentlyBSS + 92
-pently_row_beat_part    = pentlyBSS + 93
-pently_tempoCounterLo   = pentlyBSS + 94
-pently_tempoCounterHi   = pentlyBSS + 95
+conductorWaitRows       = chPortaUnused + 0
+pently_rows_per_beat    = chPortaUnused + 4
+pently_row_beat_part    = chPortaUnused + 8
 
 .segment PENTLY_RODATA
 
@@ -548,6 +553,9 @@ patcmdhandlers:
   .addr handle_grace-1
   .addr handle_vibrato-1
   .addr handle_ch_volume-1
+
+  .addr handle_portamento-1
+
 num_patcmdhandlers = (* - patcmdhandlers) / 2
 .popseg
 
@@ -602,12 +610,27 @@ handle_transpose:
 
 .if ::PENTLY_USE_VIBRATO
 handle_vibrato:
-  lda (musicPatternPos,x)
-  and #$07
-  sta vibratoDepth,x
+  cpx #12
+  bcs :+
+    lda (musicPatternPos,x)
+    and #$07
+    sta vibratoDepth,x
+  :
   jmp nextPatternByte
 .else
   handle_vibrato = nextPatternByte 
+.endif
+
+.if ::PENTLY_USE_PORTAMENTO
+handle_portamento:
+  cpx #12
+  bcs :+
+    lda (musicPatternPos,x)
+    sta chPortamento,x
+  :
+  jmp nextPatternByte
+.else
+  handle_portamento = nextPatternByte 
 .endif
 
 .if ::PENTLY_USE_CHANNEL_VOLUME

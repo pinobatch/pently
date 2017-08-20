@@ -363,9 +363,16 @@ Value | Effect
 `58`  | Minor chord, second inversion
 `59`  | Major chord, second inversion
 
-The vibrato rate is always 1 cycle per 12 frames, which means 5 Hz
-on NTSC or 4.2 Hz on PAL. The first 12-frame cycle of a note is
-played without modulation in order to establish the note's pitch.
+The vibrato rate is always 1 cycle per 12 frames, which means 5 Hz on
+NTSC or 4.2 Hz on PAL. The first 12-frame cycle of a note is played
+without modulation in order to establish the note's pitch.  Four
+depths are available, with an amplitude of 9, 19, 38, or 75 cents.
+
+(The following describes a planned feature)  
+Portamento approaches a pitch by sliding rather than an instant
+change.  The rate of pitch change can be specified on one of three
+scales: semitones per frame, predefined fractions of a semitone per
+frame, or a fraction of the distance to the target pitch per frame.
 
 [hammer-ons]: https://en.wikipedia.org/wiki/Hammer-on
 [SID]: https://en.wikipedia.org/wiki/MOS_Technology_SID#Software_emulation
@@ -381,7 +388,7 @@ may pose a problem for some projects:
   game.
 * No way to split sequence data across multiple PRG ROM banks
   or stash it in CHR ROM (like in _Galaxian_).
-* No pitch bends.
+* No pitch bends, slides, or portamento, until issue 18 is fixed.
 * No true echo buffer.
 * No support for DPCM drums. This is a low priority because Pently
   is used in games that depend on controllers or raster effects
