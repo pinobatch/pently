@@ -974,6 +974,7 @@ EN(-?(?:
 )(?:/[12]|))      # inversion
 """, re.VERBOSE)
     vibratoRE = re.compile("MP(OF|[0-9a-fA-F])$")
+    portamentoRE = re.compile("EP(OF|[0-2][0-9a-fA-F])$")
     def add_pattern_note(self, word):
         if word in ('absolute', 'orelative', 'relative'):
             if self.pitchctx.octave_mode == 'drum':
@@ -994,7 +995,19 @@ EN(-?(?:
             self.pitchctx.set_arp(arpmatch.group(1))
             return
         if word.startswith("EN") and not arpmatch:
-            print("Bad arpeggio?", repr(word))
+            print("warning: malformed arpeggio %s" % repr(word),
+                  file=sys.stderr)
+
+        # EPxx: Portamento rate
+        slidematch = (self.portamentoRE.match(word)
+                      if self.pitchctx.octave_mode != 'drum'
+                      else None)
+        if slidematch:
+            self.notes.append("BEND,$"+slidematch.group(1))
+            return
+        if word.startswith("EP") and not slidematch:
+            print("warning: malformed portamento %s" % repr(word),
+                  file=sys.stderr)
 
         # MPxx: Vibrato
         vibratomatch = (self.vibratoRE.match(word)

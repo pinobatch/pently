@@ -138,6 +138,13 @@ vibratoPattern:
   .byt $88,$8B,$8C,$8B,$88,$00,$08,$0B,$0C,$0B,$08
 .endif
 
+.if PENTLY_USE_PORTAMENTO
+porta1x_rates_lo:
+  .byte 4, 8, 12, 16, 24, 32, 48, 64, 96, 128, 128
+porta1x_rates_hi:
+  .byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+.endif
+
 .segment PENTLY_CODE
 .proc pently_start_music
   asl a
@@ -151,6 +158,9 @@ vibratoPattern:
 
   ldy #PENTLYBSS_SIZE - 17
   lda #0
+  .if ::PENTLY_USE_ATTACK_TRACK
+    sta attackChannel
+  .endif
   :
     sta pentlyBSS+16,y
     dey
@@ -173,10 +183,7 @@ vibratoPattern:
     dex
     dex
     bpl channelLoop
-  .if ::PENTLY_USE_ATTACK_TRACK
-    lda #0
-    sta attackChannel
-  .endif
+
   lda #$FF
   sta pently_tempoCounterLo
   sta pently_tempoCounterHi
@@ -735,7 +742,7 @@ skipAttackPart:
 ;   X: preserved
 .proc pently_update_music_ch
 xsave        = pently_zptemp + 0
-pitchadd_lo  = pently_zptemp + 1
+unused       = pently_zptemp + 1
 out_volume   = pently_zptemp + 2
 out_pitch    = pently_zptemp + 3
 out_pitchadd = pently_zptemp + 4
@@ -746,8 +753,12 @@ out_pitchadd = pently_zptemp + 4
   beq nograce
   dec graceTime,x
   bne nograce
-  jsr pently_update_music::processTrackPattern
-nograce:
+    jsr pently_update_music::processTrackPattern
+  nograce:
+  
+.if ::PENTLY_USE_PORTAMENTO
+  jsr update_portamento
+.endif
 
 .if ::PENTLY_USE_ATTACK_PHASE
 
@@ -764,13 +775,25 @@ nograce:
   .else
     sta out_volume
   .endif
-  lda (noteAttackPos,x)
+
+  .if ::PENTLY_USE_PORTAMENTO
+    ; Use portamento pitch if not injected
+    cpx #12
+    bcs attack_not_pitched_ch
+      lda arpPhase,x
+      asl a
+      lda chPitchHi,x
+      bcc porta_not_injected
+    attack_not_pitched_ch:
+  .endif  
+  lda attackPitch,x
+porta_not_injected:
+  clc
+  adc (noteAttackPos,x)
   inc noteAttackPos,x
   bne :+
-  inc noteAttackPos+1,x
-:
-  clc
-  adc attackPitch,x
+    inc noteAttackPos+1,x
+  :
 .else
   jmp noAttack
 .endif
@@ -828,7 +851,7 @@ noArpRestart:
   lda #0
 .endif
   sta arpPhase,x
-  .if ::PENTLY_USE_VIBRATO
+  .if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
     jmp calc_vibrato
   .else
     rts
@@ -839,7 +862,7 @@ storePitchWithArpeggio:
 
 storePitchNoArpeggio:
   sta out_pitch
-  .if ::PENTLY_USE_VIBRATO
+  .if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
     jmp calc_vibrato
   .else
     rts
@@ -879,7 +902,13 @@ notSilenced:
   sta noteEnvVol,x
   tya
   pha
-  lda notePitch,x
+  .if ::PENTLY_USE_PORTAMENTO
+    lda chPitchHi,x
+    cpx #12
+    bcc noattack_is_pitched_ch
+  .endif
+    lda notePitch,x
+  noattack_is_pitched_ch:
   jsr storePitchWithArpeggio
   pla
   tay
@@ -916,23 +945,36 @@ notCutNote:
   rts
 
 .if ::PENTLY_USE_VIBRATO
+VIBRATO_PERIOD = 12
+
 calc_vibrato:
-vibratoBits = xsave
+  .if ::PENTLY_USE_PORTAMENTO
+    ; Don't apply portamento to injected attacks
+    lda arpPhase,x
+    bmi is_injected
+      lda chPitchLo,x
+      jmp not_injected
+    is_injected:
+  .endif
   lda #0
-  sta pitchadd_lo
+not_injected:
   sta out_pitchadd
-  lda vibratoDepth,x  ; Skip calculation if depth is 0
-  beq not_vibrato
+  ora vibratoDepth,x  ; Skip calculation if depth is 0
+  beq not_vibrato_rts
+  .if ::PENTLY_USE_PORTAMENTO
+    lda vibratoDepth,x
+    beq have_instantaneous_amplitude
+  .endif
 
   ; Clock vibrato
   ldy vibratoPhase,x
   bne :+
-    ldy #12
+    ldy #VIBRATO_PERIOD
   :
   dey
   tya
   sta vibratoPhase,x
-  cpy #11
+  cpy #VIBRATO_PERIOD-1
   bcs not_vibrato
   .if ::PENTLY_USE_ATTACK_TRACK
     lda arpPhase,x      ; Suppress vibrato from injected attack
@@ -940,23 +982,63 @@ vibratoBits = xsave
   .endif
 
   lda vibratoPattern,y
+  cmp #$80              ; carry set if decrease
+  php
   ldy vibratoDepth,x
+  and #$0F
   vibratodepthloop:
     asl a
     dey
     bne vibratodepthloop
+  plp
+  bcc have_instantaneous_amplitude
+    dec out_pitch
+    eor #$FF
+    adc #0
+  have_instantaneous_amplitude:
 
+  .if ::PENTLY_USE_PORTAMENTO
+    clc
+    adc chPitchLo,x
+    bcc :+
+      inc out_pitch
+    :
+  .endif
+
+  ; At this point, out_pitch:A is the next pitch
   jsr calc_frac_pitch
+  eor #$FF
+  clc
+  adc #1
   sta out_pitchadd
-  ldy vibratoPhase,x
-  lda vibratoPattern,y
-  asl a
-  bcc not_vibrato
-    lda #0
-    sbc out_pitchadd
-    sta out_pitchadd
+not_vibrato_rts:
+  rts
 
+.if ::PENTLY_USE_PORTAMENTO
 not_vibrato:
+  lda #0
+  beq have_instantaneous_amplitude
+.else
+not_vibrato = not_vibrato_rts
+.endif
+
+; This simplified version of calc_vibrato is used if portamento but
+; not vibrato is enabled
+.elseif ::PENTLY_USE_PORTAMENTO
+calc_vibrato:
+  lda arpPhase,x
+  bpl not_injected
+    lda #0
+    beq have_pitchadd
+  not_injected:
+  lda chPitchLo,x
+  beq have_pitchadd
+  jsr calc_frac_pitch
+  eor #$FF
+  clc
+  adc #1
+have_pitchadd:
+  sta out_pitchadd
   rts
 .endif
 
@@ -995,7 +1077,7 @@ chvol_nonzero:
 
 .endproc
 
-.if ::PENTLY_USE_VIBRATO
+.if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
 
 ;;
 ; Calculates the amount of period reduction needed to raise a note
@@ -1039,4 +1121,129 @@ noadd:
   adc #0
   rts
 .endproc
+.endif
+
+
+.if ::PENTLY_USE_PORTAMENTO
+.proc update_portamento
+portaRateLo = pently_zptemp+0
+portaRateHi = pently_zptemp+1
+
+  cpx #12
+  bcs not_pitched_ch
+  lda chPortamento,x
+  bne not_instant  ; $00: portamento disabled
+    sta chPitchLo,x
+    lda notePitch,x
+    sta chPitchHi,x
+    rts
+  not_instant:
+
+  and #$30
+  lsr a
+  lsr a
+  lsr a
+  tay
+  lda portamentocalc_funcs+1,y
+  pha
+  lda portamentocalc_funcs+0,y
+  pha
+not_pitched_ch:
+  rts
+
+; These functions calculate the instantaneous portamento rate
+
+portamentocalc_funcs:
+  .addr calc_whole_semitone-1
+  .addr calc_fraction-1
+  .addr calc_tb303-1
+  .addr calc_tb303-1
+num_portamentocalc_funcs = (* - portamentocalc_funcs) / 2
+
+calc_whole_semitone:
+;  ldy #0  ; Y is 0, 2, or 4 at entry, and for this routine it's 0
+  sty portaRateLo
+  lda chPortamento,x
+  sta portaRateHi
+  jmp portamento_add
+
+calc_fraction:
+  ldy chPortamento,x
+  lda porta1x_rates_lo-$10,y
+  sta portaRateLo
+  lda porta1x_rates_hi-$10,y
+  sta portaRateHi
+  jmp portamento_add
+
+calc_tb303:
+
+  ; Calculate the displacement to the final pitch
+  sec
+  lda chPitchLo,x
+  sta portaRateLo
+  lda chPitchHi,x
+  sbc notePitch,x
+  sta portaRateHi
+
+  ; Take its absolute value before scaling
+  bcs tb303_alreadyPositive
+    lda #1  ; compensate for carry being clear
+    sbc portaRateLo
+    sta portaRateLo
+    lda #0
+    sbc portaRateHi
+    sta portaRateHi
+  tb303_alreadyPositive:
+
+  ; Scale based on approach time setting
+  lda chPortamento,x
+  and #$0F
+  tay
+  lda portaRateLo
+  tb303_scale:
+    lsr portaRateHi
+    ror a
+    dey
+    bpl tb303_scale
+  adc #0
+  bcc tb303_no_carry
+    inc portaRateHi
+  tb303_no_carry:
+  sta portaRateLo
+
+  ; If rate is zero, make it nonzero
+  ora portaRateHi
+  bne portamento_add
+    inc portaRateLo
+
+portamento_add:
+  lda chPitchHi,x
+  cmp notePitch,x
+  bcs is_decrease
+  lda chPitchLo,x
+  adc portaRateLo
+  sta chPitchLo,x
+  lda chPitchHi,x
+  adc portaRateHi
+  cmp notePitch,x
+  bcc have_pitchHi
+  at_target:
+    lda #0
+    sta chPitchLo,x
+    lda notePitch,x
+  have_pitchHi:
+  sta chPitchHi,x
+  rts
+
+is_decrease:
+  lda chPitchLo,x
+  sbc portaRateLo
+  sta chPitchLo,x
+  lda chPitchHi,x
+  sbc portaRateHi
+  cmp notePitch,x
+  bcs have_pitchHi
+  bcc at_target
+.endproc
+
 .endif

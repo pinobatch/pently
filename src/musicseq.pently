@@ -614,9 +614,11 @@ song canon
   tempo 56.25
 
   at 1
+  # Sorry Rob Paravonian
   pattern bass on triangle with bass
     d' a b f# g d g a
   play bass
+
   at 3
   pattern melody on pulse2 with bf98_osti
     relative
@@ -1070,9 +1072,11 @@ song attacktest
   play drums
   pattern bass on triangle with bass
     eb2 r8 f4 r1 r2. c4 r8
-    eb2 r8 f4 r4 ab1 r2 c4 r8
+    eb2 r8 f4 r4 EP16 ab1 r2 EP00 c4 r8
     eb2 r8 f4 r1 r2. c4 r8
-    eb2 r8 f4 r4 gb1 r2 c4 r8
+    # As of 2017-08-21, there's a bug requiring a note to play for at
+    # least 2 ticks (2g) before it's set as the base for portamento
+    eb2 r8 f4 r4 eb2g EP16 gb1 EP00 r2 c4 r8
   play bass
   attack on triangle
   pattern atk on attack with framepop
@@ -1080,6 +1084,7 @@ song attacktest
     f'''4 ab8 c4 ab8 c4 eb8 c4 eb8
     g4 eb8 c4 eb8 c4 ab8 c4 ab8
   play atk
+
   at 4
   play atk down 2
   at 4:4

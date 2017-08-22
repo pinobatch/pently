@@ -262,11 +262,11 @@ A pattern can force a particular instrument to be used, such as when
 a pattern alternates between instruments. For this, use `INSTRUMENT`
 followed by the instrument's name, such as `INSTRUMENT,FLUTE`.
 
-Legato skips the ordinary note-on process, instead changing the pitch
-of an existing note on a pulse or triangle channel.  Instruments
-set to note-off a half row early will not do so when legato is on.
-To slur a set of notes, put LEGATO_ON after the first and LEGATO_OFF
-after the last.
+Legato skips the ordinary note-on process, instead changing the
+pitch of an existing note on a pulse or triangle channel.
+Instruments set to note-off a half row early will not do so when
+legato is on.  To slur a set of notes, put `LEGATO_ON` after the
+first and `LEGATO_OFF` after the last.
 
 Arpeggio rapidly cycles a note among two or three different pitches,
 which produces the warbly chords heard in SIDs and NSFs by European
@@ -307,10 +307,22 @@ set of triplets (3 notes in the time of 4).  For example, to play a
 short C note for 4 frames followed by a B flat that is as long as a
 quarter note minus 4 frames, do `GRACE,4,N_CH,N_BB|D_Q4`.
 
-The bend command controls pitch bend.  In `BEND,$xy`, `x` chooses the
-rate scale, and `y` chooses the rate.  Currently the player ignores
-pitch bend, instead snapping immediately to the target pitch as if
-`BEND,$00` were specified.
+The bend command controls pitch bend, also called portamento or pitch
+slide.  In `BEND,$xy`, `x` chooses the rate scale, and `y` chooses
+the rate.  Because of the wide range of speeds expected of
+portamento, Pently provides three rate scales:
+
+* Rates $00-$0F  
+  0 means snap immediately to the target pitch, while 1-F mean change
+  the pitch by 1 to 15 semitones per frame.
+* Rates $10-$1B  
+  Fractional rates in 256ths of a semitone per frame, where $10 to
+  $1B set the numerator to 4, 8, 12, 16, 24, 32, 48, 64, 96, 128,
+  192, or 384.
+* Rates $20-$27  
+  Constant-time slides, where the instantaneous rate is 1/2, 1/4,
+  1/8, 1/16, 1/32, 1/64, 1/128, or 1/256 of the remaining distance
+  to the target pitch per frame, like a first-order low-pass filter.
 
 Finally, to end the pattern, use `PATEND`.  This isn't strictly
 necessary if a pattern is always interrupted at its end, but if it

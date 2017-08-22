@@ -430,16 +430,16 @@ for dominant 7th chords or `EN00` or `ENOF` to turn off arpeggio.
 
 **Vibrato** is a subtle pitch slide up and down while a note is held.
 The `MP` (modulate period) command controls vibrato: `MP1` through
-`MP4` set depth between 1 (very subtle) and 4 (very strong), and
-`MP0` or `MPOF` disables it.  Only the depth can be controlled, not
-the rate (which is fixed to a musically sane 12 frame period).
-Because of a 2A03 quirk, a few pitches played with vibrato on a
-pulse channel may cause audible jitter: `a'`, `a`, `d`, `a,`, `f,`,
-`d,`, and `h,,`.
+`MP4` set depth between 1 (9 cents, very subtle) and 4 (75 cents,
+very strong), and `MP0` or `MPOF` disables it.  Only the depth can be
+controlled, not the rate (which is fixed to a musically sane 12 frame
+period).  Because of a 2A03 quirk, a few pitches played with vibrato
+on a pulse channel may cause audible jitter: `a'`, `a`, `d`, `a,`,
+`f,`, `d,`, and `h,,`.
 
-**Portamento**, also called **pitch bend** or **pitch slide**,
-approaches each pitch gradually rather than immediately changing from
-the previous pitch.  In a future version, the following commands will
+**Portamento**, also called **pitch bend** or **pitch slide**, causes
+a channel's pitch to approach a played note gradually rather than
+immediately changing from the previous pitch.  The following commands
 set the rate of this change:
 
 * `EP00`, `EPOF`: Snap to target pitch (default)
@@ -448,6 +448,9 @@ set the rate of this change:
   semitone per frame
 * `EP20` through `EP27`: Change by a decreasing fraction of the
   distance to the target pitch per frame, like Roland TB-303
+
+The same pitches that cause jitter for vibrato also cause jitter when
+portamento on a pulse channel crosses them.
 
 **Channel volume** scales the volume of the instrument's envelope.
 Commands `pp`, `mp`, `mf`, and `ff` change the channel volume to
@@ -564,6 +567,8 @@ studied music theory and MIDI.
   envelope steps except the last.
 * Bar: The line in musical notation that separates one measure from
   the next.  Can also mean a measure itself.
+* Cent: 1/100 of a semitone.  An octave is 1200 cents, and a pitch
+  difference of less than six cents is considered inaudible.
 * Channel: An output device capable of playing one tone at once.
   The 2A03 contains four channels: `pulse1`, `pulse2`, `triangle`,
   and `noise`.
@@ -607,7 +612,7 @@ studied music theory and MIDI.
 * Semitone: One-twelfth of an octave, or a frequency ratio of 1.0595
   (the twelfth root of 2) to 1 between pitches.
 * Song: A piece of music, which plays patterns at various times.
-* Sound effect: A set of pitch, volumes, and timbre envelopes
+* Sound effect: A set of pitch, volume, and timbre envelopes
   without necessarily a definite pitch.
 * Tempo: The speed at which music is played back, expressed in beats
   per minute.

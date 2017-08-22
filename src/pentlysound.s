@@ -230,7 +230,7 @@ ch_not_done:
     sta tvol
     bcc music_was_louder
   .endif
-  .if ::PENTLY_USE_VIBRATO
+  .if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
     sty tpitchadd  ; sfx don't support fine pitch adjustment
   .endif
   lda (srclo),y
@@ -265,7 +265,7 @@ notnoise:
 .endif
 
   lda periodTableLo,y
-  .if ::PENTLY_USE_VIBRATO
+  .if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
     clc
     adc tpitchadd
     sta $4002,x

@@ -114,7 +114,7 @@ after music when building an NSF.
 
 Disabling some features frees up a few bytes:
 
-* `PENTLY_USE_VIBRATO`: about 150 bytes
+* `PENTLY_USE_VIBRATO` and `PENTLY_USE_PORTAMENTO`: about 150 bytes
 * `PENTLY_USE_ARPEGGIO`: about 60 bytes
 * `PENTLY_USE_BPMMATH`: about 30 bytes
 * `PENTLY_USE_ATTACK_TRACK`: about 40 bytes
@@ -368,7 +368,6 @@ NTSC or 4.2 Hz on PAL. The first 12-frame cycle of a note is played
 without modulation in order to establish the note's pitch.  Four
 depths are available, with an amplitude of 9, 19, 38, or 75 cents.
 
-(The following describes a planned feature)  
 Portamento approaches a pitch by sliding rather than an instant
 change.  The rate of pitch change can be specified on one of three
 scales: semitones per frame, predefined fractions of a semitone per
@@ -388,7 +387,6 @@ may pose a problem for some projects:
   game.
 * No way to split sequence data across multiple PRG ROM banks
   or stash it in CHR ROM (like in _Galaxian_).
-* No pitch bends, slides, or portamento, until issue 18 is fixed.
 * No true echo buffer.
 * No support for DPCM drums. This is a low priority because Pently
   is used in games that depend on controllers or raster effects
@@ -421,7 +419,7 @@ License
 The Pently audio engine and its manual is distributed under the
 zlib License, a non-copyleft free software license:
 
-> Copyright 2010-2016 Damian Yerrick
+> Copyright 2010-2017 Damian Yerrick
 > 
 > This software is provided 'as-is', without any express or implied
 > warranty.  In no event will the authors be held liable for any damages
@@ -440,3 +438,4 @@ zlib License, a non-copyleft free software license:
 > 3. This notice may not be removed or altered from any source distribution.
 
 tl;dr: Yes, you may use Pently in games that you sell on cartridge.
+Please mention Pently in the credits if practical.
