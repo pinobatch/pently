@@ -367,6 +367,9 @@ The vibrato rate is always 1 cycle per 12 frames, which means 5 Hz on
 NTSC or 4.2 Hz on PAL. The first 12-frame cycle of a note is played
 without modulation in order to establish the note's pitch.  Four
 depths are available, with an amplitude of 9, 19, 38, or 75 cents.
+These correspond to amplitudes of 3, 6, 12, and 24 steps in
+0CC-FamiTracker's "linear pitch" (32 steps per semitone) mode, or
+roughly the effects `451`, `453`, `455`, and `457`.
 
 Portamento approaches a pitch by sliding rather than an instant
 change.  The rate of pitch change can be specified on one of three

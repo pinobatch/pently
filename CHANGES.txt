@@ -1,6 +1,7 @@
 0.05wip7 (future)
 * Change to zlib license, which preserves the spirit of the
   original license but is recognizable by GitHub
+* Added portamento, the single most requested feature
 * paldetect: Interleave with vwait so as not to depend on NMI
 * pentlyas.py: Add 8 predefined chord names
   (M, maj7, dom7, aug, m, m7, dim, dim7)
