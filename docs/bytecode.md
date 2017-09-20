@@ -282,7 +282,10 @@ steps are used.  Thus there are three ways to make an interval of
 two notes, depending on how much the lower or higher note should
 dominate.  For example, with an octave `ARPEGGIO,$0C` is three steps
 low, low, and high; `ARPEGGIO,$C0` is two steps low and high; and
-`ARPEGGIO,$CC` is three steps low, high, and high. 
+`ARPEGGIO,$CC` is three steps low, high, and high.
+
+Effects `FASTARP` and `SLOWARP` set arpeggio to change pitch every
+frame or every 2 frames respectively.
 
 The depth of vibrato can be set from off (`VIBRATO,0`) to subtle
 (`VIBRATO,1`) through very strong (`VIBRATO,4`).  These correspond to

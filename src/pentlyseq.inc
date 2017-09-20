@@ -245,6 +245,9 @@ GRACE = $DD
 VIBRATO = $DE
 CHVOLUME = $DF
 BEND = $E0
+RESERVEDFX1 = $E1
+FASTARP = $E2
+SLOWARP = $E3
 PATEND = $FF
 
 ; The default duration is one row (a sixteenth note in the tracker).

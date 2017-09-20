@@ -222,6 +222,9 @@ Return None (if arp is falsey), 2 hex digits, or '-' followed by
         if not name[:1].isalpha():
             raise ValueError("chord name %s must begin with a letter"
                              % name)
+        if name in ('P1', 'P2'):
+            raise ValueError("chord name %s is reserved for rate changes"
+                             % name)
         try:
             olddefinition = self.translate_arp_name(name)
         except KeyError:
@@ -992,7 +995,13 @@ EN(-?(?:
                     if self.pitchctx.octave_mode != 'drum'
                     else None)
         if arpmatch:
-            self.pitchctx.set_arp(arpmatch.group(1))
+            arpvalue = arpmatch.group(1)
+            if arpvalue == 'P1':
+                self.notes.append("FASTARP")
+            elif arpvalue == 'P2':
+                self.notes.append("SLOWARP")
+            else:
+                self.pitchctx.set_arp(arpvalue)
             return
         if word.startswith("EN") and not arpmatch:
             print("warning: malformed arpeggio %s" % repr(word),

@@ -115,7 +115,7 @@ after music when building an NSF.
 Disabling some features frees up a few bytes:
 
 * `PENTLY_USE_VIBRATO` and `PENTLY_USE_PORTAMENTO`: about 150 bytes
-* `PENTLY_USE_ARPEGGIO`: about 60 bytes
+* `PENTLY_USE_ARPEGGIO`: about 100 bytes?
 * `PENTLY_USE_BPMMATH`: about 30 bytes
 * `PENTLY_USE_ATTACK_TRACK`: about 40 bytes
 * `PENTLY_USE_ATTACK_PHASE`: about 60 bytes; cannot be disabled while
@@ -341,8 +341,9 @@ base pitch, each expressed as a hexadecimal nibble, where `1` through
 `9` represent a minor second through a major sixth and `A` through
 `F` a minor seventh through a minor tenth.  Arpeggio doesn't work in
 the attack track, and an arpeggio involving both a base note below
-middle C and an interval below an octave tends to sound muddy.
-Examples of musically useful arpeggio values follow:
+middle C and an interval below an octave tends to sound muddy,
+especially when played fast.  Examples of musically useful arpeggio
+values follow:
 
 Value | Effect
 ----- | ------
@@ -402,10 +403,10 @@ may pose a problem for some projects:
   and no expansion synth has a CPLD replica as of 2016.
 * Envelopes have no release phase; a note-off kills the note
   abruptly.
-* No error checking for certain combinations that cause undefined
+* No error checking for obscure combinations that cause undefined
   behavior.
-* No graphical editor, unless you count using FamiTracker with
-  ft2pently.
+* No dedicated graphical editor, though FamiTracker with ft2pently
+  can use much of Pently's functionality.
 * Limit of 51 instruments, 64 sound effects, 25 different drums,
   255 patterns, and 128 songs.
 * The bottom octave of the 88-key piano is missing from the pulse

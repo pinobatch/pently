@@ -562,6 +562,9 @@ patcmdhandlers:
   .addr handle_ch_volume-1
 
   .addr handle_portamento-1
+  .addr handle_portamento-1  ; Reserved for future use
+  .addr handle_fastarp-1
+  .addr handle_slowarp-1
 
 num_patcmdhandlers = (* - patcmdhandlers) / 2
 .popseg
@@ -591,8 +594,26 @@ handle_arpeggio:
     sta arpInterval2,x
   :
   jmp nextPatternByte
+handle_fastarp:
+  cpx #12
+  bcs :+
+    lda #%10111111
+    and arpPhase,x
+    sta arpPhase,x
+  :
+  jmp anotherPatternByte
+handle_slowarp:
+  cpx #12
+  bcs :+
+    lda #%01000000
+    ora arpPhase,x
+    sta arpPhase,x
+  :
+  jmp anotherPatternByte
 .else
   handle_arpeggio = nextPatternByte
+  handle_fastarp = anotherPatternByte
+  handle_slowarp = anotherPatternByte
 .endif
 
 handle_legato:
@@ -694,8 +715,9 @@ instrument_id = pently_zptemp + 1
     cpx #DRUM_TRACK
     bcs skipSustainPart
       .if ::PENTLY_USE_ATTACK_TRACK || ::PENTLY_USE_ARPEGGIO
-        lda #0
-        sta arpPhase,x  ; bits 2-0: arp phase; 7: is attack injected
+        lda #%01000000
+        and arpPhase,x
+        sta arpPhase,x  ; keep only bit 6: is arp fast
       .endif
       .if ::PENTLY_USE_VIBRATO
         lda #23
@@ -710,11 +732,12 @@ instrument_id = pently_zptemp + 1
     pha
     .if ::PENTLY_USE_ATTACK_TRACK
       cpx #ATTACK_TRACK
-      bcc notAttackChannel
+      bcc notAttackTrack
         ldx attackChannel
         lda #$80  ; Disable arpeggio, vibrato, and legato until sustain
+        ora arpPhase,x
         sta arpPhase,x
-      notAttackChannel:
+      notAttackTrack:
     .endif
     lda notenum
     sta attackPitch,x
@@ -748,7 +771,9 @@ out_pitch    = pently_zptemp + 3
 out_pitchadd = pently_zptemp + 4
 
   lda pently_music_playing
-  beq silenced
+  bne :+
+    jmp silenced
+  :
   lda graceTime,x
   beq nograce
   dec graceTime,x
@@ -816,26 +841,36 @@ storePitchWithArpeggio:
 
 .if ::PENTLY_USE_ARPEGGIO
   stx xsave
-  lda #$7F
-  and arpPhase,x
+  
+  ; 7: attack is injected
+  ; 6: slow
+  ; 2-1: phase
+  ; 0: phase low bit
+  lda #$3F
+  cmp arpPhase,x
+  lda #0
+  rol a  ; A = 0 for slow arp or 1 for fast arp
+  ora arpPhase,x
+  and #$07
   tay
+  and #$06
   beq bumpArpPhase
 
   ; So we're in a nonzero phase.  Load the interval.
-  clc
+  lsr a
   adc xsave
   tax
   lda arpInterval1-1,x
 
-  ; If phase 2's interval is 0, cycle through two phases (1, 2)
-  ; instead of three (0, 1, 2).
+  ; If phase 2's interval is 0, cycle through two phases (2, 4)
+  ; or four (2-5) instead of three (0, 1, 2) or six (0-5).
   bne bumpArpPhase
-  cpy #2
+  cpy #4
   bcc bumpArpPhase
   ldy #0
 bumpArpPhase:
   iny
-  cpy #3
+  cpy #6
   bcc noArpRestart
   ldy #0
 noArpRestart:
@@ -846,8 +881,13 @@ noArpRestart:
   sta out_pitch
   ldx xsave
   tya
+
+  ; Combine new arp phase with old arp rate setting
+  eor arpPhase,x
+  and #%00000111
+  eor arpPhase,x
 .else
-  ; If arpeggio is off, just clear the attack injection flag
+  ; If arpeggio support is off, just clear the attack injection flag
   lda #0
 .endif
   sta arpPhase,x

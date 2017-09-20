@@ -1,7 +1,7 @@
 0.05wip7 (future)
 * Change to zlib license, which preserves the spirit of the
   original license but is recognizable by GitHub
-* Added portamento, the single most requested feature
+* Add portamento, the single most requested feature
 * paldetect: Interleave with vwait so as not to depend on NMI
 * pentlyas.py: Add 8 predefined chord names
   (M, maj7, dom7, aug, m, m7, dim, dim7)
@@ -10,6 +10,7 @@
   chord mode (thanks to retrodpc for testing)
 * pentlyas.py: Option to name chord by its top note instead of bottom
 * pentlyas.py: First and second inversions of chords
+* Arpeggio can be set to slow or fast
 * Add "Arpeggio Waltz" song demonstrating new features
 * Document that object names follow identifier rules
 * makefile: Launch Python tools with py.exe on Windows

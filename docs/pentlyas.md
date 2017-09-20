@@ -427,6 +427,8 @@ and `c:m` makes its relative minor, a C minor chord.  To set the
 arpeggio for all subsequent notes in a pattern, use the `EN` command
 followed by a chord name or intervals, such as `EN4A` or `ENdom7`
 for dominant 7th chords or `EN00` or `ENOF` to turn off arpeggio.
+To make the pitch change every 1 frame (fast), use `ENP1`; to make
+it change every 2 frames (slow), use `ENP2`.
 
 **Vibrato** is a subtle pitch slide up and down while a note is held.
 The `MP` (modulate period) command controls vibrato: `MP1` through
