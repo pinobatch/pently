@@ -1,8 +1,8 @@
-0.05wip7 (future)
+0.05wip7 (2017-09)
 * Change to zlib license, which preserves the spirit of the
   original license but is recognizable by GitHub
 * Add portamento, the single most requested feature
-* paldetect: Interleave with vwait so as not to depend on NMI
+* paldetect: Interleave with vwait so as not to depend on NMI handler
 * pentlyas.py: Add 8 predefined chord names
   (M, maj7, dom7, aug, m, m7, dim, dim7)
 * pentlyas.py: Score can define new chord names
@@ -10,7 +10,7 @@
   chord mode (thanks to retrodpc for testing)
 * pentlyas.py: Option to name chord by its top note instead of bottom
 * pentlyas.py: First and second inversions of chords
-* Arpeggio can be set to slow or fast
+* Arpeggio can be set to slow or fast (requested by w7n)
 * Add "Arpeggio Waltz" song demonstrating new features
 * Document that object names follow identifier rules
 * makefile: Launch Python tools with py.exe on Windows
@@ -26,8 +26,8 @@
   Shows song name; emits one for playing pattern too low.
 * pentlyas.py: Command line option to change output segment
 * pentlyas.py: Clamp vibrato depth to in-range values
-* pentlyas.py: Ignore loops in volume envelopes, presumably pasted
-  from FamiTracker
+* pentlyas.py: Ignore loops in volume envelopes pasted from
+  FamiTracker
 * NSF header gets load address from linker configuration
 * Document use of equal temperament
 * Add "Sticks" sample song

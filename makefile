@@ -11,7 +11,7 @@
 
 # These are used in the title of the NES program and the zip file.
 title = pently
-version = 0.05wip6
+version = 0.05wip7
 
 # Space-separated list of asm files that make up the ROM,
 # whether source code or generated
