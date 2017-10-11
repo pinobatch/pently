@@ -590,6 +590,7 @@ If not overridden, this abstract method raises NotImplementedError.
 
     def render_tvp(self):
         volume = self.volume or [8]
+        print("; Rendering",self.name)
         timbre = self.timbre or [self.get_default_timbre()]
         timbre_looplen = self.timbre_looplen
         timbre = list(self.expand_envelope_loop(timbre, timbre_looplen, len(volume)))
@@ -597,9 +598,11 @@ If not overridden, this abstract method raises NotImplementedError.
         pitch = self.pitch or [0]
         pitch_looplen = self.pitch_looplen
         pitch = list(self.expand_envelope_loop(pitch, pitch_looplen, len(volume)))
-        attackdata = [t | (v << 8) | (p & 0xFF)
-                      for t, v, p in zip(xtimbre, volume, pitch)]
-        return timbre, volume, pitch, attackdata
+        attackdata = bytearray()
+        for t, v, p in zip(xtimbre, volume, pitch):
+            attackdata.append((t >> 8) | v)
+            attackdata.append((t | p) & 0xFF)
+        return timbre, volume, pitch, bytes(attackdata)
 
 class PentlyInstrument(PentlyEnvelopeContainer):
 
@@ -634,10 +637,17 @@ This is equivalent to an "absolute" arpeggio envelope in FamiTracker.
 
     def set_detached(self, detached):
         self.detached = detached
+    
+    @staticmethod
+    def compress_zero_arps(attackdata):
+        # Reserved for fix of issue 20
+        raise NotImplementedError
 
     def render(self, scopes=None):
         timbre, volume, pitch, attackdata = self.render_tvp()
-        del attackdata[-1]
+        print(timbre)
+        print(attackdata)
+        attackdata = attackdata[:-2]  # last frame is attackdata
         sustaintimbre = timbre[-1]
         sustainvolume = volume[-1]
         decay = self.decay or 0
@@ -648,11 +658,11 @@ This is equivalent to an "absolute" arpeggio envelope in FamiTracker.
         self.asmdef = ("instdef PI_%s, %d, %d, %d, %d, %s, %d"
                        % (asmname, sustaintimbre, sustainvolume, decay,
                           detached, 'PIDAT_'+asmname if attackdata else '0',
-                          len(attackdata)))
+                          len(volume) - 1))
         self.asmdataname = 'PIDAT_'+asmname
-        self.asmdataprefix = '.dbyt '
+        self.asmdataprefix = '.byte '
         self.asmdata = attackdata
-        self.bytesize = len(attackdata) * 2 + 5
+        self.bytesize = len(attackdata) + 5
 
 class PentlySfx(PentlyEnvelopeContainer):
 
@@ -706,18 +716,22 @@ This is equivalent to a "fixed" arpeggio envelope in FamiTracker.
         rate = self.rate or 1
 
         # Trim trailing silence
+        trimmed_silence = 0
         while len(volume) > 1 and volume[-1] == 0:
-            del volume[-1], attackdata[-1]
+            del volume[-1]
+            trimmed_silence += 1
+        if trimmed_silence:
+            attackdata = attackdata[:-2 * trimmed_silence]
 
         asmname = self.get_asmname(self.name)
         self.asmname = 'PE_'+asmname
         self.asmdef = ("sfxdef PE_%s, PEDAT_%s, %d, %d, %d"
                        % (asmname, asmname,
-                          len(attackdata), rate, self.channel_type))
+                          len(volume), rate, self.channel_type))
         self.asmdataname = 'PEDAT_'+asmname
-        self.asmdataprefix = '.dbyt '
+        self.asmdataprefix = '.byte '
         self.asmdata = attackdata
-        self.bytesize = len(attackdata) * 2 + 4
+        self.bytesize = len(attackdata) + 4
 
 class PentlyDrum(PentlyRenderable):
 
@@ -1712,9 +1726,6 @@ def wrapdata(atoms, lineprefix, maxlength=79):
         lout += lthis + 1
     yield lineprefix+','.join(out)
 
-def format_dbyt(n):
-    return '$%04x' % n
-
 def print_all_dicts(parser):
     print("\nParsed %d lines, with %d using a keyword not yet implemented"
           % (parser.linenum, parser.unk_keywords))
@@ -1766,33 +1777,37 @@ def subseq_pack(subseqs):
 def render_file(parser, segment='RODATA'):
     # each entry in this row is a tuple of the form
     # list, name of directory table, include asmnames in export,
-    # include in dbyt subsequence packing
+    # include in byte subsequence packing
     parts_to_print = [
         (parser.sfxs, 'pently_sfx_table', True,
-         format_dbyt),
+         True),
         (parser.instruments, 'pently_instruments', True,
-         format_dbyt),
+         True),
         (parser.drums, 'pently_drums', False,
-         None),
+         False),
         (parser.patterns, 'pently_patterns', False,
-         None),
+         False),
         (parser.songs, 'pently_songs', True,
-         None),
+         False),
     ]
 
-    # Pack dbyt arrays that are subsequences of another dbyt array
+    # Pack byte arrays that are subsequences of another byte array
     # into the longer one
-    dbyt_pool_directory = []
-    dbyt_pool_data = []
+    subseq_pool_directory = []
+    subseq_pool_data = []
     for ptpidx, row in enumerate(parts_to_print):
-        things, deflabel, _, is_dbyt = row
+        things, deflabel, _, is_bytes = row
         for thingkey, thing in things.items():
             thing.render(scopes=parser)
-            if thing.asmdata and is_dbyt:
-                dbyt_pool_directory.append(thing.asmdataname)
-                dbyt_pool_data.append(thing.asmdata)
-    dbyt_packed = subseq_pack(dbyt_pool_data)
-    dbyt_packed = {k: v for k, v in zip(dbyt_pool_directory, dbyt_packed) if v}
+            if thing.asmdata and is_bytes:
+                subseq_pool_directory.append(thing.asmdataname)
+                subseq_pool_data.append(thing.asmdata)
+    subseq_packed = subseq_pack(subseq_pool_data)
+    subseq_packed = {
+        k: v
+        for k, v in zip(subseq_pool_directory, subseq_packed)
+        if v
+    }
 
     lines = [
         '.include "../../src/pentlyseq.inc"',
@@ -1806,8 +1821,8 @@ def render_file(parser, segment='RODATA'):
     bytes_lines = []
     total_partbytes = 0
     for row in parts_to_print:
-        things, deflabel, exportable, is_dbyt = row
-        fmtfunc = format_dbyt if is_dbyt else None
+        things, deflabel, exportable, is_bytes = row
+        fmtfunc = str if is_bytes else None
         defs1 = sorted(things.values(), key=lambda x: x.linenum)
         if exportable:
             all_exportzp.extend(thing.asmname for thing in defs1)
@@ -1825,12 +1840,12 @@ def render_file(parser, segment='RODATA'):
             if not thing.asmdata: continue
 
             # Use the packed array if it exists
-            packresult = dbyt_packed.get(thing.asmdataname)
+            packresult = subseq_packed.get(thing.asmdataname)
             if packresult is not None:
                 diridx, startoffset, endoffset = packresult
                 assert endoffset - startoffset == len(thing.asmdata)
-                line = ('%s = %s + 2 * %d'
-                        % (thing.asmdataname, dbyt_pool_directory[diridx],
+                line = ('%s = %s + %d'
+                        % (thing.asmdataname, subseq_pool_directory[diridx],
                            startoffset))
                 lines.append(line)
                 continue
