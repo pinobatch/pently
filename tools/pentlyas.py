@@ -1012,7 +1012,10 @@ EN(-?(?:
                       if self.pitchctx.octave_mode != 'drum'
                       else None)
         if slidematch:
-            self.notes.append("BEND,$"+slidematch.group(1))
+            bendhex = slidematch.group(1)
+            if bendhex == 'OF':
+                bendhex = '00'
+            self.notes.append("BEND,$"+bendhex)
             return
         if word.startswith("EP") and not slidematch:
             print("warning: malformed portamento %s" % repr(word),

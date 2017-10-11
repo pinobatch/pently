@@ -180,11 +180,6 @@ instrument argtwinkle
   volume 7 6 6 5 5 4 4 4 4 4 2
   decay 1
 
-instrument argdive
-  volume 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5
-  pitch -1 -2 -3 -4 -5 -6 -7 -8 -9 -10 -11 -12 -13 -14 -15 -16 -17 -18 -19 -20 -21
-  timbre 2
-
 instrument arg2bass
   volume 10
   decay 20
@@ -336,10 +331,12 @@ song argument
   pattern cadenzaend on pulse2 with bf98_flute2
     relative
     c e a c e a c e g c e g
-    b8 a g e d b a g e d b a f#2. w2 @argdive f#4
+    b8 a g e d b a g e d b a f#2. w2 EP01 f#,,4
   pattern cadenzaend2 on attack with bf98_fluteshort
     relative
     e'''8 d b a g e d b a g e d a2. r
+  pattern cadenzaend3 on pulse1 with bf98_flute
+    a2 EP01 a,,4
   play cadenza
   attack on pulse2
   play cadenza down 12 on attack with bf98_fluteshort
@@ -351,8 +348,8 @@ song argument
   at 205
   play cadenzaend2
 
-  at 208:3
-  play a with argdive on pulse1
+  at 208
+  play cadenzaend3
   
   at 209
   pickup 1
@@ -376,11 +373,13 @@ song argument
     g g g g g g    g g g g g g
     d' d d d d d   d d d d d d
   pattern harmony68_1 with bf98_flute2 on pulse2
+    EPOF
     e'8 r4 r4. r2.
     g'8 r4 r4. r2.
     g'8 r4 r4. r2.
     f#'8 r4 r4. r2.
   pattern harmony68_2 with bf98_flute2 on pulse1
+    EPOF
     a,2. r c r g, r d r
   pattern harmony68_3 with bf98_flute2 on attack
     c'8 r4 r4. r2.
