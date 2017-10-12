@@ -10,10 +10,11 @@ Documentation can be found in `docs/` and example tracks can be found in `musics
 ### Prerequisites
 
 - Python 3
-- Pillow (Python imaging library) for demo ROM - `pip install pillow`
 - [ca65](https://cc65.github.io/cc65/)
 - GNU Make and Coreutils - on Windows, install MSYS through
   [mingw-get](http://www.mingw.org/wiki/Getting_Started)
+- For NES (not NSF) format: Pillow (Python imaging library)  
+  `pip install pillow`
 
 For help setting these up, see the README file for
 [nrom-template](https://github.com/pinobatch/nrom-template).

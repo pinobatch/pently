@@ -1,3 +1,6 @@
+0.05wip8 (future)
+* Compress 0-pitch frames of instrument envelopes
+
 0.05wip7 (2017-09)
 * Change to zlib license, which preserves the spirit of the
   original license but is recognizable by GitHub
