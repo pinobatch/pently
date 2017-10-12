@@ -72,11 +72,14 @@ Each instrument is defined by one line in `pently_instruments`:
   `attacklen` is larger than 0.
 * `attacklen` sets the length in steps of attack data.
 
-Attack data differs from sound effects in two ways.  Instead of
-specifying an absolute pitch (as in FamiTracker's "Fixed" envelope),
-they specify a signed offset in semitones from the note's own pitch
-(as in FamiTracker "Absolute" envelope).  Nor can an attack be
-played slower than one step per frame.
+Attack data differs from sound effects in three ways:
+
+1. Instead of specifying an absolute pitch (as in FamiTracker's
+   "Fixed" envelope), they specify a signed offset in semitones from
+   the note's own pitch (as in FamiTracker "Absolute" envelope).
+2. If bit 4 (`$10`) of the duty and volume byte is set, the pitch
+   offset is omitted from the byte stream and treated as zero.
+3. Attack data cannot be played slower than one step per frame.
 
 Each drum is defined by one line in `pently_drums`:
 
@@ -187,16 +190,16 @@ Each note's pitch is relative to the transposition base in the `playPat` command
 Code             | Note       | Interval name  | Semitones
 ---------------- | ---------- | -------------- | --------:
 `N_C`            | C          | Unison         | 0
-`N_CS`, `N_DB`   | C#/D♭      | Minor second   | 1
+`N_CS`, `N_DB`   | C#/D♭         | Minor second   | 1
 `N_D`            | D          | Major second   | 2
-`N_DS`, `N_EB`   | D#/E♭      | Minor third    | 3
+`N_DS`, `N_EB`   | D#/E♭         | Minor third    | 3
 `N_E`            | E          | Major third    | 4
 `N_F`            | F          | Perfect fourth | 5
-`N_FS`, `N_GB`   | F#/G♭      | Tritone        | 6
+`N_FS`, `N_GB`   | F#/G♭         | Tritone        | 6
 `N_G`            | G          | Perfect fifth  | 7
-`N_GS`, `N_AB`   | G#/A♭      | Minor sixth    | 8
+`N_GS`, `N_AB`   | G#/A♭         | Minor sixth    | 8
 `N_A`            | A          | Major sixth    | 9
-`N_AS`, `N_BB`   | A#/B♭      | Minor seventh  | 10
+`N_AS`, `N_BB`   | A#/B♭         | Minor seventh  | 10
 `N_B`            | B          | Major seventh  | 11
 `N_CH`           | High C     | Octave         | 12
 `N_CSH`, `N_DBH` | High C#/D♭ |                | 13

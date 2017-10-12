@@ -590,7 +590,6 @@ If not overridden, this abstract method raises NotImplementedError.
 
     def render_tvp(self):
         volume = self.volume or [8]
-        print("; Rendering",self.name)
         timbre = self.timbre or [self.get_default_timbre()]
         timbre_looplen = self.timbre_looplen
         timbre = list(self.expand_envelope_loop(timbre, timbre_looplen, len(volume)))
@@ -640,16 +639,28 @@ This is equivalent to an "absolute" arpeggio envelope in FamiTracker.
     
     @staticmethod
     def compress_zero_arps(attackdata):
-        # Reserved for fix of issue 20
-        raise NotImplementedError
+        """Delete zero pitch byte and set bit 4 of timbre/volume byte."""
+        out = bytearray()
+        attackdata = iter(attackdata)
+        for timbre_volume in attackdata:
+            pitch = next(attackdata)
+            if pitch == 0:
+                out.append(timbre_volume | 0x10)
+            else:
+                out.append(timbre_volume)
+                out.append(pitch)
+            
+        return bytes(out)
 
     def render(self, scopes=None):
         timbre, volume, pitch, attackdata = self.render_tvp()
-        print(timbre)
-        print(attackdata)
-        attackdata = attackdata[:-2]  # last frame is attackdata
+
+        # Drop the final (sustain) frame and compress the rest
+        # Sustain pitch is always 0
         sustaintimbre = timbre[-1]
         sustainvolume = volume[-1]
+        attackdata = self.compress_zero_arps(attackdata[:-2])
+
         decay = self.decay or 0
         detached = 1 if self.detached else 0
 

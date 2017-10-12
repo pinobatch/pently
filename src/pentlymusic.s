@@ -813,7 +813,13 @@ out_pitchadd = pently_zptemp + 4
   .endif  
   lda attackPitch,x
 porta_not_injected:
-  clc
+  ; X=instrument, A=pitch (before adding arp env)
+  tay
+  lda out_volume
+  and #$30
+  cmp #$01
+  tya
+  bcs :+
   adc (noteAttackPos,x)
   inc noteAttackPos,x
   bne :+

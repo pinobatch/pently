@@ -118,7 +118,7 @@ Disabling some features frees up a few bytes:
 * `PENTLY_USE_ARPEGGIO`: about 100 bytes?
 * `PENTLY_USE_BPMMATH`: about 30 bytes
 * `PENTLY_USE_ATTACK_TRACK`: about 40 bytes
-* `PENTLY_USE_ATTACK_PHASE`: about 60 bytes; cannot be disabled while
+* `PENTLY_USE_ATTACK_PHASE`: about 70 bytes; cannot be disabled while
   `PENTLY_USE_ATTACK_TRACK` is enabled
 * `PENTLY_USE_CHANNEL_VOLUME`: about 60 bytes?
 
