@@ -80,6 +80,14 @@ sfx stickshatlo on noise
   pitch 6
   timbre 1
 
+sfx longkick on noise
+    volume 12 11 10 9 8 7 6 4 3 3 2 2 2 1 1 1 1
+    pitch 10 0
+
+sfx longsnare on noise
+    volume 12 11 10 9 8 7 6 4 3 3 2 2 2 1 1 1 1
+    pitch 4 10
+
 drum kick kick
 drum snare snare
 drum clhat hihat
@@ -92,6 +100,8 @@ drum arghatbuzz arghatbuzz
 drum quiethat quiethat
 drum stickskick stickskick
 drum stickshatlo stickshatlo
+drum lkick longkick trikick
+drum lsnare longsnare trisnare
 
 instrument bass
 
@@ -195,6 +205,24 @@ instrument toot1
 instrument stringlead
   volume 4 7 8 8 7 7 5 4 4 3 
   timbre 0
+
+instrument isopiano
+    volume 8 7
+    decay 2
+    timbre 2 1
+
+instrument isotinkle
+    volume 9 5 0
+    timbre 2 1
+
+instrument isobeep
+    volume 8 8 8 8 8 8 8 0
+    timbre 2
+
+instrument isobeepsq
+    volume 4
+    decay 8
+    timbre 0
 
 @ENno3 = 70
 @ENpower = 7C
@@ -445,6 +473,180 @@ song argument
 
   at 161
   stop triangle
+  da capo
+
+# Isometry
+# By Damian Yerrick, 2006
+
+song Isometry
+  time 4/4
+  scale 16
+  tempo 90
+    
+  pattern triosti on triangle with isobeep
+    db'16
+  
+  pattern trifill on triangle with bass
+    db'16 r8.
+  
+  pattern tinkle1 on attack with isotinkle
+    relative
+    f'''16 db ab f
+  
+  pattern tinkle2 on attack with isotinkle
+    relative
+    f'''16 eb cb gb
+  
+  pattern tinkle3 on attack with isotinkle
+    relative
+    fb'''16 db bbb fb
+
+  pattern melmaj2 on pulse2 with isopiano
+    relative
+    f'8. f gb4. ab8 gb
+    f8. f eb8 w2
+
+  pattern melmaj1 on pulse1 with isopiano
+    relative
+    db'8. db eb4. f8 eb
+    db8. db cb8 w2
+
+  pattern melmin2 on pulse2 with isopiano
+    relative
+    fb'8. fb gb4. ab8 gb
+    fb8. fb eb8 w2
+
+  pattern melmin1 on pulse1 with isopiano
+    relative
+    db'8. db eb4. fb8 eb
+    db8. db cb8 w2
+
+  pattern drum
+    lkick4 lsnare clhat lsnare
+    clhat lsnare clhat lsnare
+
+  pattern drumfill
+    kick4
+
+  at 1
+  attack on pulse1
+  play tinkle1
+  play melmaj2
+  play melmaj1
+  play triosti
+  play drum
+
+  at 3
+  play tinkle2
+  play triosti down 2
+
+  at 5
+  play tinkle3
+  play melmin2
+  play melmin1
+  play triosti down 4
+
+  at 7
+  play tinkle1
+  play melmaj2
+  play melmaj1
+  play triosti
+
+  at 8:3
+  stop attack pulse1
+  play drumfill
+  play trifill on pulse2 with banjo down 24
+  play trifill
+
+  at 9
+  play tinkle1
+  play melmaj2
+  play melmaj1
+  play triosti
+  play drum
+
+  at 11
+  play tinkle2
+  play triosti down 2
+
+  at 13
+  play tinkle3
+  play melmin2
+  play melmin1
+  play triosti down 4
+
+  at 15
+  play tinkle1
+  play melmaj2
+  play melmaj1
+  play triosti
+  
+  at 16:3
+  stop attack pulse1
+  play drumfill
+  play trifill on pulse2 with banjo down 24
+  play trifill
+
+  ; rest period
+  
+  pattern restperiod1 on pulse1 with isopiano
+    relative
+    f4. gb ab4 w1
+
+  pattern restperiod2 on pulse1 with isopiano
+    relative
+    db4. eb fb4 w1
+    db4. eb f4 w1
+
+  at 17
+  stop pulse2
+  play triosti
+  play triosti on pulse2 with isobeepsq down 24
+  play drum
+
+  at 19
+  play triosti down 2
+  play triosti on pulse2 with isobeepsq down 26
+
+  at 21
+  play triosti down 4
+  play triosti on pulse2 with isobeepsq down 28
+
+  at 23
+  play triosti
+  play triosti on pulse2 with isobeepsq down 24
+
+  at 25
+  play restperiod1
+
+  at 27
+  play triosti down 2
+  play triosti on pulse2 with isobeepsq down 26
+
+  at 29
+  play restperiod2
+  play triosti down 4
+  play triosti on pulse2 with isobeepsq down 28
+
+  at 31
+  play triosti
+  play triosti on pulse2 with isobeepsq down 24
+
+  at 33
+  play triosti down 4
+  play triosti on pulse2 with isobeepsq down 28
+
+  at 35
+  play triosti
+  play triosti on pulse2 with isobeepsq down 24
+
+  at 36
+  stop attack pulse1
+  play trifill on pulse2 with banjo down 24
+  play drumfill
+  play trifill
+
+  at 37
   da capo
 
 # from picking up sticks video

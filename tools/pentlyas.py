@@ -403,7 +403,7 @@ Return (pitch, number of rows, slur) or None if it's not actually a note.
 """
 
         pitcharp, denom, augment, slur = notematch[:4]
-        if pitcharp[0] == 'l':
+        if isinstance(pitcharp, tuple) and pitcharp[0] == 'l':
             if denom is None:
                 raise ValueError("length requires a duration argument")
             self.last_duration = denom, augment

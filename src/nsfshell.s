@@ -40,11 +40,11 @@
   .addr init_sound_and_music
   .addr pently_update
 names_start:
-  .byt "argument turned on (inst.)"
+  .byt "Pently demo"
   .res names_start+32-*, $00
   .byt "DJ Tepples"
   .res names_start+64-*, $00
-  .byt "2015 Damian Yerrick"
+  .byt "2017 Damian Yerrick"
   .res names_start+96-*, $00
   .word 16640  ; NTSC frame length (canonically 16666)
   .byt $00,$00,$00,$00,$00,$00,$00,$00  ; bankswitching disabled

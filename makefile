@@ -13,13 +13,16 @@
 title = pently
 version = 0.05wip7
 
+# Name of Pently score (minus .pently)
+scorename = musicseq
+
 # Space-separated list of asm files that make up the ROM,
 # whether source code or generated
 objlist := main \
   pads ppuclear paldetect math bpmmath \
-  pentlysound pentlymusic musicseq
+  pentlysound pentlymusic $(scorename)
 objlistnsf := nsfshell \
-  pentlysound pentlymusic musicseq
+  pentlysound pentlymusic $(scorename)
 
 AS65 = ca65
 LD65 = ld65

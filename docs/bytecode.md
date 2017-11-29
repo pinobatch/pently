@@ -190,16 +190,16 @@ Each note's pitch is relative to the transposition base in the `playPat` command
 Code             | Note       | Interval name  | Semitones
 ---------------- | ---------- | -------------- | --------:
 `N_C`            | C          | Unison         | 0
-`N_CS`, `N_DB`   | C#/D♭         | Minor second   | 1
+`N_CS`, `N_DB`   | C#/D♭            | Minor second   | 1
 `N_D`            | D          | Major second   | 2
-`N_DS`, `N_EB`   | D#/E♭         | Minor third    | 3
+`N_DS`, `N_EB`   | D#/E♭            | Minor third    | 3
 `N_E`            | E          | Major third    | 4
 `N_F`            | F          | Perfect fourth | 5
-`N_FS`, `N_GB`   | F#/G♭         | Tritone        | 6
+`N_FS`, `N_GB`   | F#/G♭            | Tritone        | 6
 `N_G`            | G          | Perfect fifth  | 7
-`N_GS`, `N_AB`   | G#/A♭         | Minor sixth    | 8
+`N_GS`, `N_AB`   | G#/A♭            | Minor sixth    | 8
 `N_A`            | A          | Major sixth    | 9
-`N_AS`, `N_BB`   | A#/B♭         | Minor seventh  | 10
+`N_AS`, `N_BB`   | A#/B♭            | Minor seventh  | 10
 `N_B`            | B          | Major seventh  | 11
 `N_CH`           | High C     | Octave         | 12
 `N_CSH`, `N_DBH` | High C#/D♭ |                | 13
@@ -349,7 +349,7 @@ The following are all the symbols that are valid in pattern code:
   `D_D4` (6 rows), `D_2` (8 rows), `D_D2` (12 rows), `D_1` (16 rows)
 * Effects and controls: `INSTRUMENT,id`; `ARPEGGIO,$xy`; `LEGATO_ON`
   and `LEGATO_OFF`; `VIBRATO,depth`; `TRANSPOSE,interval`;
-  `CHVOLUME,vol`; `BEND,type`; and `PATEND`
+  `CHVOLUME,vol`; `BEND,type`; `FASTARP` and `SLOWARP`; and `PATEND`
 
 [S3M]: https://en.wikipedia.org/wiki/S3M_(file_format)
 [IT]: https://en.wikipedia.org/wiki/Impulse_Tracker
