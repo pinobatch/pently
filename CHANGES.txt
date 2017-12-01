@@ -1,5 +1,8 @@
 0.05wip8 (future)
+* Reduced ZP footprint when attack phase is off
 * Compress 0-pitch frames of instrument envelopes
+* Drum names starting with "l" no longer cause parse errors
+* Add "Isometry" song demonstrating attack track more thoroughly
 
 0.05wip7 (2017-09)
 * Change to zlib license, which preserves the spirit of the

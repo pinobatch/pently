@@ -22,8 +22,11 @@
 
 .include "pentlyconfig.inc"
 .include "pently.inc"
-.import pently_update_music, pently_update_music_ch, pently_music_playing, pently_sfx_table
+.import pently_update_music, pently_update_music_ch, pently_sfx_table
 .import periodTableLo, periodTableHi
+.if PENTLY_USE_PAL_ADJUST
+  .importzp tvSystem
+.endif
 .export pentlyBSS
 .exportzp PENTLYBSS_SIZE, pently_zp_state
 
@@ -31,22 +34,24 @@
 
 SNDCHN = $4015
 
-.segment "ZEROPAGE"
-pently_zp_state: .res 36
-.segment "BSS"
-PENTLYBSS_SIZE = 104
-pentlyBSS: .res PENTLYBSS_SIZE
+PENTLYBSS_SIZE = 108
+.if PENTLY_USE_ATTACK_PHASE
+  PENTLYZP_SIZE = 32
+.else
+  PENTLYZP_SIZE = 21
+.endif
 
+.zeropage
+pently_zp_state: .res PENTLYZP_SIZE
 sfx_datalo = pently_zp_state + 0
 sfx_datahi = pently_zp_state + 1
+.bss
+pentlyBSS: .res PENTLYBSS_SIZE
+
 sfx_rate = pentlyBSS + 0
 sfx_ratecd = pentlyBSS + 1
 ch_lastfreqhi = pentlyBSS + 2
 sfx_remainlen = pentlyBSS + 3
-
-.if PENTLY_USE_PAL_ADJUST
-.importzp tvSystem
-.endif
 
 .segment PENTLY_CODE
 

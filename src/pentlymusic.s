@@ -49,17 +49,25 @@ MAX_CHANNEL_VOLUME = 4
   LAST_TRACK = DRUM_TRACK
 .endif
 
-; pently_zp_state:
+; pently_zp_state (PENTLY_USE_ATTACK_PHASE = 1)
 ;       +0                +1                +2                +3
-;  0  | Sq1 sound effect data ptr           Sq1 envelope data ptr
-;  4  | Sq2 sound effect data ptr           Sq2 envelope data ptr
-;  8  | Tri sound effect data ptr           Tri envelope data ptr
-; 12  | Noise sound effect data ptr         Noise envelope data ptr
-; 16  | Sq1 music pattern data ptr          Play/Pause        Attack channel
-; 20  | Sq2 music pattern data ptr          Tempo
-; 24  | Tri music pattern data ptr          Tempo counter
-; 28  | Noise music pattern data ptr        Conductor segno
-; 32  | Attack music pattern data ptr       Conductor track position
+;  0  | Sq1 sound effect data ptr           Sq1 music pattern data ptr
+;  4  | Sq2 sound effect data ptr           Sq2 music pattern data ptr
+;  8  | Tri sound effect data ptr           Tri music pattern data ptr
+; 12  | Noise sound effect data ptr         Noise music pattern data ptr
+; 16  | Sq1 envelope data ptr               Attack music pattern data ptr
+; 20  | Sq2 envelope data ptr               Conductor track position
+; 24  | Tri envelope data ptr               Tempo counter
+; 28  | Noise envelope data ptr             Play/Pause        Attack channel
+;
+; pently_zp_state (PENTLY_USE_ATTACK_PHASE = 0)
+;       +0                +1                +2                +3
+;  0  | Sq1 sound effect data ptr           Sq1 music pattern data ptr
+;  4  | Sq2 sound effect data ptr           Sq2 music pattern data ptr
+;  8  | Tri sound effect data ptr           Tri music pattern data ptr
+; 12  | Noise sound effect data ptr         Noise music pattern data ptr
+; 16  | Conductor track position            Tempo counter
+; 20  | Play/Pause
 
 ; pentlyBSS:
 ;       +0                +1                +2                +3
@@ -75,12 +83,27 @@ MAX_CHANNEL_VOLUME = 4
 ; 67-103 Pattern reader state for tracks
 ; 64  | Vibrato depth     Vibrato phase     Channel volume    Note time left
 ; 84  | Grace time        Instrument ID     Pattern ID        Transpose amt
-; 104 End of allocation
+; 104 | Current tempo                       Conductor loop point (segno)
+; 108 End of allocation
 ;
 ; Noise envelope is NOT unused.  Conductor track cymbals use it.
 
-noteAttackPos   = pently_zp_state + 2
-musicPatternPos = pently_zp_state + 16
+musicPatternPos = pently_zp_state + 2
+.if PENTLY_USE_ATTACK_PHASE
+noteAttackPos           = pently_zp_state + 16
+conductorPos            = pently_zp_state + 22
+pently_tempoCounterLo   = pently_zp_state + 26
+pently_tempoCounterHi   = pently_zp_state + 27
+pently_music_playing    = pently_zp_state + 30
+attackChannel           = pently_zp_state + 31
+.else
+conductorPos            = pently_zp_state + 16
+pently_tempoCounterLo   = pently_zp_state + 18
+pently_tempoCounterHi   = pently_zp_state + 19
+pently_music_playing    = pently_zp_state + 20
+.endif
+
+; Channel state
 noteEnvVol      = pentlyBSS + 16
 notePitch       = pentlyBSS + 17
 attack_remainlen= pentlyBSS + 18
@@ -103,17 +126,10 @@ musicPattern    = pentlyBSS + 86
 patternTranspose= pentlyBSS + 87
 
 ; Shared state
-
-pently_music_playing    = pently_zp_state + 18
-attackChannel           = pently_zp_state + 19
-music_tempoLo           = pently_zp_state + 22
-music_tempoHi           = pently_zp_state + 23
-pently_tempoCounterLo   = pently_zp_state + 26
-pently_tempoCounterHi   = pently_zp_state + 27
-conductorSegnoLo        = pently_zp_state + 30
-conductorSegnoHi        = pently_zp_state + 31
-conductorPos            = pently_zp_state + 34
-
+music_tempoLo           = pentlyBSS + 104
+music_tempoHi           = pentlyBSS + 105
+conductorSegnoLo        = pentlyBSS + 106
+conductorSegnoHi        = pentlyBSS + 107
 conductorWaitRows       = chPortaUnused + 0
 pently_rows_per_beat    = chPortaUnused + 4
 pently_row_beat_part    = chPortaUnused + 8
@@ -156,13 +172,17 @@ porta1x_rates_hi:
   sta conductorPos+1
   sta conductorSegnoHi
 
-  ldy #PENTLYBSS_SIZE - 17
+  ; Clear all music state except for sound effect state and
+  ; the initial loop point
+  PENTLYBSS_SFX_SIZE = 16
+  PENTLYBSS_NOCLEAR_FOOTER = 4
+  ldy #PENTLYBSS_SIZE - (PENTLYBSS_SFX_SIZE + PENTLYBSS_NOCLEAR_FOOTER)
   lda #0
   .if ::PENTLY_USE_ATTACK_TRACK
     sta attackChannel
   .endif
   :
-    sta pentlyBSS+16,y
+    sta pentlyBSS+PENTLYBSS_SFX_SIZE,y
     dey
     bpl :-
 
@@ -172,7 +192,7 @@ porta1x_rates_hi:
     sta musicPatternPos,x
     lda #>silentPattern
     sta musicPatternPos+1,x
-    lda #$FF
+    tya  ; Y is $FF from the clear everything loop
     sta musicPattern,x
     .if ::PENTLY_USE_CHANNEL_VOLUME
       lda #MAX_CHANNEL_VOLUME
@@ -382,13 +402,13 @@ conductorPlayPattern:
 
   lda #0
   cpx #ATTACK_TRACK
+  ; If attack track is enabled, don't enable legato on attack
+  ; track. Otherwise, don't start patterns on attack track at all
+  ; because the tempo up-counter overlaps it.
 .if ::PENTLY_USE_ATTACK_TRACK
   bcs skipClearLegato
 .else
-  bcc isValidTrack
-    lda #2
-    bcs skipAplusCconductor
-  isValidTrack:
+  bcs skip3conductor
 .endif
     sta noteLegato,x  ; start all patterns with legato off
   skipClearLegato:
@@ -401,15 +421,15 @@ conductorPlayPattern:
   iny
   lda (conductorPos),y
   sta noteInstrument,x
-  tya
-  sec
-skipAplusCconductor:
+  jsr startPattern
+skip3conductor:
+  lda #3
+  clc
   adc conductorPos
   sta conductorPos
   bcc :+
     inc conductorPos+1
   :
-  jsr startPattern
   jmp doConductor
 
   ; this should be last so it can fall into skipConductor

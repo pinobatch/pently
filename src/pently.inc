@@ -118,7 +118,7 @@ PENTLY_USE_BPMMATH = 1
 
 ;;
 ; Nonzero if music is currently playing
-.global pently_music_playing
+.globalzp pently_music_playing
 
 ;;
 ; The number of rows per beat set by the current music track.
@@ -131,6 +131,6 @@ PENTLY_USE_BPMMATH = 1
 ;;
 ; The fraction of a row until the next row is processed.
 ; Will range from -3000 to 0 on PAL or -3606 to 0 on NTSC.
-.global pently_tempoCounterLo, pently_tempoCounterHi
+.globalzp pently_tempoCounterLo, pently_tempoCounterHi
 
 .global pently_fpmLo, pently_fpmHi
