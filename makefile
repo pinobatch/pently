@@ -100,9 +100,14 @@ $(objdir)/%.o: $(objdir)/%.s
 $(objdir)/musicseq.o $(objdir)/pentlymusic.o: $(srcdir)/pentlyseq.inc
 $(objdir)/pentlysound.o $(objdir)/pentlymusic.o \
 $(objdir)/bpmmath.o $(objdir)/nsfshell.o: $(srcdir)/pentlyconfig.inc
+$(objdir)/pentlymusic.o: $(objdir)/pentlybss.inc
 
 # Files that depend on .incbin'd files
 $(objdir)/main.o: tracknames.txt $(objdir)/bggfx.chr
+
+# Build RAM map
+$(objdir)/pentlybss.inc: tools/mkrammap.py $(srcdir)/pentlyconfig.inc
+	$(PY) $^ pentlymusicbase -o $@
 
 # Translate music project
 $(objdir)/%.s: tools/pentlyas.py src/%.pently
