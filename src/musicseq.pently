@@ -1157,6 +1157,7 @@ song allfeatures
   play between down 12 on pulse1
   play between down 5 on pulse2
   play between up 12 on triangle with bass
+
   at 2
   stop pulse1
   pattern drum
@@ -1166,6 +1167,7 @@ song allfeatures
   play drum
   at 3:3
   play drumfill
+
   at 4
   pattern chords on pulse2 with feat_wah
     orelative

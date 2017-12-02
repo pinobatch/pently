@@ -28,13 +28,12 @@
   .importzp tvSystem
 .endif
 .export pentlyBSS
-.exportzp PENTLYBSS_SIZE, pently_zp_state
+.exportzp pently_zp_state
 
 .assert (pently_zptemp + 5) <= $100, error, "pently_zptemp must be within zero page"
 
 SNDCHN = $4015
 
-PENTLYBSS_SIZE = 108
 .if PENTLY_USE_ATTACK_PHASE
   PENTLYZP_SIZE = 32
 .else
@@ -46,7 +45,9 @@ pently_zp_state: .res PENTLYZP_SIZE
 sfx_datalo = pently_zp_state + 0
 sfx_datahi = pently_zp_state + 1
 .bss
-pentlyBSS: .res PENTLYBSS_SIZE
+
+; The statically allocated prefix of pentlyBSS
+pentlyBSS: .res 18
 
 sfx_rate = pentlyBSS + 0
 sfx_ratecd = pentlyBSS + 1

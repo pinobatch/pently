@@ -24,8 +24,9 @@
 .include "pentlyconfig.inc"
 .include "pently.inc"
 .include "pentlyseq.inc"
+.include "../obj/nes/pentlybss.inc"
 
-.importzp pently_zp_state, PENTLYBSS_SIZE
+.importzp pently_zp_state
 .import pentlyBSS
 .import periodTableLo, periodTableHi
 .export pently_update_music, pently_update_music_ch
@@ -42,6 +43,7 @@ NUM_CHANNELS = 4
 DRUM_TRACK = 12
 ATTACK_TRACK = 16
 MAX_CHANNEL_VOLUME = 4
+ARPPHASE_EXISTS = PENTLY_USE_ARPEGGIO || PENTLY_USE_ATTACK_TRACK
 
 .if PENTLY_USE_ATTACK_TRACK
   LAST_TRACK = ATTACK_TRACK
@@ -103,39 +105,29 @@ pently_tempoCounterHi   = pently_zp_state + 19
 pently_music_playing    = pently_zp_state + 20
 .endif
 
-; Channel state
-noteEnvVol      = pentlyBSS + 16
-notePitch       = pentlyBSS + 17
-attack_remainlen= pentlyBSS + 18
-attackPitch     = pentlyBSS + 19
-chPitchLo       = pentlyBSS + 32
-chPitchHi       = pentlyBSS + 33
-chPortamento    = pentlyBSS + 34
-chPortaUnused   = pentlyBSS + 35
-noteLegato      = pentlyBSS + 48
-arpPhase        = pentlyBSS + 49
-arpInterval1    = pentlyBSS + 50
-arpInterval2    = pentlyBSS + 51
-vibratoDepth    = pentlyBSS + 64
-vibratoPhase    = pentlyBSS + 65
-channelVolume   = pentlyBSS + 66
-noteRowsLeft    = pentlyBSS + 67
-graceTime       = pentlyBSS + 84
-noteInstrument  = pentlyBSS + 85
-musicPattern    = pentlyBSS + 86
-patternTranspose= pentlyBSS + 87
 
-; Shared state
-music_tempoLo           = pentlyBSS + 104
-music_tempoHi           = pentlyBSS + 105
-conductorSegnoLo        = pentlyBSS + 106
-conductorSegnoHi        = pentlyBSS + 107
-conductorWaitRows       = chPortaUnused + 0
-pently_rows_per_beat    = chPortaUnused + 4
-pently_row_beat_part    = chPortaUnused + 8
+.bss
+; Statically allocated so as not to be cleared by the clear loop
+conductorSegnoLo        = pentlyBSS + 16
+conductorSegnoHi        = pentlyBSS + 17
+
+; The rest is allocated by mkrammap.py
+pentlymusicbase: .res pentlymusicbase_size
+
+; Regardless of whether pentlyBSS puts arpIntervalA before
+; arpIntervalB or vice versa, arpInterval1 must come before
+; arpInterval2
+.if PENTLY_USE_ARPEGGIO
+  .if arpIntervalB - arpIntervalA > 0
+    arpInterval1 = arpIntervalA
+    arpInterval2 = arpIntervalB
+  .else
+    arpInterval1 = arpIntervalB
+    arpInterval2 = arpIntervalA
+  .endif
+.endif
 
 .segment PENTLY_RODATA
-
 FRAMES_PER_MINUTE_PAL = 3000
 FRAMES_PER_MINUTE_NTSC = 3606
 pently_fpmLo:
@@ -172,17 +164,17 @@ porta1x_rates_hi:
   sta conductorPos+1
   sta conductorSegnoHi
 
-  ; Clear all music state except for sound effect state and
-  ; the initial loop point
+  ; Clear all music state except that shared with sound effects
+  ; and the initial loop point
   PENTLYBSS_SFX_SIZE = 16
   PENTLYBSS_NOCLEAR_FOOTER = 4
-  ldy #PENTLYBSS_SIZE - (PENTLYBSS_SFX_SIZE + PENTLYBSS_NOCLEAR_FOOTER)
+  ldy #pentlymusicbase_size - 1
   lda #0
   .if ::PENTLY_USE_ATTACK_TRACK
     sta attackChannel
   .endif
   :
-    sta pentlyBSS+PENTLYBSS_SFX_SIZE,y
+    sta pentlymusicbase,y
     dey
     bpl :-
 
@@ -715,12 +707,20 @@ instrument_id = pently_zptemp + 1
   bcs skipSustainPart
     lda arpPhase,x  ; bit 7 set if attack is injected
     bmi dont_legato_injected_attack
-.endif
       lda notenum
       sta attackPitch,x
+.endif
     dont_legato_injected_attack:
     lda notenum
-    sta notePitch,x
+.if ::PENTLY_USE_PORTAMENTO
+    cpx #DRUM_TRACK
+    bcs bypass_notePitch
+      sta notePitch,x
+      bcc pitch_is_stored
+    bypass_notePitch:
+.endif
+      sta chPitchHi,x
+    pitch_is_stored:
     lda noteLegato,x
     bne skipAttackPart
     lda instrument_id
@@ -734,7 +734,7 @@ instrument_id = pently_zptemp + 1
     sta noteEnvVol,x
     cpx #DRUM_TRACK
     bcs skipSustainPart
-      .if ::PENTLY_USE_ATTACK_TRACK || ::PENTLY_USE_ARPEGGIO
+      .if ::ARPPHASE_EXISTS
         lda #%01000000
         and arpPhase,x
         sta arpPhase,x  ; keep only bit 6: is arp fast
@@ -758,9 +758,9 @@ instrument_id = pently_zptemp + 1
         ora arpPhase,x
         sta arpPhase,x
       notAttackTrack:
+      lda notenum
+      sta attackPitch,x
     .endif
-    lda notenum
-    sta attackPitch,x
     
     lda pently_instruments+4,y
     sta noteAttackPos+1,x
@@ -802,13 +802,18 @@ out_pitchadd = pently_zptemp + 4
   nograce:
   
 .if ::PENTLY_USE_PORTAMENTO
-  jsr update_portamento
+  cpx #DRUM_TRACK
+  bcs no_pitch_no_porta
+    jsr update_portamento
+  no_pitch_no_porta:
 .endif
 
 .if ::PENTLY_USE_ATTACK_PHASE
 
   lda attack_remainlen,x
-  beq noAttack
+  bne :+
+    jmp noAttack
+  :
   dec attack_remainlen,x
   lda (noteAttackPos,x)
   inc noteAttackPos,x
@@ -823,15 +828,23 @@ out_pitchadd = pently_zptemp + 4
 
   .if ::PENTLY_USE_PORTAMENTO
     ; Use portamento pitch if not injected
-    cpx #12
+    cpx #DRUM_TRACK
     bcs attack_not_pitched_ch
-      lda arpPhase,x
-      asl a
+      .if ::ARPPHASE_EXISTS
+        lda arpPhase,x
+        asl a
+      .else
+        clc
+      .endif
       lda chPitchHi,x
       bcc porta_not_injected
     attack_not_pitched_ch:
-  .endif  
-  lda attackPitch,x
+  .endif
+  .if ::PENTLY_USE_ATTACK_TRACK
+    lda attackPitch,x
+  .else
+    lda chPitchHi,x
+  .endif
 porta_not_injected:
   ; X=instrument, A=pitch (before adding arp env)
   tay
@@ -877,16 +890,19 @@ storePitchWithArpeggio:
   lda #0
   rol a  ; A = 0 for slow arp or 1 for fast arp
   ora arpPhase,x
-  and #$07
+  and #$07  ; A[2:1]: arp phase; A[0]: need to increase
   tay
   and #$06
   beq bumpArpPhase
 
   ; So we're in a nonzero phase.  Load the interval.
-  lsr a
+  and #$04  ; A=0 for phase 1, 4 for phase 2
+  beq :+
+    lda #arpInterval2-arpInterval1
+  :
   adc xsave
   tax
-  lda arpInterval1-1,x
+  lda arpInterval1,x
 
   ; If phase 2's interval is 0, cycle through two phases (2, 4)
   ; or four (2-5) instead of three (0, 1, 2) or six (0-5).
@@ -968,13 +984,7 @@ notSilenced:
   sta noteEnvVol,x
   tya
   pha
-  .if ::PENTLY_USE_PORTAMENTO
-    lda chPitchHi,x
-    cpx #12
-    bcc noattack_is_pitched_ch
-  .endif
-    lda notePitch,x
-  noattack_is_pitched_ch:
+  lda chPitchHi,x
   jsr storePitchWithArpeggio
   pla
   tay
@@ -1092,11 +1102,13 @@ not_vibrato = not_vibrato_rts
 ; not vibrato is enabled
 .elseif ::PENTLY_USE_PORTAMENTO
 calc_vibrato:
-  lda arpPhase,x
-  bpl not_injected
-    lda #0
-    beq have_pitchadd
-  not_injected:
+  .if ::ARPPHASE_EXISTS
+    lda arpPhase,x
+    bpl not_injected
+      lda #0
+      beq have_pitchadd
+    not_injected:
+  .endif
   lda chPitchLo,x
   beq have_pitchadd
   jsr calc_frac_pitch
@@ -1195,8 +1207,6 @@ noadd:
 portaRateLo = pently_zptemp+0
 portaRateHi = pently_zptemp+1
 
-  cpx #12
-  bcs not_pitched_ch
   lda chPortamento,x
   bne not_instant  ; $00: portamento disabled
     sta chPitchLo,x
@@ -1214,7 +1224,6 @@ portaRateHi = pently_zptemp+1
   pha
   lda portamentocalc_funcs+0,y
   pha
-not_pitched_ch:
   rts
 
 ; These functions calculate the instantaneous portamento rate

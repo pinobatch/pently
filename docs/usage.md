@@ -109,20 +109,27 @@ effect or a triangle kick drum to stop sooner if a note is playing.
 Turn this off to force a sound effect to silence notes on the same
 channel for its entire duration.
 
-If `PENTLY_USE_NSF_SOUND_FX` is enabled, sound effects are placed
-after music when building an NSF.
+If `PENTLY_USE_NSF_SOUND_FX` is enabled, drums and other sound
+effects are placed after music when building an NSF.
 
-Disabling some features frees up a few bytes:
+Disabling some features frees up a few bytes of ROM and RAM (these
+are approximate and may be outdated):
 
-* `PENTLY_USE_VIBRATO` and `PENTLY_USE_PORTAMENTO`: about 150 bytes
-* `PENTLY_USE_ARPEGGIO`: about 100 bytes?
-* `PENTLY_USE_BPMMATH`: about 30 bytes
-* `PENTLY_USE_ATTACK_TRACK`: about 40 bytes
-* `PENTLY_USE_ATTACK_PHASE`: about 70 bytes; cannot be disabled while
-  `PENTLY_USE_ATTACK_TRACK` is enabled
-* `PENTLY_USE_CHANNEL_VOLUME`: about 60 bytes?
-
-You can't use the attack track if the attack is disabled entirely.
+* `PENTLY_USE_VIBRATO`  
+  8 RAM bytes
+* `PENTLY_USE_PORTAMENTO`  
+  12 RAM bytes, 150 ROM bytes if vibrato also disabled
+* `PENTLY_USE_ARPEGGIO`  
+  100 ROM bytes, 8 RAM bytes
+* `PENTLY_USE_BPMMATH`  
+  30 ROM bytes, 2 RAM bytes
+* `PENTLY_USE_ATTACK_TRACK`  
+  40 ROM bytes, 9 RAM bytes, 8 more if arpeggio also disabled
+* `PENTLY_USE_ATTACK_PHASE`  
+  70 ROM bytes, 12 zero page bytes; cannot be
+  disabled while `PENTLY_USE_ATTACK_TRACK` is enabled
+* `PENTLY_USE_CHANNEL_VOLUME`  
+  60 ROM bytes, 4 RAM bytes
 
 `PENTLY_INITIAL_4011` controls what's written to the DMC's value in
 `pently_init`.  Because of nonlinearity in the NES's audio output,

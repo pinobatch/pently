@@ -14,9 +14,12 @@ default_heighttypes = {
     'SINGLETON': 1,
     'PER_TRACK': 5,
     'PER_CHANNEL': 4,
-    'PER_PITCHED_CHANNEL': 3
+    'PER_PITCHED_CHANNEL': 4
 }
 num_cols = 4  # spacing between channels' length counters
+
+# Pitched channels may be reduced to 3 rows in a later commit after
+# I can confirm that noise isn't accessing any of them
 
 specs = """
 # Pitch
@@ -24,8 +27,8 @@ chPitchHi        PER_CHANNEL
 
 # Pitch effects
 arpPhase         PER_CHANNEL         ARPEGGIO|ATTACK_TRACK
-arpInterval1     PER_PITCHED_CHANNEL ARPEGGIO
-arpInterval2     PER_PITCHED_CHANNEL ARPEGGIO
+arpIntervalA     PER_PITCHED_CHANNEL ARPEGGIO
+arpIntervalB     PER_PITCHED_CHANNEL ARPEGGIO
 vibratoDepth     PER_PITCHED_CHANNEL VIBRATO
 vibratoPhase     PER_PITCHED_CHANNEL VIBRATO
 notePitch        PER_PITCHED_CHANNEL PORTAMENTO
@@ -48,8 +51,8 @@ patternTranspose PER_TRACK
 music_tempoLo    SINGLETON
 music_tempoHi    SINGLETON
 conductorWaitRows SINGLETON
-pently_rows_per_beat SINGLETON       BPMMATHdebug
-pently_row_beat_part SINGLETON       BPMMATHdebug
+pently_rows_per_beat SINGLETON       BPMMATH
+pently_row_beat_part SINGLETON       BPMMATH
 """
 specs = [row.strip() for row in specs.split("\n")]
 specs = [row.split() for row in specs if row and not row.startswith('#')]
@@ -105,7 +108,7 @@ def ffd(needed, num_cols):
 
 def format_cols(cols, base_label):
     return [
-        "%s: %s + %d" % (name, base_label, ht * len(cols) + i)
+        "%s = %s + %d" % (name, base_label, ht * len(cols) + i)
         for i, (names, totalht) in enumerate(cols)
         for name, ht in names
     ]
@@ -139,9 +142,8 @@ def main(argv=None):
     waste = bytesneeded - sumht
     out.append("; Columns are %d-%d rows tall, total %d"
                % (minht, maxht, sumht))
-    out.append("; Below max: %d; layout waste %d" % (bytesneeded, waste))
-    out.append("%s: .res %d" % (args.base_label, bytesneeded))
-    out.append(".bss")
+    out.append("; Below max: %d; layout waste %d" % (belowmax, waste))
+    out.append("%s_size = %d" % (args.base_label, bytesneeded))
     out.extend(format_cols(cols, args.base_label))
     outfp = open(args.output, "w") if args.output != '-' else sys.stdout
     with outfp:

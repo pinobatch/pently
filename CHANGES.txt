@@ -1,4 +1,5 @@
 0.05wip8 (future)
+* Reduced BSS (main RAM) footprint when several effects are off
 * Reduced ZP footprint when attack phase is off
 * Compress 0-pitch frames of instrument envelopes
 * Drum names starting with "l" no longer cause parse errors
