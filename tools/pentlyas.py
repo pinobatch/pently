@@ -1205,7 +1205,6 @@ tie_rests -- True if track has no concept of a "note off"
             if isinstance(item, str):
                 if item.startswith("ARPEGGIO,$"):
                     if not keep_prev_arp:
-                        print("warning: removing %s" % item, file=sys.stderr)
                         continue
                     keep_prev_arp = False
             elif item[0] != 'r':
@@ -1830,9 +1829,18 @@ def render_file(parser, segment='RODATA'):
     all_export = []
     all_exportzp = []
     bytes_lines = []
+    songbytes = {'': 0}
     total_partbytes = 0
     for row in parts_to_print:
         things, deflabel, exportable, is_bytes = row
+
+        # Count the size attributable to each song
+        for name, tng in things.items():
+            name = name.split("::", 1)
+            song_specific = len(name) > 1 or isinstance(tng, PentlySong)
+            name = name[0] if song_specific else ''
+            songbytes[name] = songbytes.get(name, 0) + tng.bytesize
+
         fmtfunc = str if is_bytes else None
         defs1 = sorted(things.values(), key=lambda x: x.linenum)
         if exportable:
@@ -1889,20 +1897,30 @@ def render_file(parser, segment='RODATA'):
         '; Total music data size: %d bytes' % total_partbytes
     ])
     lines.extend(bytes_lines)
+    lines.extend([
+        ";",
+        "; Breakdown by song",
+        ";   Shared: %d bytes" % songbytes['']
+    ])
+    lines.extend(
+        ";   Song %s: %d bytes" % (k, v)
+        for (k, v) in sorted(songbytes.items())
+        if k
+    )
+    lines.append('')
     return lines
 
 # Period table generation ###########################################
 
-baseNoteFreq = 55.0
 region_period_numerator = {
     'ntsc': 39375000.0/(22 * 16),
     'pal': 266017125.0/(10 * 16 * 16),
     'dendy': 266017125.0/(10 * 16 * 15)
 }
 
-def getPeriodValues(maxNote=64, region='ntsc'):
+def getPeriodValues(maxNote=64, region='ntsc', a=440.0):
     numerator = region_period_numerator[region.strip().lower()]
-    octaveBase = numerator / baseNoteFreq
+    octaveBase = numerator / (a/8.0)
     semitone = 2.0**(1./12)
     relFreqs = [(1 << (i // 12)) * semitone**(i % 12)
                 for i in range(maxNote)]
@@ -1916,11 +1934,14 @@ def parse_argv(argv):
     parser.add_argument("-o", metavar='OUTFILENAME',
                         help='write output to a file instead of standard output')
     parser.add_argument("--periods", type=int, default=0,
-                        metavar='NUMSEMITONES',
-                        help='include a period table in the output; NUMSEMITONES is usually 64 to 80')
+                        metavar='LENGTH',
+                        help='include a period table in the output; LENGTH is usually 64 to 80')
     parser.add_argument("--period-region", default='ntsc',
                         choices=sorted(region_period_numerator.keys()),
                         help='make period table for this region (default: ntsc)')
+    parser.add_argument("--period-tuning", type=float, default=440.0,
+                        metavar='FREQ',
+                        help='frequency in Hz of A above middle C (default: 440)')
     parser.add_argument("--segment", default='RODATA',
                         help='place output in this segment (default: RODATA)')
     args = parser.parse_args(argv[1:])
@@ -1930,6 +1951,10 @@ def parse_argv(argv):
         parser.error('NUMSEMITONES cannot be negative')
     if args.periods > 88:
         parser.error('2A03 not precise enough for NUMSEMITONES > 88')
+    min_tuning = region_period_numerator[args.period_region] / 256
+    if args.period_tuning < min_tuning:
+        parser.error('tuning below %.1f Hz in %s makes low A unreachable'
+                     % (min_tuning, args.period_region))
     return args
 
 def main(argv=None):
@@ -1962,10 +1987,11 @@ def main(argv=None):
         lines.extend(render_file(parser, args.segment))
 
     if args.periods > 0:
-        periods = getPeriodValues(args.periods, args.period_region)
+        periods = getPeriodValues(args.periods, args.period_region,
+                                  a=args.period_tuning)
         lines.extend([
-            '; Period table of length %d for %s'
-            % (args.periods, args.period_region),
+            '; Period table of length %d for %s: %d bytes'
+            % (args.periods, args.period_region, args.periods * 2),
             '.export periodTableLo, periodTableHi',
             'periodTableLo:'
         ])
@@ -1973,7 +1999,7 @@ def main(argv=None):
         lines.append('periodTableHi:')
         lines.extend(wrapdata((str(x >> 8) for x in periods), '.byt '))
 
-    is_stdout = not args.o
+    is_stdout = not args.o or args.o == '-'
     outfp = sys.stdout if is_stdout else open(args.o, 'w')
     lines.append('')
     try:

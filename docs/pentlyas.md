@@ -11,8 +11,9 @@ it in Finder or File Explorer won't do anything useful.
 
 Usage:
 
-    pentlyas.py [-h] [-o OUTFILENAME] [--periods NUMSEMITONES]
+    pentlyas.py [-h] [-o OUTFILENAME] [--periods LENGTH]
                 [--period-region {dendy,ntsc,pal}]
+                [--period-tuning FREQ] [--segment SEGMENT]
                 [infilename]
 
 Arguments:
@@ -21,12 +22,20 @@ Arguments:
   Score file to process or `-` for standard input; omit for period
   table only.
 * `-o OUTFILENAME`  
-  Write assembly output to a file instead of standard output.
+  Write assembly output to this file.  The default is `-`, for
+  standard output.
 * `--periods NUMSEMITONES`  
   Include an equal-temperament period table in the output;
   `NUMSEMITONES` is usually 64 to 80.
 * `--period-region {dendy,ntsc,pal}`  
   Make period table for this region (default: `ntsc`).
+* `--period-tuning FREQ`
+  Set the frequency of the A above middle C (`a'`) in the period
+  table.  Common concert pitch is 440 Hz; some orchestras (and
+  NSD.lib) use 442 Hz.
+* '--segment SEGMENT'
+  Places output in this ca65 `.segment`.  Useful if you are stashing
+  Pently in its own bank of ROM.
 
 Overall structure
 =================
@@ -552,6 +561,14 @@ the **`dal segno`** command, which loops back to `segno` if it exists
 or the beginning of the song otherwise.
 
 The included `musicseq.pently` file contains examples of complete songs.
+
+Output file
+===========
+The result of the Pently assembler is a ca65 assembly language file
+that depends on macros in `pentlyseq.inc`.  It contains definitions
+of all objects, as well as comments stating the size of each object,
+the size of all objects of a particular type, and the size of objects
+associated with each song.
   
 Glossary
 ========
