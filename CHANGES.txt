@@ -2,8 +2,13 @@
 * Reduced BSS (main RAM) footprint when several effects are off
 * Reduced ZP footprint when attack phase is off
 * Compress 0-pitch frames of instrument envelopes
-* Drum names starting with "l" no longer cause parse errors
+* pentlyas.py: correctly parse drum names starting with "l"
+* pentlyas.py: option to change overall tuning up or down from A440
+* pentlyas.py: special filename - means standard output
+* pentlyas.py: output lists each song's total size in comments
 * Add "Isometry" song demonstrating attack track more thoroughly
+* makefile: change score filename
+* NES/NSF executables no longer in Git; will be in releases instead
 
 0.05wip7 (2017-09)
 * Change to zlib license, which preserves the spirit of the

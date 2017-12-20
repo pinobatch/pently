@@ -23,6 +23,8 @@ For help setting these up, see the README file for
 
 Once you have the above installed, run `make`.
 Then edit the score and run `make` again to hear the changes.
+To use an entirely different score file, open `makefile` and change
+`scorename`.
 
 ## License
 

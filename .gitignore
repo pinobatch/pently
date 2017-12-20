@@ -2,7 +2,10 @@
 *.o
 *~
 *.chr
+/pently.nes
+/pently.nsf
 /obj/nes/*.s
+/obj/nes/pentlybss.inc
 /zip.in
 *.nes.deb
 /map.txt

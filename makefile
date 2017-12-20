@@ -71,6 +71,8 @@ $(title)-$(version).zip: zip.in all \
 # Build zip.in from the list of files in the Git tree
 zip.in:
 	git ls-files | grep -e "^[^.]" > $@
+	echo pently.nes >> $@
+	echo pently.nsf >> $@
 	echo zip.in >> $@
 
 $(objdir)/index.txt: makefile

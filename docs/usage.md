@@ -126,8 +126,8 @@ are approximate and may be outdated):
 * `PENTLY_USE_ATTACK_TRACK`  
   40 ROM bytes, 9 RAM bytes, 8 more if arpeggio also disabled
 * `PENTLY_USE_ATTACK_PHASE`  
-  70 ROM bytes, 12 zero page bytes; cannot be
-  disabled while `PENTLY_USE_ATTACK_TRACK` is enabled
+  70 ROM bytes, 12 zero page bytes; cannot be disabled
+  while `PENTLY_USE_ATTACK_TRACK` is enabled
 * `PENTLY_USE_CHANNEL_VOLUME`  
   60 ROM bytes, 4 RAM bytes
 
@@ -392,7 +392,7 @@ Bugs and limits
 No music engine is perfect for all projects.  These limits of Pently
 may pose a problem for some projects:
 
-* Pently is 1.6 kB with all features on or 1.2 kB with all features
+* Pently is 1.8 kB with all features on or 1.2 kB with all features
   off, which is much smaller than the FamiTracker or NerdTracker II
   player.  But even this may be too large for a very tight NROM-128
   game.
@@ -407,7 +407,8 @@ may pose a problem for some projects:
   Sunsoft 5B, Namco 163, and Konami VRC6 and VRC7.  This is a
   low priority for two reasons: the NES sold in English-speaking
   regions did not support expansion synths without modification,
-  and no expansion synth has a CPLD replica as of 2016.
+  and none of the six expansion synths defined in NSF has a CPLD
+  or MCU replica as of 2017.
 * Envelopes have no release phase; a note-off kills the note
   abruptly.
 * No error checking for obscure combinations that cause undefined
@@ -419,7 +420,8 @@ may pose a problem for some projects:
 * The bottom octave of the 88-key piano is missing from the pulse
   channel and the top octave from the triangle channel, reflecting
   an NES limit.
-* The row grid cannot be swung.
+* No support for "grooves" as in 0CC-FamiTracker.  For example,
+  the row grid cannot be swung.
 * Pently does not [compose music for you].  Writing an improvisation
   engine that calls `pently_play_note` is left as an exercise.
 
@@ -427,7 +429,7 @@ may pose a problem for some projects:
 
 License
 -------
-The Pently audio engine and its manual is distributed under the
+The Pently audio engine and its manual are distributed under the
 zlib License, a non-copyleft free software license:
 
 > Copyright 2010-2017 Damian Yerrick
