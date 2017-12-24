@@ -134,3 +134,6 @@ PENTLY_USE_BPMMATH = 1
 .globalzp pently_tempoCounterLo, pently_tempoCounterHi
 
 .global pently_fpmLo, pently_fpmHi
+
+; Size (for debugging) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+.global PENTLYSOUND_SIZE, PENTLYMUSIC_SIZE

@@ -128,6 +128,8 @@ pentlymusicbase: .res pentlymusicbase_size
 .endif
 
 .segment PENTLY_RODATA
+pentlymusic_rodata_start = *
+
 FRAMES_PER_MINUTE_PAL = 3000
 FRAMES_PER_MINUTE_NTSC = 3606
 pently_fpmLo:
@@ -154,6 +156,8 @@ porta1x_rates_hi:
 .endif
 
 .segment PENTLY_CODE
+pentlymusic_code_start = *
+
 .proc pently_start_music
   asl a
   tax
@@ -1322,3 +1326,10 @@ is_decrease:
 .endproc
 
 .endif
+
+
+.segment PENTLY_RODATA
+pentlymusic_rodata_size = * - pentlymusic_rodata_start
+.segment PENTLY_CODE
+pentlymusic_code_size = * - pentlymusic_code_start
+PENTLYMUSIC_SIZE = pentlymusic_rodata_size + pentlymusic_code_size

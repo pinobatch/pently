@@ -28,6 +28,11 @@
 .import getTVSystem
 .importzp NUM_SONGS
 
+; Size diagnostics
+.import periodTableHi, periodTableLo
+PERIOD_SIZE = (periodTableHi - periodTableLo) * 2
+PENTLY_SIZE = PENTLYMUSIC_SIZE + PENTLYSOUND_SIZE + PERIOD_SIZE
+
 .segment "ZEROPAGE"
 nmis:          .res 1
 oam_used:      .res 1
@@ -47,6 +52,7 @@ STATUS_BAR_TOP = 24
 STATUS_BAR_ADDR = $2000 + 32 * STATUS_BAR_TOP
 BEAT_POS_ADDR = STATUS_BAR_ADDR + 32 * 1 + 2
 CYCLES_ADDR = STATUS_BAR_ADDR + 32 * 1 + 25
+ROM_SIZE_ADDR = STATUS_BAR_ADDR + 32 * 2 + 2
 WORD_PEAK_ADDR = STATUS_BAR_ADDR + 32 * 2 + 21
 PEAK_ADDR = WORD_PEAK_ADDR + 4
 
@@ -126,20 +132,6 @@ PEAK_ADDR = WORD_PEAK_ADDR + 4
   sta cyclespeaklo
 
   ; Present one frame with only sprite 0 to prime the profiler
-
-  lda #>WORD_PEAK_ADDR
-  sta PPUADDR
-  lda #<WORD_PEAK_ADDR
-  sta PPUADDR
-  lda #'P'
-  sta PPUDATA
-  lda #'e'
-  sta PPUDATA
-  lda #'a'
-  sta PPUDATA
-  lda #'k'
-  sta PPUDATA
-  
   lda #4
   sta oam_used
 
@@ -274,6 +266,54 @@ forever:
   jmp forever
 .endproc
 
+
+.proc puts_multiline_ay
+src = $00
+dst = $02
+  sta src+1
+  sty src+0
+  lineloop:
+    ldy dst+1
+    sty PPUADDR
+    ldy dst+0
+    sty PPUADDR
+    ldy #0
+    charloop:
+      lda (src),y
+      beq done
+      cmp #$0A
+      beq is_newline
+      sta PPUDATA
+      iny
+      bne charloop
+    is_newline:
+
+    ; Add Y (length before newline) plus 1 to text pointer
+    ;sec  ; CMP already set carry
+    tya
+    adc src
+    sta src
+    lda src+1
+    adc #0
+    sta src+1
+    lda dst
+    adc #32
+    sta dst
+    lda dst+1
+    adc #0
+    sta dst+1
+
+    ; crop to the status bar top
+    ; (things below it are limited to 1 line tall)
+    lda dst+0
+    cmp #<STATUS_BAR_ADDR
+    lda dst+1
+    sbc #>STATUS_BAR_ADDR
+    bcc lineloop
+  done:
+  rts
+.endproc
+
 .proc display_todo
   lda #VBLANK_NMI
   ldx #$00
@@ -300,47 +340,17 @@ dst = $02
   sta dst+0
   lda #>TRACKNAMES_ADDR
   sta dst+1
-  lda #<tracknames_txt
-  sta src+0
+  ldy #<tracknames_txt
   lda #>tracknames_txt
-  sta src+1
-todo_rowloop:
-  ldy dst+1
-  sty PPUADDR
-  ldy dst+0
-  sty PPUADDR
-  ldy #0
-todo_charloop:
-  lda (src),y
-  beq todo_done
-  cmp #$0A
-  beq is_newline
-  sta PPUDATA
-  iny
-  bne todo_charloop
-is_newline:
+  jsr puts_multiline_ay
 
-  sec
-  tya
-  adc src
-  sta src
-  lda src+1
-  adc #0
-  sta src+1
-  lda dst
-  adc #32
-  sta dst
-  lda dst+1
-  adc #0
+  lda #<ROM_SIZE_ADDR
+  sta dst+0
+  lda #>ROM_SIZE_ADDR
   sta dst+1
-
-  ; crop to the status bar top
-  lda dst+0
-  cmp #<STATUS_BAR_ADDR
-  lda dst+1
-  sbc #>STATUS_BAR_ADDR
-  bcc todo_rowloop
-todo_done:
+  ldy #<bytes_txt
+  lda #>bytes_txt
+  jsr puts_multiline_ay
 
   ; Draw top of status bar
   lda #>STATUS_BAR_ADDR
@@ -409,6 +419,15 @@ xpos = 3
 tracknames_txt:
   .incbin "tracknames.txt"
   .byt 0
+
+bytes_txt:
+  .byt "ROM:"
+  .byt '0'|<((PENTLY_SIZE / 1000) .MOD 10)
+  .byt '0'|<((PENTLY_SIZE / 100) .MOD 10)
+  .byt '0'|<((PENTLY_SIZE / 10) .MOD 10)
+  .byt '0'|<((PENTLY_SIZE / 1) .MOD 10)
+  .byt " bytes     Peak",0
+
 
 main_palette:
   .byt $0F,$00,$10,$30, $0F,$00,$10,$30, $0F,$00,$10,$30, $0F,$00,$10,$30

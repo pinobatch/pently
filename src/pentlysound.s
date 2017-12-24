@@ -55,6 +55,7 @@ ch_lastfreqhi = pentlyBSS + 2
 sfx_remainlen = pentlyBSS + 3
 
 .segment PENTLY_CODE
+pentlysound_code_start = *
 
 ;;
 ; Initializes all sound channels.
@@ -294,3 +295,4 @@ no_change_to_hi_period:
   rts
 .endproc
 
+PENTLYSOUND_SIZE = * - pentlysound_code_start
