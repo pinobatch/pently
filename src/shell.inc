@@ -23,7 +23,14 @@
 OAM = $0200
 
 ; main.s fields
-.globalzp cur_keys, new_keys, nmis, tvSystem
+.globalzp cur_keys, new_keys, nmis, tvSystem, is_fast_forward
+
+; profiler.s fields
+.globalzp bcdNum, bcdResult
+.global cycleslo, cycleshi, cyclespeaklo, cyclespeakhi
+.global cyc_digits, peak_digits
+; profiler.s methods
+.global run_profiler
 
 ; pads.s methods
 .global read_pads

@@ -11,7 +11,7 @@
 
 # These are used in the title of the NES program and the zip file.
 title = pently
-version = 0.05wip7
+version = 0.05wip8
 
 # Name of Pently score (minus .pently)
 scorename = musicseq
@@ -19,7 +19,7 @@ scorename = musicseq
 # Space-separated list of asm files that make up the ROM,
 # whether source code or generated
 objlist := main \
-  pads ppuclear paldetect math bpmmath \
+  pads ppuclear paldetect math bpmmath profiler \
   pentlysound pentlymusic $(scorename)
 objlistnsf := nsfshell \
   pentlysound pentlymusic $(scorename)

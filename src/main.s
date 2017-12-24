@@ -33,6 +33,7 @@
 nmis:          .res 1
 oam_used:      .res 1
 cur_song:      .res 1
+is_fast_forward:.res 1
 
 ; Used by pads.s
 cur_keys:  .res 2
@@ -101,43 +102,81 @@ tvSystem:   .res 1
   ; Initialize used memory
   jsr pently_init
   jsr display_todo
+  
   lda #0
   sta cur_song
   jsr pently_start_music
 
-forever:
+  ; Set up sprite 0 hit, on the same line as the status bar
+  lda #2
+  sta OAM+1  ; tile number
+  lda #191
+  sta OAM+0  ; Y position
   lda #0
+  sta OAM+2  ; attribute
+  sta OAM+3  ; X position
+  sta cyclespeakhi
+  sta cyclespeaklo
+
+  ; Present one frame with only sprite 0 to prime the profiler
+
+  lda #$23
+  sta PPUADDR
+  lda #$95
+  sta PPUADDR
+  lda #'P'
+  sta PPUDATA
+  lda #'e'
+  sta PPUDATA
+  lda #'a'
+  sta PPUDATA
+  lda #'k'
+  sta PPUDATA
+  
+  lda #4
   sta oam_used
 
-  ldx #8
-  lda cur_song
-  asl a
-  asl a
-  asl a
-  clc
-  adc #27
-  tay
-  lda #0
-  jsr draw_y_arrow_sprite
-
-  jsr pently_get_beat_fraction
-  clc
-  adc #64
-  tax
-  ldy #219
-  lda #0
-  jsr draw_y_arrow_sprite
-  
+forever:
   ldx oam_used
   jsr ppu_clear_oam
 
+  ; Wait for vblank
   lda nmis
-:
-  cmp nmis
-  beq :-
+  :
+    cmp nmis
+    beq :-
 
+  ; Upload display list to OAM
+  ldx #0
+  stx OAMADDR
+  lda #>OAM
+  sta OAM_DMA
+
+  ; Write cycle count
   lda #VBLANK_NMI
   sta PPUCTRL
+  lda #$23
+  sta PPUADDR
+  lda #$79
+  sta PPUADDR
+  ldx #4
+  :
+    lda cyc_digits,x
+    sta PPUDATA
+    dex
+    bpl :-
+  lda #$23
+  sta PPUADDR
+  lda #$99
+  sta PPUADDR
+  ldx #4
+  :
+    lda peak_digits,x
+    sta PPUDATA
+    dex
+    bpl :-
+
+  ; Write beat marker
   lda #$23
   sta PPUADDR
   lda #$62
@@ -159,50 +198,71 @@ forever:
   ora #'0'
   sta PPUDATA
   
-  ldx #0
-  stx OAMADDR
-  lda #>OAM
-  sta OAM_DMA
+  ; Turn the display on
   ldy #0
+  ldx #0
   lda #VBLANK_NMI|BG_0000|OBJ_0000
   sec
   jsr ppu_screen_on
 
-  jsr pently_update
+  jsr run_profiler
   jsr read_pads
   lda cur_keys
   and #KEY_SELECT
-  beq notFastForward
-  jsr pently_update
-  jsr pently_update
-  jsr pently_update
-notFastForward:
+  beq :+
+    lda #$80
+  :
+  sta is_fast_forward
   
   lda new_keys
   and #KEY_DOWN
   beq notDown
-  inc cur_song
-  lda cur_song
-  cmp #NUM_SONGS
-  bcc notWrapDown
-  lda #0
-  sta cur_song
-notWrapDown:
-  jsr pently_start_music
-notDown:
+    inc cur_song
+    lda cur_song
+    cmp #NUM_SONGS
+    bcc have_new_song
+    lda #0
+    jmp have_new_song
+  notDown:
 
   lda new_keys
   and #KEY_UP
   beq notUp
-  dec cur_song
+    dec cur_song
+    lda cur_song
+    cmp #NUM_SONGS
+    bcc have_new_song
+      lda #NUM_SONGS-1
+    have_new_song:
+    sta cur_song
+    jsr pently_start_music
+    lda #0
+    sta cyclespeakhi
+    sta cyclespeaklo
+  notUp:
+
+  ; Prepare the next frame
+  lda #4
+  sta oam_used
+
+  ldx #8
   lda cur_song
-  cmp #NUM_SONGS
-  bcc notWrapUp
-  lda #NUM_SONGS-1
-  sta cur_song
-notWrapUp:
-  jsr pently_start_music
-notUp:
+  asl a
+  asl a
+  asl a
+  clc
+  adc #27
+  tay
+  lda #0
+  jsr draw_y_arrow_sprite
+
+  jsr pently_get_beat_fraction
+  clc
+  adc #64
+  tax
+  ldy #219
+  lda #0
+  jsr draw_y_arrow_sprite
 
   jmp forever
 .endproc
@@ -270,6 +330,39 @@ is_newline:
   cmp #$E0
   bcc todo_rowloop
 todo_done:
+
+  ; Draw top of status bar
+  lda #$23
+  sta PPUADDR
+  lda #$00
+  sta PPUADDR
+  lda #$02
+  ldx #32
+  :
+    sta PPUDATA
+    dex
+    bne :-
+  
+  ldx #$08
+  lda #2
+  ldy #8
+  jsr logopart
+
+  ldx #$14
+  lda #30-12
+  ldy #12
+logopart:
+  pha
+  lda #$23
+  sta PPUADDR
+  pla
+  sta PPUADDR
+  logoloop:
+    stx PPUDATA
+    inx
+    dey
+    bne logoloop
+
   rts
 .endproc
 

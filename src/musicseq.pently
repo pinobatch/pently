@@ -587,8 +587,7 @@ song Isometry
   play trifill on pulse2 with banjo down 24
   play trifill
 
-  ; rest period
-  
+  # rest between sets
   pattern restperiod1 on pulse1 with isopiano
     relative
     f4. gb ab4 w1
