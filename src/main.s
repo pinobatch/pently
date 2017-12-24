@@ -25,9 +25,8 @@
 .include "shell.inc"
 .include "pently.inc"
 
-.import ppu_clear_nt, ppu_clear_oam, ppu_screen_on, getTVSystem
+.import getTVSystem
 .importzp NUM_SONGS
-.exportzp cur_keys, new_keys, tvSystem, nmis
 
 .segment "ZEROPAGE"
 nmis:          .res 1
@@ -42,6 +41,14 @@ new_keys:  .res 2
 ; Used by music engine
 tvSystem:   .res 1
 
+TRACKNAMES_TOP = 3
+TRACKNAMES_ADDR = $2000 + 32 * TRACKNAMES_TOP + 2
+STATUS_BAR_TOP = 24
+STATUS_BAR_ADDR = $2000 + 32 * STATUS_BAR_TOP
+BEAT_POS_ADDR = STATUS_BAR_ADDR + 32 * 1 + 2
+CYCLES_ADDR = STATUS_BAR_ADDR + 32 * 1 + 25
+WORD_PEAK_ADDR = STATUS_BAR_ADDR + 32 * 2 + 21
+PEAK_ADDR = WORD_PEAK_ADDR + 4
 
 .segment "INESHDR"
   .byt "NES",$1A  ; magic signature
@@ -110,7 +117,7 @@ tvSystem:   .res 1
   ; Set up sprite 0 hit, on the same line as the status bar
   lda #2
   sta OAM+1  ; tile number
-  lda #191
+  lda #STATUS_BAR_TOP * 8 - 1
   sta OAM+0  ; Y position
   lda #0
   sta OAM+2  ; attribute
@@ -120,9 +127,9 @@ tvSystem:   .res 1
 
   ; Present one frame with only sprite 0 to prime the profiler
 
-  lda #$23
+  lda #>WORD_PEAK_ADDR
   sta PPUADDR
-  lda #$95
+  lda #<WORD_PEAK_ADDR
   sta PPUADDR
   lda #'P'
   sta PPUDATA
@@ -155,9 +162,9 @@ forever:
   ; Write cycle count
   lda #VBLANK_NMI
   sta PPUCTRL
-  lda #$23
+  lda #>CYCLES_ADDR
   sta PPUADDR
-  lda #$79
+  lda #<CYCLES_ADDR
   sta PPUADDR
   ldx #4
   :
@@ -165,9 +172,9 @@ forever:
     sta PPUDATA
     dex
     bpl :-
-  lda #$23
+  lda #>PEAK_ADDR
   sta PPUADDR
-  lda #$99
+  lda #<PEAK_ADDR
   sta PPUADDR
   ldx #4
   :
@@ -179,7 +186,7 @@ forever:
   ; Write beat marker
   lda #$23
   sta PPUADDR
-  lda #$62
+  lda #$22
   sta PPUADDR
   lda pently_row_beat_part
   beq :+
@@ -251,7 +258,7 @@ forever:
   asl a
   asl a
   clc
-  adc #27
+  adc #TRACKNAMES_TOP*8+3
   tay
   lda #0
   jsr draw_y_arrow_sprite
@@ -260,7 +267,7 @@ forever:
   clc
   adc #64
   tax
-  ldy #219
+  ldy #STATUS_BAR_TOP*8+11
   lda #0
   jsr draw_y_arrow_sprite
 
@@ -287,22 +294,24 @@ copypal:
   ldx #$20
   jsr ppu_clear_nt
 
-  lda #$20
-  sta 1
-  lda #$62
-  sta 0
+src = $00
+dst = $02
+  lda #<TRACKNAMES_ADDR
+  sta dst+0
+  lda #>TRACKNAMES_ADDR
+  sta dst+1
   lda #<tracknames_txt
-  sta 2
+  sta src+0
   lda #>tracknames_txt
-  sta 3
+  sta src+1
 todo_rowloop:
-  ldy 1
+  ldy dst+1
   sty PPUADDR
-  ldy 0
+  ldy dst+0
   sty PPUADDR
   ldy #0
 todo_charloop:
-  lda (2),y
+  lda (src),y
   beq todo_done
   cmp #$0A
   beq is_newline
@@ -313,47 +322,50 @@ is_newline:
 
   sec
   tya
-  adc 2
-  sta 2
-  lda 3
+  adc src
+  sta src
+  lda src+1
   adc #0
-  sta 3
-  lda 0
+  sta src+1
+  lda dst
   adc #32
-  sta 0
-  lda 1
+  sta dst
+  lda dst+1
   adc #0
-  sta 1
-  cmp #$23
-  bcc todo_rowloop
-  lda 0
-  cmp #$E0
+  sta dst+1
+
+  ; crop to the status bar top
+  lda dst+0
+  cmp #<STATUS_BAR_ADDR
+  lda dst+1
+  sbc #>STATUS_BAR_ADDR
   bcc todo_rowloop
 todo_done:
 
   ; Draw top of status bar
-  lda #$23
+  lda #>STATUS_BAR_ADDR
   sta PPUADDR
-  lda #$00
+  lda #<STATUS_BAR_ADDR
   sta PPUADDR
-  lda #$02
+  lda #$02  ; status bar top blank tile
   ldx #32
   :
     sta PPUDATA
     dex
     bne :-
-  
-  ldx #$08
-  lda #2
+
+  ; Draw graphics in top of status bar
+  ldx #$08  ; "Pently demo"
+  lda #<STATUS_BAR_ADDR + 2
   ldy #8
   jsr logopart
 
-  ldx #$14
-  lda #30-12
+  ldx #$14  ; "Copr. 20xx Damian Yerrick"
+  lda #<STATUS_BAR_ADDR + 30 - 12
   ldy #12
 logopart:
   pha
-  lda #$23
+  lda #>STATUS_BAR_ADDR
   sta PPUADDR
   pla
   sta PPUADDR
@@ -362,7 +374,6 @@ logopart:
     inx
     dey
     bne logoloop
-
   rts
 .endproc
 

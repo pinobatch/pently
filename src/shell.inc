@@ -24,6 +24,7 @@ OAM = $0200
 
 ; main.s fields
 .globalzp cur_keys, new_keys, nmis, tvSystem, is_fast_forward
+.global STATUS_BAR_TOP
 
 ; profiler.s fields
 .globalzp bcdNum, bcdResult
@@ -38,7 +39,7 @@ OAM = $0200
 ; ppuclear.s fields
 .globalzp oam_used
 ; ppuclear.s methods
-.global ppu_clear_oam
+.global ppu_clear_oam, ppu_clear_nt, ppu_screen_on
 
 ; math.s methods
 .global mul8
