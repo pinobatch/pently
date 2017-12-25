@@ -155,9 +155,11 @@ cannot, as it controls the length of the sound effect.  Place a
 vertical line (`|`, Shift+backslash) before the part of the pitch or
 timbre that you want to loop.  Otherwise, the last step is looped.
 
+Steps of an envelope are separated by spaces is one word.  A step
+can be repeated with a colon and an integer: `8:3` means `8 8 8`.
 By default, a sound effect plays one step every frame, which is 60
-steps per second.  But this can be slowed down with `rate 2` through
-`rate 16`.
+steps per second on NTSC or 50 on PAL.  To slow this down, use
+`rate 2` through `rate 16`
 
 Sound effect names are exported with the `PE_` prefix, such as
 `PE_closed_hihat`. Use these values with `pently_start_sound`.
@@ -174,7 +176,7 @@ Examples:
     pitch 10 0
 
     sfx tri_kick on triangle
-    volume 15 15 15 2 2
+    volume 15:3 2 2
     pitch e' c' a f# e
 
 Drums

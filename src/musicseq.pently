@@ -43,12 +43,12 @@ sfx quiethat on noise
   timbre | 0 1
 
 sfx openhat on noise
-  volume 6 5 4 4 3 3 3 2 2 2 1 1 1 1 1
+  volume 6 5 4 4 3:3 2:3 1:5
   pitch 12
   timbre | 0 1
 
 sfx snarehat on noise
-  volume 6 5 4 4 3 3 3 2 2 2 1 1 1 1 1
+  volume 12 10 8 6 3:3 2:3 1:5
   pitch 4 10 10 12
   timbre 0 0 | 0 1
 
@@ -81,11 +81,11 @@ sfx stickshatlo on noise
   timbre 1
 
 sfx longkick on noise
-    volume 12 11 10 9 8 7 6 4 3 3 2 2 2 1 1 1 1
+    volume 12 11 10 9 8 7 6 4 3 3 2:3 1:4
     pitch 10 0
 
 sfx longsnare on noise
-    volume 12 11 10 9 8 7 6 4 3 3 2 2 2 1 1 1 1
+    volume 12 11 10 9 8 7 6 4 3 3 2:3 1:4
     pitch 4 10
 
 drum kick kick
@@ -139,7 +139,7 @@ instrument dut
 instrument feat_wah
   volume 8 8 7 7 6 6 5 5 5 4 4 4 3
   decay 1
-  timbre 2 2 2 2 2 2 1 1 1 1 1 1 0
+  timbre 2:6 1:6 0
 
 instrument feat_power
   timbre 0
@@ -160,7 +160,7 @@ instrument bf98_osti
   detached
 
 instrument orchhit
-  volume 8 8 8 7 7 7 6 6 6 5 5 5 4 4 4 3 3 3 2 2 2 1 1 1 0
+  volume 8:3 7:3 6:3 5:3 4:3 3:3 2:3 1:3 0
   timbre 1
   pitch | 12 0 -12
 

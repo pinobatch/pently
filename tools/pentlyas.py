@@ -524,11 +524,27 @@ class PentlyEnvelopeContainer(PentlyRenderable):
         self.volume, self.volume_linenum = volumes, linenum
 
     @staticmethod
+    def expand_runs(words):
+        if isinstance(words, str):
+            words = words.split()
+        words = [word.rsplit(":", 1) for word in words]
+        # words is [[word], [word, "runlength"], [word], ...]
+        words = [(word[0], int(word[1]) if len(word) > 1 else 1)
+                 for word in words]
+        # words is [(word, runlength), ...]
+        words = [word
+                 for word, runlength in words
+                 for i in range(runlength)]
+        return words
+
+    @staticmethod
     def pipesplit(words):
         pipesplit = ' '.join(words).split('|', 1)
-        out = pipesplit[0].split()
+        pipesplit = [PentlyEnvelopeContainer.expand_runs(part)
+                     for part in pipesplit]
+        out = pipesplit[0]
         if len(pipesplit) > 1:
-            afterloop = pipesplit[1].split()
+            afterloop = pipesplit[1]
             looplen = len(afterloop)
             out.extend(afterloop)
         else:
@@ -1430,8 +1446,8 @@ Used to find the target of a time, scale, durations, or notenames command.
         if len(words) < 2:
             raise ValueError("volume requires at least one step")
         obj = self.cur_obj[1]
-        obj.set_volume([int(x) for x in words[1:] if x != '|'],
-                       linenum=self.linenum)
+        vols = [int(x) for x in obj.expand_runs(words[1:]) if x != '|']
+        obj.set_volume(vols, linenum=self.linenum)
 
     def add_decay(self, words):
         self.ensure_in_object('decay', 'instrument')
