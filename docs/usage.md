@@ -110,26 +110,7 @@ Turn this off to force a sound effect to silence notes on the same
 channel for its entire duration.
 
 If `PENTLY_USE_NSF_SOUND_FX` is enabled, drums and other sound
-effects are placed after music when building an NSF.
-
-Disabling some features frees up a few bytes of ROM and RAM (these
-are approximate and may be outdated):
-
-* `PENTLY_USE_VIBRATO`  
-  8 RAM bytes
-* `PENTLY_USE_PORTAMENTO`  
-  12 RAM bytes, 150 ROM bytes if vibrato also disabled
-* `PENTLY_USE_ARPEGGIO`  
-  100 ROM bytes, 8 RAM bytes
-* `PENTLY_USE_BPMMATH`  
-  30 ROM bytes, 2 RAM bytes
-* `PENTLY_USE_ATTACK_TRACK`  
-  40 ROM bytes, 9 RAM bytes, 8 more if arpeggio also disabled
-* `PENTLY_USE_ATTACK_PHASE`  
-  70 ROM bytes, 12 zero page bytes; cannot be disabled
-  while `PENTLY_USE_ATTACK_TRACK` is enabled
-* `PENTLY_USE_CHANNEL_VOLUME`  
-  60 ROM bytes, 4 RAM bytes
+effects are placed after music in the NSF's song order.
 
 `PENTLY_INITIAL_4011` controls what's written to the DMC's value in
 `pently_init`.  Because of nonlinearity in the NES's audio output,
@@ -147,6 +128,44 @@ zero page used as scratch space.  Set it in one of two ways:
 
 If you use `.importzp`, you'll need to `.exportzp` in the file in
 your main project that defines `pently_zptemp`.
+
+### Reducing ROM size
+
+Disabling some features frees up a few bytes of ROM and RAM.  This
+can be important for size-constrained projects, such as those using
+an NROM-128 board.  When multiple features share code, disabling them
+all may reduce the code size by more than the sum of their parts.
+Approximate savings follow:
+
+Continuous pitch effects
+
+* `PENTLY_USE_303_PORTAMENTO`  
+  60 ROM bytes
+* `PENTLY_USE_PORTAMENTO`  
+  270 ROM bytes, 12 RAM bytes
+* `PENTLY_USE_VIBRATO`  
+  100 ROM bytes, 8 RAM bytes
+* `PENTLY_USE_VIBRATO` and `PENTLY_USE_PORTAMENTO`  
+  410 ROM bytes, 20 RAM bytes
+
+Discrete pitch effects
+
+* `PENTLY_USE_ARPEGGIO`  
+  110 ROM bytes, 8 RAM bytes
+* `PENTLY_USE_ATTACK_TRACK`  
+  50 ROM bytes, 9 RAM bytes, 8 more if arpeggio also disabled
+* `PENTLY_USE_ATTACK_PHASE`  
+  150 ROM bytes, 12 zero page bytes; cannot be disabled
+  while `PENTLY_USE_ATTACK_TRACK` is enabled
+* `PENTLY_USE_ARPEGGIO` and `PENTLY_USE_ATTACK_PHASE`  
+  281 ROM bytes, 8 RAM bytes
+
+Other features that save substantial ROM bytes:
+
+* `PENTLY_USE_CHANNEL_VOLUME`  
+  60 ROM bytes, 4 RAM bytes
+* `PENTLY_USE_BPMMATH`  
+  30 ROM bytes, 2 RAM bytes
 
 Pitch
 -----

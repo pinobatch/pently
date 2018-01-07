@@ -47,11 +47,17 @@ PENTLY_USE_VIBRATO = 1
 PENTLY_USE_ARPEGGIO = 1
 .endif
 
-; Enable vibrato (sinusoidal pitch modulation with an LFO of
-; period 12 frames)
+; Enable portamento (slide from one pitch to another)
 .ifndef PENTLY_USE_PORTAMENTO
 PENTLY_USE_PORTAMENTO = 1
 .endif
+
+; Enable first-order lowpass portamento like Roland TB-303 Bass Line
+.ifndef PENTLY_USE_303_PORTAMENTO
+PENTLY_USE_303_PORTAMENTO = PENTLY_USE_PORTAMENTO
+.endif
+
+.assert (!PENTLY_USE_303_PORTAMENTO) || PENTLY_USE_PORTAMENTO, error, "cannot use 303 portamento without portamento"
 
 ; Enable attack envelopes on instruments
 .ifndef PENTLY_USE_ATTACK_PHASE

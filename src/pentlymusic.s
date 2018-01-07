@@ -1028,15 +1028,19 @@ notCutNote:
 VIBRATO_PERIOD = 12
 
 calc_vibrato:
-  .if ::PENTLY_USE_PORTAMENTO
+  .if ::PENTLY_USE_PORTAMENTO && ::PENTLY_USE_ATTACK_PHASE
     ; Don't apply portamento to injected attacks
     lda arpPhase,x
     bmi is_injected
       lda chPitchLo,x
       jmp not_injected
     is_injected:
+    lda #0
+  .elseif ::PENTLY_USE_PORTAMENTO
+    lda chPitchLo,x
+  .else
+    lda #0
   .endif
-  lda #0
 not_injected:
   sta out_pitchadd
   ora vibratoDepth,x  ; Skip calculation if depth is 0
@@ -1219,7 +1223,11 @@ portaRateHi = pently_zptemp+1
     rts
   not_instant:
 
-  and #$30
+  .if ::PENTLY_USE_303_PORTAMENTO
+    and #$30
+  .else
+    and #$10
+  .endif
   lsr a
   lsr a
   lsr a
@@ -1235,27 +1243,14 @@ portaRateHi = pently_zptemp+1
 portamentocalc_funcs:
   .addr calc_whole_semitone-1
   .addr calc_fraction-1
+.if ::PENTLY_USE_303_PORTAMENTO
   .addr calc_tb303-1
   .addr calc_tb303-1
+.endif
 num_portamentocalc_funcs = (* - portamentocalc_funcs) / 2
 
-calc_whole_semitone:
-;  ldy #0  ; Y is 0, 2, or 4 at entry, and for this routine it's 0
-  sty portaRateLo
-  lda chPortamento,x
-  sta portaRateHi
-  jmp portamento_add
-
-calc_fraction:
-  ldy chPortamento,x
-  lda porta1x_rates_lo-$10,y
-  sta portaRateLo
-  lda porta1x_rates_hi-$10,y
-  sta portaRateHi
-  jmp portamento_add
-
+.if ::PENTLY_USE_303_PORTAMENTO
 calc_tb303:
-
   ; Calculate the displacement to the final pitch
   sec
   lda chPitchLo,x
@@ -1274,7 +1269,7 @@ calc_tb303:
     sta portaRateHi
   tb303_alreadyPositive:
 
-  ; Scale based on approach time setting
+  ; Scale based on approach time constant setting
   lda chPortamento,x
   and #$0F
   tay
@@ -1294,7 +1289,22 @@ calc_tb303:
   ora portaRateHi
   bne portamento_add
     inc portaRateLo
+  jmp portamento_add
+.endif
 
+calc_whole_semitone:
+;  ldy #0  ; Y is 0, 2, or 4 at entry, and for this routine it's 0
+  sty portaRateLo
+  lda chPortamento,x
+  sta portaRateHi
+  jmp portamento_add
+
+calc_fraction:
+  ldy chPortamento,x
+  lda porta1x_rates_lo-$10,y
+  sta portaRateLo
+  lda porta1x_rates_hi-$10,y
+  sta portaRateHi
 portamento_add:
   lda chPitchHi,x
   cmp notePitch,x
