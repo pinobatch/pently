@@ -1,4 +1,4 @@
-0.05wip8 (future)
+0.05wip8 (2017-12)
 * Reduce BSS (main RAM) footprint when several effects are off
 * Reduce ZP footprint when attack phase is off
 * Compress 0-pitch frames of instrument envelopes

@@ -237,24 +237,32 @@ made from two [tied] notes: a note with `D_4`, `D_2`, `D_D2`, or
 
 Note G played with each of 16 durations
 
-Code                  | Duration name               | Length in rows
---------------------- | --------------------------- | -------------:
-`N_G`                 | Sixteenth                   | 1
-`N_G|D_8`             | Eighth                      | 2
-`N_G|D_D8`            | Dotted eighth               | 3
-`N_G|D_4`             | Quarter                     | 4
-`N_G|D_4,N_TIE`       | Quarter + sixteenth         | 5
-`N_G|D_D4`            | Dotted quarter              | 6
-`N_G|D_4,N_TIE|D_D8`  | Quarter + dotted eighth     | 7
-`N_G|D_2`             | Half                        | 8
-`N_G|D_2,N_TIE`       | Half + sixteenth            | 9
-`N_G|D_2,N_TIE|D_8`   | Half + eighth               | 10
-`N_G|D_2,N_TIE|D_D8`  | Half + dotted eighth        | 11
-`N_G|D_D2`            | Dotted half                 | 12
-`N_G|D_D2,N_TIE`      | Dotted half + sixteenth     | 13
-`N_G|D_D2,N_TIE|D_8`  | Dotted half + eighth        | 14
-`N_G|D_D2,N_TIE|D_D8` | Dotted half + dotted eighth | 15
-`N_G|D_1`             | Whole                       | 16
+Code                    | Duration name               | Length in rows
+----------------------- | --------------------------- | -------------:
+`N_G`                   | Sixteenth                   | 1
+`N_G\|D_8`              | Eighth                      | 2
+`N_G\|D_D8`             | Dotted eighth               | 3
+`N_G\|D_4`              | Quarter                     | 4
+`N_G\|D_4,N_TIE`        | Quarter + sixteenth         | 5
+`N_G\|D_D4`             | Dotted quarter              | 6
+`N_G\|D_4,N_TIE\|D_D8`  | Quarter + dotted eighth     | 7
+`N_G\|D_2`              | Half                        | 8
+`N_G\|D_2,N_TIE`        | Half + sixteenth            | 9
+`N_G\|D_2,N_TIE\|D_8`   | Half + eighth               | 10
+`N_G\|D_2,N_TIE\|D_D8`  | Half + dotted eighth        | 11
+`N_G\|D_D2`             | Dotted half                 | 12
+`N_G\|D_D2,N_TIE`       | Dotted half + sixteenth     | 13
+`N_G\|D_D2,N_TIE\|D_8`  | Dotted half + eighth        | 14
+`N_G\|D_D2,N_TIE\|D_D8` | Dotted half + dotted eighth | 15
+`N_G\|D_1`              | Whole                       | 16
+
+<!--
+You are reading this in a text editor, not a Markdown processor.
+The backslashes appear in the Code column above to tell the Markdown
+processor on GitHub that the pipe (|) characters in the Code column
+are not intended as table cell separators.  Remove the backslashes
+before adding this code to your file, such as N_G|D_D2.
+-->
 
 [whole note]: https://en.wikipedia.org/wiki/Whole_note
 [tied]: https://en.wikipedia.org/wiki/Tie_(music)
@@ -324,11 +332,15 @@ portamento, Pently provides three rate scales:
 * Rates $10-$1B  
   Fractional rates in 256ths of a semitone per frame, where $10 to
   $1B set the numerator to 4, 8, 12, 16, 24, 32, 48, 64, 96, 128,
-  192, or 384.
+  192, or 384.  This crosses a semitone in 64, 32, 21.3, 16, 10.7, 8,
+  5.3, 4, 2.7, 2, 1.3, or 0.7 frames.
 * Rates $20-$27  
-  Constant-time slides, where the instantaneous rate is 1/2, 1/4,
-  1/8, 1/16, 1/32, 1/64, 1/128, or 1/256 of the remaining distance
-  to the target pitch per frame, like a first-order low-pass filter.
+  Constant-time slides, passing pitch through a first-order low-pass
+  filter with a time constant (τ) of 2, 4, 8, 16, 32, 64, 128, or 256
+  frames.  For example, with a time constant of 8 frames, the pitch
+  changes by 1/8 of the remaining distance to the target pitch per
+  frame, and it takes 8 frames to go about 1 - 1/e = 63% of the way
+  to the target pitch.
 
 Finally, to end the pattern, use `PATEND`.  This isn't strictly
 necessary if a pattern is always interrupted at its end, but if it
