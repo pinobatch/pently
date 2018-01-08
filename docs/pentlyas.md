@@ -419,8 +419,8 @@ modify durations in compound prolation for a swing feel.
 automatically introduce rests between notes for staccato feel.
 
 **TODO:** A future version of Pently may introduce a command to
-"bar check", or pad a pattern with rests or notes to the end of
-a measure.
+"bar check", or ensure that a particular point in a pattern lies
+at a measure boundary.
 
 Pattern effects
 ---------------
@@ -466,9 +466,10 @@ The same pitches that cause jitter for vibrato also cause jitter when
 portamento on a pulse channel crosses them.
 
 **Channel volume** scales the volume of the instrument's envelope.
-Commands `pp`, `mp`, `mf`, and `ff` change the channel volume to
-25%, 50%, 75%, and 100% respectively.  Volume is set to 100% at the
-start of a piece.  Drums and other sound effects are unaffected.
+Commands `v1`, `v2`, `v3`, and `v4` (or synonyms `pp`, `mp`, `mf`,
+and `ff`) change the channel volume to 25%, 50%, 75%, and 100%
+respectively.  Volume is set to 100% at the start of a piece.
+Drums and other sound effects are unaffected.
 
 Songs
 =====

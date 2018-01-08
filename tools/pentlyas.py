@@ -62,7 +62,10 @@ durcodes = {
     6: 'D_D4', 8: 'D_2', 12: 'D_D2', 16: 'D_1'
 }
 volcodes = {
-    'pp': 1, 'mp': 2, 'mf': 3, 'ff': 4
+    # Musical names
+    'pp': 1, 'mp': 2, 'mf': 3, 'ff': 4,
+    # Names from https://en.wikipedia.org/wiki/Music_Macro_Language#Modern_MML
+    'v1': 1, 'v2': 2, 'v3': 3, 'v4': 4,
 }
 pitched_tracks = {'pulse1': 0, 'pulse2': 1, 'triangle': 2, 'attack': 4}
 track_suffixes = ['Sq1', 'Sq2', 'Tri', 'Noise', 'Attack']
@@ -1595,7 +1598,7 @@ Used to find the target of a time, scale, durations, or notenames command.
 
     def add_song_pickup(self, words):
         if not self.cur_song:
-            raise ValueError("at must be used in a song")
+            raise ValueError("pickup must be used in a song")
         if len(words) != 2:
             raise ValueError("must have 2 words: pickup MEASURE[:BEAT[:ROW]]")
         rhyctx = self.cur_song.rhyctx
