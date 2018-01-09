@@ -1,3 +1,10 @@
+0.05wip9 (2018-future)
+* PENTLY_USE option to disable 303 portamento
+* pentlyas.py: v1 through v4 as synonyms for pp through ff
+* pentlyas.py: p (pause) is synonym for r (rest)
+* pentlyas.py: q repeats last chord, as in LilyPond
+* docs: Recalculate PENTLY_USE savings
+
 0.05wip8 (2017-12)
 * Reduce BSS (main RAM) footprint when several effects are off
 * Reduce ZP footprint when attack phase is off

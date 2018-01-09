@@ -1110,7 +1110,8 @@ song arp_waltz
     relative
     EN-M ENP2
     a'2:-M/2 bb4:-dim c2 d4:-m
-    c bb2:-M/1 w4 bb:-M/1 c
+    # TODO: Add 'q' here when finishing that
+    c bb2:-M/1 w4 q c
     d2:-m c4 bb2:-M/1 a4:-m
     g bb2:-dim w2.
     EN-M/2
@@ -1180,8 +1181,8 @@ song allfeatures
   at 4
   pattern chords on pulse2 with feat_wah
     orelative
-    ENm r4. eb'1 r2
-    ENM db1 r8
+    ENm p4. eb'1 p2
+    ENM db1 p8
   pattern bass on triangle with bass
     orelative
     eb'4 r8 gb4. r4 gb8 eb4 gb8

@@ -109,7 +109,7 @@ last_arp -- last arpeggio value set with EN
 arp_top -- if true, transpose notes down by the top of the chord
 arp_mod -- if not None, the current note has a single-note arpeggio
     modifier, and subsequent 'w' commands should get the same
-last_chord -- last (pitch, arpeggio) used in an o; used for note 'q'
+last_chord -- last (pitch, arpeggio) used; note 'q' repeats this
 arp_names
 
 """
@@ -255,19 +255,29 @@ Return None (if arp is falsey), 2 hex digits, or '-' followed by
     def parse_pitch(self, preoctave, notename, accidental, postoctave, arp):
         arp = self.translate_arp_name(arp)
         if notename == 'p': notename = 'r'
-        if notename in ('r', 'w', 'l'):
-            if not (preoctave or accidental or postoctave):
-                # Rests kill a single-note arpeggio.
-                # Waits and length changes preserve it.
-                if notename == 'r':
-                    self.arp_mod = arp
-                arp = arp or self.arp_mod or self.last_arp
-                return self.fixup_downward_arp(notename, arp)
-            nonpitchtypes = {'r': 'rests', 'w': 'waits', 'l': 'length changes'}
-            modifier = ("octave changes" if postoctave or preoctave
-                        else "accidentals")
-            raise ValueError("%s: %s can't have %s"
-                             % (pitch, nonpitchtypes[notename], modifier))
+        nonpitchtypes = {
+            'r': 'rest', 'w': 'wait', 'l': 'length change',
+            'q': 'chord repeat'
+        }
+        if notename in nonpitchtypes:
+            bad_modifier = ("octave changes" if preoctave or postoctave
+                            else "accidentals" if accidental
+                            else "chords" if arp and notename in "qr"
+                            else None)
+            if bad_modifier:
+                msg = ("%s: %s can't have %s"
+                       % (notename, nonpitchtypes[notename], bad_modifier))
+                raise ValueError(msg)
+
+            if notename == 'q':
+                return self.last_chord
+
+            # Rests kill a single-note arpeggio.
+            # Waits and length changes preserve it.
+            if notename == 'r':
+                self.arp_mod = arp
+            arp = arp or self.arp_mod or self.last_arp
+            return self.fixup_downward_arp(notename, arp)
             
         octave = 0
         if preoctave and postoctave:
@@ -307,11 +317,14 @@ Return None (if arp is falsey), 2 hex digits, or '-' followed by
         if arp:
             self.last_arp = self.last_arp or '00'
         arp = arp or self.arp_mod or self.last_arp
-        return self.fixup_downward_arp(notenum, arp)
+        notenum, arp = self.fixup_downward_arp(notenum, arp)
+        if arp and arp != '00':
+            self.last_chord = notenum, arp
+        return notenum, arp
 
     pitchRE = re.compile(r"""
 (>*|<*)       # MML style octave
-([a-hrwlq])    # note name
+([a-h])       # note name (pitches only, no lengths, volumes, etc.)
 (b|bb|-|--|es|eses|s|ss|is|isis|\#|\#\#|\+|\+\+|x|)  # accidental
 (,*|'*)$      # LilyPond style octave
 """, re.VERBOSE)
@@ -1006,7 +1019,7 @@ class PentlyPattern(PentlyRenderable):
 
     noteRE = re.compile(r"""
 (>*|<*)           # MML style octave
-([a-hrwl])        # note name
+([a-hwprlq])      # note name
 (b|bb|-|--|es|eses|s|ss|is|isis|\#|\#\#|\+|\+\+|x|)  # accidental
 (,*|'*)           # LilyPond style octave
 ([0-9]*)          # duration

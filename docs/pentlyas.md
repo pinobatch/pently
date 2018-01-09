@@ -349,12 +349,13 @@ or longer to use more bytes.  The default is `scale 16`.
 
 Notes
 -----
-Each note command consists of up to five parts:
+Each note command consists of up to six parts:
 
 * Note name
 * Accidentals (optional)
 * Octave (optional)
 * Duration (optional)
+* Chord (optional)
 * Slur (optional)
 
 For pitched patterns, the note name, accidentals, and octave are
@@ -362,12 +363,15 @@ specified the same way as for sound effects.  For drum patterns,
 one of the names defined in a `drum` command is used instead.
 These commands can be used instead of a note:
 
-* `r` is a rest, which cuts the current note.
+* `r` is a rest, which cuts the current note.  `p` (pause) does
+  the same thing.
 * `w` (wait) does not change the pitch or restart the note.
   This represents a note tied to the previous note.
 * `l` (length) does not play a note or rest but sets the duration
   (see below) for subsequent notes, rests, and waits in a pattern
   that lack their own duration.
+* `q` repeats the previous chord, skipping any intervening notes
+  that have no chord.
 
 Note durations are fractions of a whole note, whose length depends
 on the `scale`.  Recognized note durations include `1`, `2`, `4`,
@@ -394,6 +398,8 @@ a short D, an E taking the remainder of the quarter note, followed
 by a D half note.  Grace note durations never stick.  Be aware that
 grace notes longer than one row have poorly specified effects,
 particularly with the 20 percent longer frames of PAL.
+
+Chord is described below in the "Pattern effects" section.
 
 A note followed by a tilde `~` will not be retriggered but instead
 will be slurred into the following note.  A note followed by a left
@@ -434,12 +440,15 @@ To set the **arpeggio** for a single note in a pitched pattern,
 add `:` after the note's pitch and duration followed by the chord
 name or intervals of the arpeggio.
 For example, `eb'2.:47` makes a dotted half note E flat major chord,
-and `c:m` makes its relative minor, a C minor chord.  To set the
-arpeggio for all subsequent notes in a pattern, use the `EN` command
-followed by a chord name or intervals, such as `EN4A` or `ENdom7`
-for dominant 7th chords or `EN00` or `ENOF` to turn off arpeggio.
-To make the pitch change every 1 frame (fast), use `ENP1`; to make
-it change every 2 frames (slow), use `ENP2`.
+and `c:m` makes its relative minor, a C minor chord.
+
+To set the arpeggio for all subsequent notes in a pattern, use the
+`EN` command followed by a chord name or intervals, such as `EN4A`
+or `ENdom7` for dominant 7th chords or `EN00` or `ENOF` to turn off
+arpeggio.  (LilyPond users: This means you enter chord mode with
+`ENM` and leave chord mode with `ENOF`.)  To make the pitch change
+every 1 frame (fast), use `ENP1`; to make it change every 2 frames
+(slow), use `ENP2`.
 
 **Vibrato** is a subtle pitch slide up and down while a note is held.
 The `MP` (modulate period) command controls vibrato: `MP1` through
