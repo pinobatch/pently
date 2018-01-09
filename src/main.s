@@ -128,12 +128,13 @@ SPRITE_0_BEHIND = $20
   jsr pently_start_music
 
   ; Set up sprite 0 hit, on the same line as the status bar
-  lda #SPRITE_0_TILE
-  sta OAM+1  ; tile number
   lda #STATUS_BAR_TOP * 8 - 1
   sta OAM+0  ; Y position
+  lda #SPRITE_0_TILE
+  sta OAM+1  ; tile number
   lda #SPRITE_0_BEHIND
   sta OAM+2  ; attribute
+  lda #0
   sta OAM+3  ; X position
   sta cyclespeakhi
   sta cyclespeaklo
@@ -246,6 +247,12 @@ forever:
     sta cyclespeakhi
     sta cyclespeaklo
   notUp:
+
+  lda new_keys
+  and #KEY_RIGHT
+  beq notRight
+    jsr vis
+  notRight:
 
   ; Prepare the next frame
   lda #4

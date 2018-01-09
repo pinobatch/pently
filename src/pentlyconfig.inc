@@ -13,8 +13,12 @@ PENTLY_USE_CHANNEL_VOLUME = 1
 PENTLY_USE_SQUARE_POOLING = 1
 PENTLY_USE_MUSIC_IF_LOUDER = 1
 PENTLY_USE_PAL_ADJUST = 1
+
+; Utilities used by that aren't needed unless syncing animation
+; to the audio
 PENTLY_USE_BPMMATH = 1
 PENTLY_USE_ROW_CALLBACK = 0
+PENTLY_USE_VIS = 1
 
 ; Should sound effects be selectable?
 PENTLY_USE_NSF_SOUND_FX = 0

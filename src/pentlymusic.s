@@ -43,7 +43,6 @@ NUM_CHANNELS = 4
 DRUM_TRACK = 12
 ATTACK_TRACK = 16
 MAX_CHANNEL_VOLUME = 4
-ARPPHASE_EXISTS = PENTLY_USE_ARPEGGIO || PENTLY_USE_ATTACK_TRACK
 
 .if PENTLY_USE_ATTACK_TRACK
   LAST_TRACK = ATTACK_TRACK
@@ -71,38 +70,22 @@ ARPPHASE_EXISTS = PENTLY_USE_ARPEGGIO || PENTLY_USE_ATTACK_TRACK
 ; 16  | Conductor track position            Tempo counter
 ; 20  | Play/Pause
 
-; pentlyBSS:
-;       +0                +1                +2                +3
-;  0-15 Sound effect state for channels
-;  0  | Effect rate       Rate counter      Last period MSB   Effect length
-; 16-31 Instrument envelope state for channels
-; 16  | Sustain vol       Note pitch        Attack length     Attack pitch
-; 32-47 Portamento state for channels
-; 32  | Current pitch/256 Current pitch     Portamento rate   (conductor)
-; 48-63 Instrument arpeggio state for channels
-; 48  | Legato enable     Arpeggio phase    Arp interval 1    Arp interval 2
-; 64-83 Instrument vibrato state for channels
-; 67-103 Pattern reader state for tracks
-; 64  | Vibrato depth     Vibrato phase     Channel volume    Note time left
-; 84  | Grace time        Instrument ID     Pattern ID        Transpose amt
-; 104 | Current tempo                       Conductor loop point (segno)
-; 108 End of allocation
-;
+; pentlyBSS: Allocated by mkrammap.py
 ; Noise envelope is NOT unused.  Conductor track cymbals use it.
 
 musicPatternPos = pently_zp_state + 2
 .if PENTLY_USE_ATTACK_PHASE
-noteAttackPos           = pently_zp_state + 16
-conductorPos            = pently_zp_state + 22
-pently_tempoCounterLo   = pently_zp_state + 26
-pently_tempoCounterHi   = pently_zp_state + 27
-pently_music_playing    = pently_zp_state + 30
-attackChannel           = pently_zp_state + 31
+  noteAttackPos           = pently_zp_state + 16
+  conductorPos            = pently_zp_state + 22
+  pently_tempoCounterLo   = pently_zp_state + 26
+  pently_tempoCounterHi   = pently_zp_state + 27
+  pently_music_playing    = pently_zp_state + 30
+  attackChannel           = pently_zp_state + 31
 .else
-conductorPos            = pently_zp_state + 16
-pently_tempoCounterLo   = pently_zp_state + 18
-pently_tempoCounterHi   = pently_zp_state + 19
-pently_music_playing    = pently_zp_state + 20
+  conductorPos            = pently_zp_state + 16
+  pently_tempoCounterLo   = pently_zp_state + 18
+  pently_tempoCounterHi   = pently_zp_state + 19
+  pently_music_playing    = pently_zp_state + 20
 .endif
 
 
@@ -127,15 +110,25 @@ pentlymusicbase: .res pentlymusicbase_size
   .endif
 .endif
 
+; Visualize particular notes within Pen
+.if PENTLY_USE_ARPEGGIO || PENTLY_USE_ATTACK_TRACK
+  pently_vis_arpphase = arpPhase
+.endif
+.if PENTLY_USE_PORTAMENTO
+  pently_vis_note = notePitch
+.else
+  pently_vis_note = chPitchHi
+.endif
+
 .segment PENTLY_RODATA
 pentlymusic_rodata_start = *
 
 FRAMES_PER_MINUTE_PAL = 3000
 FRAMES_PER_MINUTE_NTSC = 3606
 pently_fpmLo:
-  .byt <FRAMES_PER_MINUTE_NTSC, <FRAMES_PER_MINUTE_PAL
+  .byt <FRAMES_PER_MINUTE_NTSC, <FRAMES_PER_MINUTE_PAL, <FRAMES_PER_MINUTE_PAL
 pently_fpmHi:
-  .byt >FRAMES_PER_MINUTE_NTSC, >FRAMES_PER_MINUTE_PAL
+  .byt >FRAMES_PER_MINUTE_NTSC, >FRAMES_PER_MINUTE_PAL, >FRAMES_PER_MINUTE_PAL
 
 silentPattern:  ; a pattern consisting of a single whole rest
   .byt 26*8+7, 255
@@ -242,9 +235,6 @@ new_tick:
 
 .if ::PENTLY_USE_PAL_ADJUST
   ldy tvSystem
-  beq is_ntsc_1
-  ldy #1
-is_ntsc_1:
 .else
   ldy #0
 .endif
@@ -738,10 +728,13 @@ instrument_id = pently_zptemp + 1
     sta noteEnvVol,x
     cpx #DRUM_TRACK
     bcs skipSustainPart
-      .if ::ARPPHASE_EXISTS
+      .if ::PENTLY_USE_ARPEGGIO
         lda #%01000000
         and arpPhase,x
         sta arpPhase,x  ; keep only bit 6: is arp fast
+      .elseif ::PENTLY_USE_ATTACK_TRACK
+        lda #0
+        sta arpPhase,x
       .endif
       .if ::PENTLY_USE_VIBRATO
         lda #23
@@ -794,6 +787,10 @@ out_volume   = pently_zptemp + 2
 out_pitch    = pently_zptemp + 3
 out_pitchadd = pently_zptemp + 4
 
+  .if ::PENTLY_USE_VIS
+    lda #0
+    sta pently_vis_pitchlo,x
+  .endif
   lda pently_music_playing
   bne :+
     jmp silenced
@@ -834,7 +831,7 @@ out_pitchadd = pently_zptemp + 4
     ; Use portamento pitch if not injected
     cpx #DRUM_TRACK
     bcs attack_not_pitched_ch
-      .if ::ARPPHASE_EXISTS
+      .if ::PENTLY_USE_ATTACK_TRACK
         lda arpPhase,x
         asl a
       .else
@@ -1090,6 +1087,9 @@ not_injected:
   .endif
 
   ; At this point, out_pitch:A is the next pitch
+  .if ::PENTLY_USE_VIS
+    sta pently_vis_pitchlo,x
+  .endif
   jsr calc_frac_pitch
   eor #$FF
   clc
@@ -1110,7 +1110,7 @@ not_vibrato = not_vibrato_rts
 ; not vibrato is enabled
 .elseif ::PENTLY_USE_PORTAMENTO
 calc_vibrato:
-  .if ::ARPPHASE_EXISTS
+  .if ::PENTLY_USE_ATTACK_TRACK
     lda arpPhase,x
     bpl not_injected
       lda #0
@@ -1119,6 +1119,9 @@ calc_vibrato:
   .endif
   lda chPitchLo,x
   beq have_pitchadd
+  .if ::PENTLY_USE_VIS
+    sta pently_vis_pitchlo,x
+  .endif
   jsr calc_frac_pitch
   eor #$FF
   clc

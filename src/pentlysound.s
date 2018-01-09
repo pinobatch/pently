@@ -239,6 +239,10 @@ ch_not_done:
   .endif
   .if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
     sty tpitchadd  ; sfx don't support fine pitch adjustment
+    .if ::PENTLY_USE_VIS
+      tya
+      sta pently_vis_pitchlo,x
+    .endif
   .endif
   lda (srclo),y
   sta tvol
@@ -249,7 +253,14 @@ music_was_louder:
   dec sfx_remainlen,x
 
 update_channel_hw:
+  .if ::PENTLY_USE_VIS
+    lda tpitch
+    sta pently_vis_pitchhi,x
+  .endif
   lda tvol
+  .if ::PENTLY_USE_VIS
+    sta pently_vis_dutyvol,x
+  .endif
   ora #$30
   cpx #12
   bne notnoise

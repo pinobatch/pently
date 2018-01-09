@@ -19,7 +19,7 @@ scorename = musicseq
 # Space-separated list of asm files that make up the ROM,
 # whether source code or generated
 objlist := main \
-  pads ppuclear paldetect math bpmmath profiler \
+  pads ppuclear paldetect math bpmmath profiler vis \
   pentlysound pentlymusic $(scorename)
 objlistnsf := nsfshell \
   pentlysound pentlymusic $(scorename)

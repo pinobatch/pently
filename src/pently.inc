@@ -24,6 +24,7 @@
 ; Configuration ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; These default values are used if pentlyconfig.inc is not included.
+; If making build-time decisions, include pentlyconfig.inc first.
 
 ; Enable tvSystem-driven correction for PAL NES and Dendy
 .ifndef PENTLY_USE_PAL_ADJUST
@@ -33,6 +34,11 @@ PENTLY_USE_PAL_ADJUST = 1
 ; Enable row callbacks
 .ifndef PENTLY_USE_ROW_CALLBACK
 PENTLY_USE_ROW_CALLBACK = 0
+.endif
+
+; Write to visualizer registers
+.ifndef PENTLY_USE_VIS
+PENTLY_USE_VIS = 0
 .endif
 
 ; Enable vibrato (sinusoidal pitch modulation with an LFO of
@@ -117,6 +123,11 @@ PENTLY_USE_BPMMATH = 1
 ; (Implemented in bpmmath.s)
 .global pently_get_beat_fraction
 
+; Constant arrays ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Frames per minute for each TV system
+.global pently_fpmLo, pently_fpmHi
+
 ; Fields ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
 ; It's highly discouraged to write to any of these.
@@ -139,7 +150,9 @@ PENTLY_USE_BPMMATH = 1
 ; Will range from -3000 to 0 on PAL or -3606 to 0 on NTSC.
 .globalzp pently_tempoCounterLo, pently_tempoCounterHi
 
-.global pently_fpmLo, pently_fpmHi
+; Used for enhanced visualization
+.global pently_vis_pitchlo, pently_vis_pitchhi, pently_vis_dutyvol
+.global pently_vis_arpphase, pently_vis_note
 
 ; Size (for debugging) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .global PENTLYSOUND_SIZE, PENTLYMUSIC_SIZE

@@ -53,6 +53,12 @@ music_tempoHi    SINGLETON
 conductorWaitRows SINGLETON
 pently_rows_per_beat SINGLETON       BPMMATH
 pently_row_beat_part SINGLETON       BPMMATH
+
+# Visualization
+pently_vis_dutyvol PER_CHANNEL       VIS
+pently_vis_pitchlo PER_CHANNEL       VIS
+pently_vis_pitchhi PER_CHANNEL       VIS
+
 """
 specs = [row.strip() for row in specs.split("\n")]
 specs = [row.split() for row in specs if row and not row.startswith('#')]

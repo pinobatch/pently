@@ -41,6 +41,9 @@ OAM = $0200
 ; ppuclear.s methods
 .global ppu_clear_oam, ppu_clear_nt, ppu_screen_on
 
+; vis.s methods
+.global vis
+
 ; math.s methods
 .global mul8
 
