@@ -254,6 +254,7 @@ Return None (if arp is falsey), 2 hex digits, or '-' followed by
 
     def parse_pitch(self, preoctave, notename, accidental, postoctave, arp):
         arp = self.translate_arp_name(arp)
+        if notename == 'p': notename = 'r'
         if notename in ('r', 'w', 'l'):
             if not (preoctave or accidental or postoctave):
                 # Rests kill a single-note arpeggio.
@@ -792,6 +793,8 @@ class PentlySong(PentlyRenderable):
         self.last_rowtempo = self.segno_linenum = self.last_beatlen = None
         self.conductor = []
         self.bytesize = 2
+        self.rehearsal_marks = {}
+        self.total_rows = 0
 
     def wait_rows(self, rows_to_wait):
         """Updates the tempo and beat duration if needed, then waits some rows."""
@@ -817,6 +820,7 @@ class PentlySong(PentlyRenderable):
             self.bytesize += 1
             self.last_beatlen = beat_length
             
+        self.total_rows += rows_to_wait
         while rows_to_wait > 256:
             self.conductor.append('waitRows 256')
             self.bytesize += 2
@@ -883,6 +887,34 @@ class PentlySong(PentlyRenderable):
         abstract_cmds = [('stopPat', track) for track in tracks_to_stop]
         self.conductor.extend(abstract_cmds)
         self.bytesize += 4 * len(abstract_cmds)
+
+    def add_segno(self, linenum):
+        if self.segno_linenum is not None:
+            raise ValueError("%s: loop point already set at line %d"
+                             % (self.name, self.segno_linenum))
+        self.conductor.append('segno')
+        self.bytesize += 1
+        self.segno_linenum = linenum
+        self.rehearsal_marks['%'] = (self.total_rows, linenum)
+
+    def add_mark(self, markname, linenum):
+        if len(markname) > 24:
+            raise ValueError("mark %s is longer than 24 characters"
+                             % markname)
+        if markname.startswith('%'):
+            raise ValueError("mark names starting with % are reserved")
+
+        try:
+            _, linenum = self.rehearsal_marks[markname]
+        except KeyError:
+            pass
+        else:
+            raise ValueError("%s: mark %s already set on line %d"
+                             % (self.name, markname, linenum))
+
+        self.rehearsal_marks[markname] = (self.total_rows, linenum)
+        print("%s: setting rehearsal mark %s at %d rows"
+              % (self.name, markname, self.total_rows), file=sys.stderr)
 
     def render(self, scopes):
         out = []
@@ -1325,7 +1357,8 @@ tie_rests -- True if track has no concept of a "note off"
         self.asmdata = bytedata
         self.bytesize = sum(len(s.split(',')) for s in bytedata) + 2
 
-# Pass 1: Load
+# Pass 1: Load objects ##############################################
+
 class PentlyInputParser(object):
 
     def __init__(self):
@@ -1521,8 +1554,8 @@ Used to find the target of a time, scale, durations, or notenames command.
             endcmd = 'dalSegno'
         elif words in ('da capo', 'dacapo'):
             if song.segno_linenum is not None:
-                raise ValueError("cannot loop to start because segno was set on line %d"
-                                 % song.segno_linenum)
+                raise ValueError("%s: cannot loop to start because segno was set on line %d"
+                                 % (song.name, song.segno_linenum))
             endcmd = 'dalSegno'
         else:
             raise ValueError('song end must be "fine" or "dal segno" or "da capo", not '
@@ -1533,17 +1566,22 @@ Used to find the target of a time, scale, durations, or notenames command.
 
     def add_segno(self, words):
         if len(words) > 1:
-            raise ValueError('segno takes no arguments')
-        if not self.cur_song:
-            raise ValueError("no song is open")
+            raise ValueError("segno takes no arguments")
         song = self.cur_song
-        if song.segno_linenum is not None:
-            raise ValueError('loop point for song %s was already set at line %d'
-                             % (self.cur_song.name, self.segno_linenum))
-        song.conductor.append('segno')
-        song.bytesize += 1
-        song.segno_linenum = self.linenum
+        if not song:
+            raise ValueError("no song is open")
+        song.add_segno(self.linenum)
         self.cur_obj = None
+
+    def add_mark(self, words):
+        if len(words) == 1:
+            raise ValueError("mark requires a name (which may contain spaces)")
+        markname = ' '.join(words[1:])
+        song = self.cur_song
+        if not song:
+            raise ValueError("mark %s encountered outside song"
+                             % markname)
+        song.add_mark(markname, self.linenum)
 
     def add_time(self, words):
         if len(words) < 2:
@@ -1704,6 +1742,7 @@ Used to find the target of a time, scale, durations, or notenames command.
         'da': end_song,
         'daCapo': end_song,
         'segno': add_segno,
+        'mark': add_mark,
         'time': add_time,
         'scale': add_scale,
         'attack': add_attack,

@@ -270,7 +270,7 @@ song argument
   
   at 21
   stop pulse2
-  
+
   at 25
   pattern intro_dut on pulse2 with dut
     eb2. r eb r
@@ -278,6 +278,7 @@ song argument
   play intro_dut
   
   at 33
+  mark add bass
   pattern bass with bass on triangle
     a,4 a8 a,4 a8  a,4 a a,
     c4 c'8 c4 c'8  c4 c' c4
@@ -314,6 +315,7 @@ song argument
   play melody up 12
   
   at 97
+  mark descending chords
   pattern descendingchords on pulse2 with bf98_flute2
     relative
     e''8 c a e c a e c a e c a
@@ -329,7 +331,7 @@ song argument
     r4 b, c d2.    r4 d e f#2.
   stop pulse1
   play twinkle
-  
+
   at 145
   play tubbassloop up 12 on pulse1
   play melody up 12
@@ -348,6 +350,7 @@ song argument
   play bass up 12 on pulse1 with bf98_flute2
 
   at 177
+  mark cadenza
   pattern cadenzabass on pulse1 with tubbass_slow
     a,2. w c w g, w d w
   pattern cadenza on pulse2 with bf98_flute2
@@ -380,6 +383,7 @@ song argument
   play cadenzaend3
   
   at 209
+  mark B: 6/8
   pickup 1
   time 6/8
   scale 8
@@ -442,6 +446,7 @@ song argument
   play harmony68_3
 
   at 65
+  mark second melody
   play drum68top
   play melody68
   play drum68allkick
@@ -587,7 +592,8 @@ song Isometry
   play trifill on pulse2 with banjo down 24
   play trifill
 
-  # rest between sets
+  at 17
+  mark rest between sets
   pattern restperiod1 on pulse1 with isopiano
     relative
     f4. gb ab4 w1
@@ -597,7 +603,6 @@ song Isometry
     db4. eb fb4 w1
     db4. eb f4 w1
 
-  at 17
   stop pulse2
   play triosti
   play triosti on pulse2 with isobeepsq down 24
@@ -905,6 +910,8 @@ song canon
   play melody
   at 5
   play melody on pulse1 with fiddle2
+  at 19
+  mark 32nd notes
   at 56:2
   tempo 50
   at 56:3
@@ -998,6 +1005,7 @@ song bf98
   play thirdsA
 
   at 33
+  mark B section
   pattern melodyB1 on pulse2 with bf98_flute
     relative
     r4 a'8 c#4 e8 c#4 r8
@@ -1064,6 +1072,7 @@ song bf98
   stop pulse1 pulse2
 
   at 49
+  mark break
   play drums
   play bassA
   
@@ -1133,6 +1142,7 @@ song arp_waltz
   play bass2
   
   at 21
+  mark interlude
   play interlude
   play bass1
   
@@ -1231,6 +1241,7 @@ song stairs
   play introg down 24 with tubbass
 
   at 17
+  mark rolls
   pattern lead2 on pulse2 with banjo
     g4 b8 d4 d'8   g4 b8 d4 d'8
     g4 c'8 e4 e'8  g4 c'8 e4 e'8
@@ -1261,7 +1272,7 @@ song attacktest
   scale 8
   tempo 85.9
   # This is technically in New Jack Swing time, where the second 
-  # division to be compound instead of the first, but there's no
+  # division is compound instead of the first, but there's no
   # classical time sig for NJS.  So instead, we choose a time
   # signature that forces the correct beat length (dotted half).
 
@@ -1296,7 +1307,3 @@ song attacktest
   at 5
   da capo
 
-# Last thing before release:
-# Add conductor note ("cymbal") support to pentlyas for bf98
-# Add twinkle to this file
-# Name the compiler
