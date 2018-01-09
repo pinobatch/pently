@@ -105,7 +105,7 @@ $(objdir)/bpmmath.o $(objdir)/nsfshell.o: $(srcdir)/pentlyconfig.inc
 $(objdir)/pentlymusic.o: $(objdir)/pentlybss.inc
 
 # Files that depend on .incbin'd files
-$(objdir)/main.o: tracknames.txt $(objdir)/bggfx.chr
+$(objdir)/main.o: tracknames.txt $(objdir)/bggfx.chr $(objdir)/spritegfx.chr
 
 # Build RAM map
 $(objdir)/pentlybss.inc: tools/mkrammap.py $(srcdir)/pentlyconfig.inc

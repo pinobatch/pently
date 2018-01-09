@@ -55,6 +55,9 @@ CYCLES_ADDR = STATUS_BAR_ADDR + 32 * 1 + 25
 ROM_SIZE_ADDR = STATUS_BAR_ADDR + 32 * 2 + 2
 WORD_PEAK_ADDR = STATUS_BAR_ADDR + 32 * 2 + 21
 PEAK_ADDR = WORD_PEAK_ADDR + 4
+KEYBOARD_TOP = 20
+KEYBOARD_ADDR = $2400 + 32 * KEYBOARD_TOP + 2
+TRACKMUTE_ADDR = STATUS_BAR_ADDR + $400 + (30 - 15)
 
 .segment "INESHDR"
   .byt "NES",$1A  ; magic signature
@@ -91,6 +94,10 @@ PEAK_ADDR = WORD_PEAK_ADDR + 4
   rti
 .endproc
 
+
+SPRITE_0_TILE = $07
+SPRITE_0_BEHIND = $20
+
 ; 
 .proc reset
   ; The very first thing to do when powering on is to put all sources
@@ -115,18 +122,17 @@ PEAK_ADDR = WORD_PEAK_ADDR + 4
   ; Initialize used memory
   jsr pently_init
   jsr display_tracknames
-  jsr clear_rehearsal
   
   lda #0
   sta cur_song
   jsr pently_start_music
 
   ; Set up sprite 0 hit, on the same line as the status bar
-  lda #2
+  lda #SPRITE_0_TILE
   sta OAM+1  ; tile number
   lda #STATUS_BAR_TOP * 8 - 1
   sta OAM+0  ; Y position
-  lda #0
+  lda #SPRITE_0_BEHIND
   sta OAM+2  ; attribute
   sta OAM+3  ; X position
   sta cyclespeakhi
@@ -201,7 +207,7 @@ forever:
   ; Turn the display on
   ldy #0
   ldx #0
-  lda #VBLANK_NMI|BG_0000|OBJ_0000
+  lda #VBLANK_NMI|BG_0000|OBJ_1000
   sec
   jsr ppu_screen_on
 
@@ -334,6 +340,8 @@ copypal:
   tay
   ldx #$20
   jsr ppu_clear_nt
+  ldx #$24
+  jsr ppu_clear_nt
 
 src = $00
 dst = $02
@@ -352,59 +360,107 @@ dst = $02
   ldy #<bytes_txt
   lda #>bytes_txt
   jsr puts_multiline_ay
-  lda #$20
-.endproc
+  
+  ; Draw the status bar
+  lda #>STATUS_BAR_ADDR
+  jsr statusdivider
+  lda #>(STATUS_BAR_ADDR + $400)
+  jsr statusdivider
 
-;;
-; Draw the status bar on a nametable.
-; @param A $20, $24, $28, or $2C
-.proc draw_status_bar_top
-whichnt = $00
-  ora #>STATUS_BAR_ADDR
-  sta whichnt
+  ; Draw horizontal ascending tile strips (status bar, etc.)
+  lda #<status_strips
+  sta $5555
+  sta src+0
+  lda #>status_strips
+  sta src+1
+  statusloop:
+    ldy #0
+    lda (src),y
+    bmi statusdone
+    sta PPUADDR
+    iny
+    lda (src),y
+    sta PPUADDR
+    iny
+    lda (src),y
+    tax
+    iny
+    lda (src),y
+    tay
+    clc
+    lda src+0
+    adc #4
+    sta src+0
+    bcc copyloop
+      inc src+1
+    copyloop:
+      stx PPUDATA
+      inx
+      dey
+      bne copyloop
+    beq statusloop
+  statusdone:
+  rts
+
+statusdivider:
   sta PPUADDR
   lda #<STATUS_BAR_ADDR
   sta PPUADDR
-  lda #$02  ; status bar top blank tile
+  lda #2
   ldx #32
   :
     sta PPUDATA
     dex
     bne :-
-
-  ; Draw graphics in top of status bar
-  ldx #$08  ; "Pently demo"
-  lda #<STATUS_BAR_ADDR + 2
-  ldy #8
-  jsr logopart
-
-  ldx #$14  ; "Copr. 20xx Damian Yerrick"
-  lda #<STATUS_BAR_ADDR + 30 - 12
-  ldy #12
-logopart:
-  pha
-  lda whichnt
-  sta PPUADDR
-  pla
-  sta PPUADDR
-  logoloop:
-    stx PPUDATA
-    inx
-    dey
-    bne logoloop
   rts
 .endproc
 
-.proc clear_rehearsal
-  ldx #$24
-  lda #' '
-  ldy #0
-  tay
-  jsr ppu_clear_nt
-  lda #$24
-  jmp draw_status_bar_top
-.endproc
+.rodata
+status_strips:
+  ; "Pently demo"
+  .dbyt STATUS_BAR_ADDR + 2
+  .byte $08, 8
+  .dbyt STATUS_BAR_ADDR + $400 + 2
+  .byte $08, 8
+  ; Copyright notice
+  .dbyt STATUS_BAR_ADDR + 18
+  .byte $14, 12
+  ; Mute notice for each track
+  .dbyt TRACKMUTE_ADDR + 1
+  .byte $EA, 2
+  .dbyt TRACKMUTE_ADDR + 4
+  .byte $FA, 2
+  .dbyt TRACKMUTE_ADDR + 7
+  .byte $EC, 2
+  .dbyt TRACKMUTE_ADDR + 10
+  .byte $FC, 2
+  .dbyt TRACKMUTE_ADDR + 13
+  .byte $EE, 2
+  ; Keyboard
+  .dbyt KEYBOARD_ADDR
+  .byte $E0, 10
+  .dbyt KEYBOARD_ADDR + 10
+  .byte $E1, 9
+  .dbyt KEYBOARD_ADDR + 19
+  .byte $E1, 9
+  .dbyt KEYBOARD_ADDR + 32
+  .byte $E0, 10
+  .dbyt KEYBOARD_ADDR + 32 + 10
+  .byte $E1, 9
+  .dbyt KEYBOARD_ADDR + 32 + 19
+  .byte $E1, 9
+  .dbyt KEYBOARD_ADDR + 64
+  .byte $F0, 10
+  .dbyt KEYBOARD_ADDR + 64 + 10
+  .byte $F1, 9
+  .dbyt KEYBOARD_ADDR + 64 + 19
+  .byte $F1, 9
+  ; Terminator
+  .byte $FF
 
+.code
+
+RIGHT_ARROW_SPRITE_TILE = $14
 ;;
 ; @param Y vertical position
 ; @param X horizontal position
@@ -422,7 +478,7 @@ xpos = 3
   sec
   sbc #4
   sta OAM,x
-  lda #'>'
+  lda #RIGHT_ARROW_SPRITE_TILE
   sta OAM+1,x
   lda xpos
   sta OAM+3,x
@@ -453,3 +509,4 @@ main_palette:
 
 .segment "CHR"
   .incbin "obj/nes/bggfx.chr"
+  .incbin "obj/nes/spritegfx.chr"
