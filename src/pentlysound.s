@@ -191,7 +191,12 @@ tpitchadd = pently_zptemp + 4
   lda sfx_remainlen,x
   ora sfx_ratecd,x
   bne ch_not_done
+  
+  ; Only music is playing
   lda tvol
+  .if ::PENTLY_USE_VIS
+    sta pently_vis_dutyvol,x
+  .endif
   bne update_channel_hw
 
   ; Turn off the channel and force a reinit of the length counter.

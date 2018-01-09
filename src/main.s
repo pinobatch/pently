@@ -249,10 +249,10 @@ forever:
   notUp:
 
   lda new_keys
-  and #KEY_RIGHT
-  beq notRight
+  and #KEY_RIGHT|KEY_A
+  beq notEnterVis
     jsr vis
-  notRight:
+  notEnterVis:
 
   ; Prepare the next frame
   lda #4
@@ -376,7 +376,6 @@ dst = $02
 
   ; Draw horizontal ascending tile strips (status bar, etc.)
   lda #<status_strips
-  sta $5555
   sta src+0
   lda #>status_strips
   sta src+1
@@ -512,7 +511,7 @@ bytes_txt:
 
 main_palette:
   .byt $0F,$00,$10,$30, $0F,$00,$10,$30, $0F,$00,$10,$30, $0F,$00,$10,$30
-  .byt $0F,$00,$10,$30, $0F,$00,$10,$30, $0F,$00,$10,$30, $0F,$00,$10,$30
+  .byt $0F,$26,$10,$30, $0F,$2A,$10,$30, $0F,$12,$10,$30, $0F,$00,$10,$30
 
 .segment "CHR"
   .incbin "obj/nes/bggfx.chr"
