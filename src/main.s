@@ -60,7 +60,7 @@ PEAK_ADDR = WORD_PEAK_ADDR + 4
   .byt "NES",$1A  ; magic signature
   .byt 1          ; PRG ROM size in 16384 byte units
   .byt 1          ; CHR ROM size in 8192 byte units
-  .byt $00        ; mirroring type and mapper number lower nibble
+  .byt $01        ; mirroring type and mapper number lower nibble
   .byt $00        ; mapper number upper nibble
 
 .segment "VECTORS"
@@ -114,7 +114,8 @@ PEAK_ADDR = WORD_PEAK_ADDR + 4
 
   ; Initialize used memory
   jsr pently_init
-  jsr display_todo
+  jsr display_tracknames
+  jsr clear_rehearsal
   
   lda #0
   sta cur_song
@@ -314,7 +315,7 @@ dst = $02
   rts
 .endproc
 
-.proc display_todo
+.proc display_tracknames
   lda #VBLANK_NMI
   ldx #$00
   ldy #$3F
@@ -351,9 +352,16 @@ dst = $02
   ldy #<bytes_txt
   lda #>bytes_txt
   jsr puts_multiline_ay
+  lda #$20
+.endproc
 
-  ; Draw top of status bar
-  lda #>STATUS_BAR_ADDR
+;;
+; Draw the status bar on a nametable.
+; @param A $20, $24, $28, or $2C
+.proc draw_status_bar_top
+whichnt = $00
+  ora #>STATUS_BAR_ADDR
+  sta whichnt
   sta PPUADDR
   lda #<STATUS_BAR_ADDR
   sta PPUADDR
@@ -375,7 +383,7 @@ dst = $02
   ldy #12
 logopart:
   pha
-  lda #>STATUS_BAR_ADDR
+  lda whichnt
   sta PPUADDR
   pla
   sta PPUADDR
@@ -385,6 +393,16 @@ logopart:
     dey
     bne logoloop
   rts
+.endproc
+
+.proc clear_rehearsal
+  ldx #$24
+  lda #' '
+  ldy #0
+  tay
+  jsr ppu_clear_nt
+  lda #$24
+  jmp draw_status_bar_top
 .endproc
 
 ;;
