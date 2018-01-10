@@ -1,20 +1,54 @@
 .include "pentlyconfig.inc"
 .include "pently.inc"
-.if PENTLY_USE_VIS  ; Skip the whole thing if visualization is off
 .include "nes.inc"
 .include "shell.inc"
 
+; At first, the plan was to make the visualization/rehearsal screen
+; inaccessible.  But later, it was decided to put the track muting
+; controls in the same screen.
+
+; TODO:
+; [ ] Color vis channels for sfx injection
+; [ ] Display song name from tracknames.txt
+; [ ] Store rehearsal marks in file
+; [ ] Display rehearsal marks
+; [ ] Count overall rows waited
+; [ ] Display arrow at current rehearsal mark
+; [ ] Skip a given number of rows
+; [ ] Channel muting
+
 .zeropage
 vis_to_clear: .res 1
-vis_num_song_sections: .res 1
-vis_song_sections_ok: .res 1
+.if PENTLY_USE_REHEARSAL
+  vis_num_song_sections: .res 1
+  vis_song_sections_ok: .res 1
+.endif
+
+; Injection palette
+.if PENTLY_USE_VIS
+  vis_pulse1_color: .res 1
+  vis_pulse2_color: .res 1
+  vis_tri_color: .res 1
+  vis_noise_color: .res 1
+.endif
+
+CH_TRI = $08
+CH_NOISE = $0C
+CH_END = $10
 
 .code
 .proc vis
-  lda #0
-  sta vis_song_sections_ok
-  lda #2
-  sta vis_to_clear
+  .if ::PENTLY_USE_REHEARSAL
+    lda #0
+    sta vis_song_sections_ok
+    sta vis_num_song_sections
+    lda #2
+    sta vis_to_clear
+  .else
+    lda #1
+    sta vis_to_clear
+  .endif
+
   ldx #4
   stx oam_used
 vis_loop:
@@ -26,6 +60,8 @@ vis_loop:
   :
     cmp nmis
     beq :-
+
+  ; Clearing nametable must be FAST
   lda vis_to_clear
   beq vis_cleared
     jsr vis_clear_part
@@ -34,15 +70,41 @@ vis_loop:
   vis_cleared:
     lda #>OAM
     sta OAM_DMA
+    .if ::PENTLY_USE_VIS
+      ; Update palette
+      lda #$3F
+      sta PPUADDR
+      lda #$11
+      sta PPUADDR
+      lda vis_pulse1_color
+      ldx vis_noise_color
+      sta PPUDATA
+      stx PPUDATA
+      bit PPUDATA
+      bit PPUDATA
+      lda vis_pulse2_color
+      sta PPUDATA
+      bit PPUDATA
+      bit PPUDATA
+      bit PPUDATA
+      lda vis_tri_color
+      sta PPUDATA
+    .endif
+
     lda #VBLANK_NMI|OBJ_1000|BG_0000|1
   have_which_nt:
+
   ldx #0
   ldy #0
   sec
   jsr ppu_screen_on
   jsr pently_update
   jsr read_pads
-  jsr vis_update_obj
+  ldx #4
+  stx oam_used
+  .if ::PENTLY_USE_VIS
+    jsr vis_update_obj
+  .endif
 
   lda new_keys
   and #KEY_B|KEY_LEFT
@@ -76,11 +138,9 @@ vis_done:
 .endproc
 
 
-CH_TRI = $08
-CH_DRUM = $0C
-CH_END = $10
-
 VIS_PITCH_Y = 183
+
+.if PENTLY_USE_VIS
 
 .proc vis_update_obj
 semitonenum = $08
@@ -90,7 +150,6 @@ ch = $0B
 semitone_xlo = $0C
 semitone_xhi = $0D
 
-  sta $5555
   ldy #4
   ldx #0
   ; Y: OAM index; X: channel
@@ -106,6 +165,36 @@ semitone_xhi = $0D
     cpx #CH_END
     bcc chloop
   sty oam_used
+
+  ; Calculate palette based on attack injection
+  ldx #$20
+  lda pently_vis_arpphase+0
+  bmi pulse1_injected
+    ldx #$26
+  pulse1_injected:
+  stx vis_pulse1_color
+
+  ldx #$20
+  lda pently_vis_arpphase+4
+  bmi pulse2_injected
+    ldx #$2A
+  pulse2_injected:
+  stx vis_pulse2_color
+
+  ldx #$20
+  lda pently_vis_arpphase+CH_TRI
+  bmi tri_injected
+    ldx #$12
+  tri_injected:
+  stx vis_tri_color
+
+  ; Calculate noise palette based on color
+  ldx #$10
+  lda pently_vis_pitchhi+CH_NOISE
+  bpl noise_is_hiss
+    ldx #$28
+  noise_is_hiss:
+  stx vis_noise_color
   rts
     
 ch_not_silent:
@@ -117,16 +206,16 @@ ch_not_silent:
   sta effective_vol
 
   lda pently_vis_pitchhi,x
-  cpx #CH_DRUM
-  bne st_not_drum
+  cpx #CH_NOISE
+  bne st_not_noise
     stx semitone_xlo
     and #$0F
     tax
     lda noise_to_sprite_x,x
     ldx semitone_xlo
     jmp have_semitone_xhi
-  st_not_drum:
-    
+  st_not_noise:
+
   ; Triangle draws the lowest octave as hollow and the other
   ; octaves as solid, except offset an octave to the left because
   ; it sounds an octave below pulse.
@@ -198,7 +287,6 @@ have_semitone_xhi:
   jmp next_channel
 .endproc
 
-
 .rodata
 
 vis_ch_whitekey_y:
@@ -221,6 +309,5 @@ noise_to_sprite_x:
   ; The following are not to scale with the rest of the keyboard.
   ; If they were, they'd lie to the left of the keyboard's left edge.
   .byte 10, 8, 6, 3, 0
-
 
 .endif  ; PENTLY_USE_VIS

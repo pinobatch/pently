@@ -41,6 +41,11 @@ PENTLY_USE_ROW_CALLBACK = 0
 PENTLY_USE_VIS = 0
 .endif
 
+; Enable seeking to rehearsal marks
+.ifndef PENTLY_USE_REHEARSAL
+PENTLY_USE_REHEARSAL = 0
+.endif
+
 ; Enable vibrato (sinusoidal pitch modulation with an LFO of
 ; period 12 frames)
 .ifndef PENTLY_USE_VIBRATO
