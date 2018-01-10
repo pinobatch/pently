@@ -4,18 +4,17 @@
 .include "shell.inc"
 
 ; At first, the plan was to make the visualization/rehearsal screen
-; inaccessible.  But later, it was decided to put the track muting
-; controls in the same screen.
+; inaccessible unless visualization or rehearsal is enabled.  It was
+; later decided to put the track muting controls in the same screen.
 
 ; TODO:
-; [ ] Color vis channels for sfx injection
 ; [ ] Display song name from tracknames.txt
 ; [ ] Store rehearsal marks in file
 ; [ ] Display rehearsal marks
 ; [ ] Count overall rows waited
 ; [ ] Display arrow at current rehearsal mark
 ; [ ] Skip a given number of rows
-; [ ] Channel muting
+; [ ] Track muting
 
 .zeropage
 vis_to_clear: .res 1
@@ -139,6 +138,7 @@ vis_done:
 
 
 VIS_PITCH_Y = 183
+TARGET_NOTE_DOT_TILE = $13
 
 .if PENTLY_USE_VIS
 
@@ -146,18 +146,26 @@ VIS_PITCH_Y = 183
 semitonenum = $08
 overtone_x = $09
 effective_vol = $0A
-ch = $0B
 semitone_xlo = $0C
 semitone_xhi = $0D
 
   ldy #4
-  ldx #0
+
   ; Y: OAM index; X: channel
+  ldx #0
   chloop:
+    ; Draw pitch/volume marks
     lda pently_vis_dutyvol,x
     and #$0F
-    bne ch_not_silent
-  next_channel:
+    beq pitchvol_mark_done  ; Draw no such mark for silent channels
+      jmp draw_pitchvol_mark
+    pitchvol_mark_done:
+
+    ; Draw target note marks for pulse 1, pulse 2 and triangle
+    cpx #CH_NOISE
+    bcs target_note_mark_done
+      jmp draw_target_note_mark
+    target_note_mark_done:
     inx
     inx
     inx
@@ -197,7 +205,7 @@ semitone_xhi = $0D
   stx vis_noise_color
   rts
     
-ch_not_silent:
+draw_pitchvol_mark:
   lsr a
   cpx #CH_TRI
   bne :+
@@ -261,30 +269,87 @@ have_semitone_xhi:
   sta OAM+2,y
   lda semitone_xhi
   sta OAM+3,y
+  iny
+  iny
+  iny
+  iny
 
   cpx #CH_TRI
   bne no_overtone_mark
   clc
   adc overtone_x
   bcs no_overtone_mark
-    sta OAM+7,y
+    sta OAM+3,y
     lda #VIS_PITCH_Y
-    sta OAM+4,y
+    sta OAM+0,y
     lda #$12  ; triangle overtone mark
-    sta OAM+5,y
+    sta OAM+1,y
     lda #$02  ; triangle attribute
-    sta OAM+6,y
+    sta OAM+2,y
     iny
     iny
     iny
     iny
   no_overtone_mark:
-    
+  jmp pitchvol_mark_done
+
+draw_target_note_mark:
+  ; First, is this a black key or a white key?
+  lda pently_vis_note,x
+  cmp #96
+  bcc :+
+    sbc #96
+  :
+  cmp #48
+  bcc :+
+    sbc #48
+  :
+  cmp #24
+  bcc :+
+    sbc #24
+  :
+  cmp #12
+  bcc :+
+    sbc #12
+  :
+  
+  stx semitone_xlo
+  tax
+  lda whitekey_pos,x
+  lsr a
+  ldx semitone_xlo
+  sta semitone_xhi
+  
+  lda vis_ch_whitekey_y,x
+  bcc :+
+    lda vis_ch_blackkey_y,x
+  :
+  sta OAM+0,y
+  lda #TARGET_NOTE_DOT_TILE
+  sta OAM+1,y
+  lda vis_ch_attribute,x
+  sta OAM+2,y
+  
+  ; Find the X position of the mark
+  lda pently_vis_note,x
+  cpx #CH_TRI
+  bne target_not_trioctave
+  cmp #12
+  bcc target_not_trioctave
+    sbc #12
+  target_not_trioctave:
+  sta semitonenum
+  asl a
+  clc
+  adc semitonenum
+  clc
+  adc semitone_xhi
+  sta OAM+3,y
   iny
   iny
   iny
   iny
-  jmp next_channel
+  jmp target_note_mark_done
 .endproc
 
 .rodata
@@ -295,8 +360,8 @@ vis_ch_whitekey_y:
   ; 2. Tile base (for volume)
   ; 3. attribute
   .byte 170, 157, $00, 0
-  .byte 174, 161, $00, 1
-  .byte 177, 165, $10, 2
+  .byte 172, 161, $00, 1
+  .byte 174, 165, $10, 2
   .byte 255, 255, $08, 0
 vis_ch_blackkey_y = vis_ch_whitekey_y + 1
 vis_ch_vol_tiles = vis_ch_whitekey_y + 2
@@ -309,5 +374,20 @@ noise_to_sprite_x:
   ; The following are not to scale with the rest of the keyboard.
   ; If they were, they'd lie to the left of the keyboard's left edge.
   .byte 10, 8, 6, 3, 0
+
+whitekey_pos:
+  .byte 16*2+0
+  .byte       16*2+1
+  .byte 15*2+0
+  .byte 17*2+0
+  .byte       16*2+1
+  .byte 16*2+0
+  .byte       16*2+1
+  .byte 15*2+0
+  .byte 17*2+0
+  .byte       16*2+1
+  .byte 16*2+0
+  .byte       16*2+1
+
 
 .endif  ; PENTLY_USE_VIS
