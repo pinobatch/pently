@@ -23,6 +23,7 @@
 
 .include "nes.inc"
 .include "shell.inc"
+.include "pentlyconfig.inc"
 .include "pently.inc"
 
 .import getTVSystem
@@ -248,11 +249,13 @@ forever:
     sta cyclespeaklo
   notUp:
 
-  lda new_keys
-  and #KEY_RIGHT|KEY_A
-  beq notEnterVis
-    jsr vis
-  notEnterVis:
+  .if ::PENTLY_USE_VIS
+    lda new_keys
+    and #KEY_RIGHT|KEY_A
+    beq notEnterVis
+      jsr vis
+    notEnterVis:
+  .endif
 
   ; Prepare the next frame
   lda #4

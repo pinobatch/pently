@@ -87,6 +87,8 @@ semitonenum = $08
 overtone_x = $09
 effective_vol = $0A
 ch = $0B
+semitone_xlo = $0C
+semitone_xhi = $0D
 
   sta $5555
   ldy #4
@@ -117,8 +119,12 @@ ch_not_silent:
   lda pently_vis_pitchhi,x
   cpx #CH_DRUM
   bne st_not_drum
-    lda #<-2
-    bne have_semitonenum
+    stx semitone_xlo
+    and #$0F
+    tax
+    lda noise_to_sprite_x,x
+    ldx semitone_xlo
+    jmp have_semitone_xhi
   st_not_drum:
     
   ; Triangle draws the lowest octave as hollow and the other
@@ -140,6 +146,22 @@ ch_not_silent:
     :
   have_semitonenum:
   sta semitonenum
+  sta semitone_xhi
+  lda pently_vis_pitchlo,x
+  asl a
+  rol semitone_xhi
+  sta semitone_xlo
+  clc
+  adc pently_vis_pitchlo,x
+  bpl :+
+    inc semitone_xhi
+  :
+  lda semitonenum
+  adc semitone_xhi
+  clc
+  adc #16
+have_semitone_xhi:
+  sta semitone_xhi
 
   lda #VIS_PITCH_Y  ; Y position
   sta OAM+0,y
@@ -148,13 +170,7 @@ ch_not_silent:
   sta OAM+1,y
   lda vis_ch_attribute,x
   sta OAM+2,y
-
-  lda semitonenum
-  asl a
-  clc
-  adc semitonenum
-  clc
-  adc #16
+  lda semitone_xhi
   sta OAM+3,y
 
   cpx #CH_TRI
@@ -198,6 +214,13 @@ vis_ch_blackkey_y = vis_ch_whitekey_y + 1
 vis_ch_vol_tiles = vis_ch_whitekey_y + 2
 vis_ch_attribute = vis_ch_whitekey_y + 3
 
+; Approximate X positions of noise pitches, assuming 93-step
+; waveform.
+noise_to_sprite_x:
+  .byte 248, 212, 176, 140, 104, 83, 68, 57, 45, 33, 12
+  ; The following are not to scale with the rest of the keyboard.
+  ; If they were, they'd lie to the left of the keyboard's left edge.
+  .byte 10, 8, 6, 3, 0
 
 
 .endif  ; PENTLY_USE_VIS
