@@ -27,6 +27,7 @@ from __future__ import with_statement, division, print_function
 # The above features are available by default in Python 3, but
 # declaring them anyway makes a cleaner error message on Python 2
 # for Windows, which is the default IDLE on many Windows PCs
+import os
 import sys
 import json
 import re
@@ -500,8 +501,9 @@ class PentlyRenderable(object):
 
     nonalnumRE = re.compile("[^a-zA-Z0-9]")
 
-    def __init__(self, name=None, linenum=None):
+    def __init__(self, name=None, linenum=None, warn=None):
         self.name, self.linenum = name, linenum
+        self.warn = warn
         self.asmdataname = self.asmdata = None
         self.asmdataprefix = ''
         self.bytesize = 0
@@ -526,8 +528,8 @@ class PentlyRenderable(object):
 
 class PentlyEnvelopeContainer(PentlyRenderable):
 
-    def __init__(self, name=None, linenum=None):
-        super().__init__(name, linenum)
+    def __init__(self, name=None, linenum=None, warn=None):
+        super().__init__(name, linenum, warn=warn)
         self.timbre = self.volume = self.pitch = None
         self.pitch_looplen = self.timbre_looplen = 1
 
@@ -638,13 +640,12 @@ If not overridden, this abstract method raises NotImplementedError.
 
 class PentlyInstrument(PentlyEnvelopeContainer):
 
-    def __init__(self, name=None, linenum=None):
+    def __init__(self, name=None, linenum=None, warn=None):
         """Set up a new instrument.
 
 name, linenum -- used in duplicate error messages
-
 """
-        super().__init__(name, linenum)
+        super().__init__(name, linenum, warn=warn)
         self.detached = self.decay = None
 
     def set_decay(self, rate, linenum=None):
@@ -710,14 +711,15 @@ This is equivalent to an "absolute" arpeggio envelope in FamiTracker.
 
 class PentlySfx(PentlyEnvelopeContainer):
 
-    def __init__(self, channel_type, pitchctx=None, name=None, linenum=None):
+    def __init__(self, channel_type, pitchctx=None, name=None,
+                 linenum=None, warn=None):
         """Set up a new sound effect.
 
 channel_type -- 0 for pulse, 2 for triangle, or 3 for noise
 name, linenum -- used in duplicate error messages
 
 """
-        super().__init__(name, linenum)
+        super().__init__(name, linenum, warn=warn)
         self.rate, self.channel_type = None, channel_type
         self.pitchctx = PentlyPitchContext(pitchctx)
         octave_mode = 'noise' if channel_type == 3 else 'absolute'
@@ -781,8 +783,8 @@ class PentlyDrum(PentlyRenderable):
 
     drumnameRE = re.compile('([a-zA-Z_].*[a-zA-Z_])$')
 
-    def __init__(self, sfxnames, name, linenum=None):
-        super().__init__(name, linenum)
+    def __init__(self, sfxnames, name, linenum=None, warn=None):
+        super().__init__(name, linenum, warn=warn)
         if not self.drumnameRE.match(name):
             raise ValueError("drum names must begin and end with letter or '_'")
         self.sfxnames = sfxnames
@@ -798,8 +800,8 @@ class PentlyDrum(PentlyRenderable):
 class PentlySong(PentlyRenderable):
 
     def __init__(self, pitchctx=None, rhyctx=None,
-                 name=None, linenum=None):
-        super().__init__(name, linenum)
+                 name=None, linenum=None, warn=None):
+        super().__init__(name, linenum, warn=warn)
         self.pitchctx = PentlyPitchContext(pitchctx)
         self.rhyctx = PentlyRhythmContext(rhyctx)
         self.rhyctx.tempo = 100.0
@@ -807,7 +809,7 @@ class PentlySong(PentlyRenderable):
         self.conductor = []
         self.bytesize = 2
         self.rehearsal_marks = {}
-        self.total_rows = 0
+        self.total_rows = self.last_mark_rows = 0
 
     def wait_rows(self, rows_to_wait):
         """Updates the tempo and beat duration if needed, then waits some rows."""
@@ -912,7 +914,17 @@ class PentlySong(PentlyRenderable):
 
     def add_mark(self, markname, linenum):
         if len(markname) > 24:
-            raise ValueError("mark %s is longer than 24 characters"
+            raise ValueError("name of mark %s exceeds 24 characters"
+                             % markname)
+        try:
+            markname.encode('ascii', errors='strict')
+        except UnicodeError:
+            self.warn("mark %s contains non-ASCII characters" % markname)
+            markname = markname.encode('ascii', errors='replace')
+            markname = markname.decode('ascii')
+            
+        if self.total_rows <= self.last_mark_rows:
+            raise ValueError("no time between mark %s and preceding mark"
                              % markname)
         if markname.startswith('%'):
             raise ValueError("mark names starting with % are reserved")
@@ -926,8 +938,7 @@ class PentlySong(PentlyRenderable):
                              % (self.name, markname, linenum))
 
         self.rehearsal_marks[markname] = (self.total_rows, linenum)
-        print("%s: setting rehearsal mark %s at %d rows"
-              % (self.name, markname, self.total_rows), file=sys.stderr)
+        self.last_mark_rows = self.total_rows
 
     def render(self, scopes):
         out = []
@@ -993,8 +1004,9 @@ class PentlySong(PentlyRenderable):
 class PentlyPattern(PentlyRenderable):
 
     def __init__(self, pitchctx=None, rhyctx=None,
-                 instrument=None, track=None, name=None, linenum=None):
-        super().__init__(name, linenum)
+                 instrument=None, track=None,
+                 name=None, linenum=None, warn=None):
+        super().__init__(name, linenum, warn=warn)
         self.pitchctx = PentlyPitchContext(pitchctx)
         self.rhyctx = PentlyRhythmContext(rhyctx)
         self.rhyctx.last_duration = None
@@ -1093,8 +1105,8 @@ EN(-?(?:
                 self.pitchctx.set_arp(arpvalue)
             return
         if word.startswith("EN") and not arpmatch:
-            print("warning: malformed arpeggio %s" % repr(word),
-                  file=sys.stderr)
+            self.warn("malformed arpeggio %s" % repr(word),
+                      file=sys.stderr)
 
         # EPxx: Portamento rate
         slidematch = (self.portamentoRE.match(word)
@@ -1107,8 +1119,8 @@ EN(-?(?:
             self.notes.append("BEND,$"+bendhex)
             return
         if word.startswith("EP") and not slidematch:
-            print("warning: malformed portamento %s" % repr(word),
-                  file=sys.stderr)
+            self.warn("malformed portamento %s" % repr(word),
+                      file=sys.stderr)
 
         # MPxx: Vibrato
         vibratomatch = (self.vibratoRE.match(word)
@@ -1327,7 +1339,7 @@ tie_rests -- True if track has no concept of a "note off"
                 bytedata.append(note)
                 continue
             if len(note) != 3:
-                print(repr(note), file=sys.stderr)
+                self.warn("internal: bad element count in "+repr(note))
             pitch, numrows, slur = note
             if isinstance(pitch, int):
                 offset = pitch - cur_transpose
@@ -1374,7 +1386,7 @@ tie_rests -- True if track has no concept of a "note off"
 
 class PentlyInputParser(object):
 
-    def __init__(self):
+    def __init__(self, filename=None):
         self.sfxs = {}
         self.drums = {}
         self.instruments = {}
@@ -1385,6 +1397,8 @@ class PentlyInputParser(object):
         self.rhyctx = PentlyRhythmContext()
         self.pitchctx = PentlyPitchContext()
         self.unk_keywords = 0
+        self.warnings = []
+        self.filename = filename or os.path.basename(sys.argv[0])
 
     def append(self, s):
         """Parse one line of code."""
@@ -1398,6 +1412,17 @@ class PentlyInputParser(object):
         """Parse an iterable of lines."""
         for line in iterable:
             self.append(line)
+
+    def warn(self, msg):
+        self.warnings.append((self.linenum, msg))
+
+    def print_warnings(self, file=None):
+        if len(self.warnings) == 0: return
+        file = file or sys.stderr
+        file.write("".join(
+            "%s:%s: warning: %s\n" % (self.filename, linenum, msg)
+            for linenum, msg in self.warnings
+        ))
 
     def cur_obj_type(self):
         return (self.cur_obj[0] if self.cur_obj
@@ -1450,6 +1475,22 @@ Used to find the target of a time, scale, durations, or notenames command.
             raise ValueError("unknown durations behavior %s; try temporary or stick"
                              % language)
 
+    def add_mmloctaves(self, words):
+        if len(words) != 2:
+            raise ValueError("must have 2 words: mmloctaves on|off")
+        pitchctx = self.get_pitchrhy_parent().pitchctx
+        value = words[1].lower()
+        try:
+            value = self.boolean_names[language]
+        except KeyError:
+            raise ValueError("unknown MML octaves behavior %s; try on or off")
+        pitchctx.mml_octaves = value
+
+    boolean_names = {
+        'on': True, 'true': True, 'yes': True,
+        'off': False, 'false': False, 'no': False
+    }
+
     # Instruments
 
     def add_sfx(self, words):
@@ -1466,7 +1507,7 @@ Used to find the target of a time, scale, durations, or notenames command.
             raise ValueError("sfx %s was already defined on line %d"
                              % (name, self.sfxs[name].linenum))
         inst = PentlySfx(channel, pitchctx=self.pitchctx,
-                         name=name, linenum=self.linenum)
+                         name=name, linenum=self.linenum, warn=self.warn)
         self.sfxs[name] = inst
         self.cur_obj = ('sfx', inst)
 
@@ -1479,7 +1520,8 @@ Used to find the target of a time, scale, durations, or notenames command.
         if name in self.instruments:
             raise ValueError("instrument %s was already defined on line %d"
                              % (name, self.instruments[name].linenum))
-        inst = PentlyInstrument(name=name, linenum=self.linenum)
+        inst = PentlyInstrument(name=name, linenum=self.linenum,
+                                warn=self.warn)
         self.instruments[name] = inst
         self.cur_obj = ('instrument', inst)
 
@@ -1535,7 +1577,8 @@ Used to find the target of a time, scale, durations, or notenames command.
         if drumname in self.drums:
             raise ValueError("drum %s was already defined on line %d"
                              % (drumname, self.drums[drumname].linenum))
-        d = PentlyDrum(words[2:], name=drumname, linenum=self.linenum)
+        d = PentlyDrum(words[2:],
+                       name=drumname, linenum=self.linenum, warn=self.warn)
         self.drums[drumname] = d
 
     # Songs and patterns
@@ -1553,7 +1596,7 @@ Used to find the target of a time, scale, durations, or notenames command.
             raise ValueError("song %s was already defined on line %d"
                              % (songname, oldlinenum))
         song = PentlySong(pitchctx=self.pitchctx, rhyctx=self.rhyctx,
-                          name=songname, linenum=self.linenum)
+                          name=songname, linenum=self.linenum, warn=self.warn)
         self.cur_song = self.songs[songname] = song
 
     def end_song(self, words):
@@ -1595,6 +1638,8 @@ Used to find the target of a time, scale, durations, or notenames command.
             raise ValueError("mark %s encountered outside song"
                              % markname)
         song.add_mark(markname, self.linenum)
+        self.warn("%s: setting rehearsal mark %s at %d rows"
+                  % (song.name, markname, song.total_rows))
 
     def add_time(self, words):
         if len(words) < 2:
@@ -1718,7 +1763,7 @@ Used to find the target of a time, scale, durations, or notenames command.
 
         pat = PentlyPattern(pitchctx=pitchrhy.pitchctx, rhyctx=pitchrhy.rhyctx,
                             instrument=instrument, track=track,
-                            name=patname, linenum=self.linenum)
+                            name=patname, linenum=self.linenum, warn=self.warn)
         self.patterns[patname] = pat
         self.cur_obj = ('pattern', pat)
 
@@ -1739,6 +1784,7 @@ Used to find the target of a time, scale, durations, or notenames command.
     keywordhandlers = {
         'notenames': add_notenames,
         'durations': add_durations,
+        'mmloctaves': add_mmloctaves,
         'sfx': add_sfx,
         'volume': add_volume,
         'rate': add_rate,
@@ -1787,9 +1833,9 @@ Used to find the target of a time, scale, durations, or notenames command.
                 pat.add_pattern_note(word)
             return
         if self.unk_keywords < 100:
-            print("unknown keyword %s inside %s"
-                  % (repr(words), self.cur_obj or self.cur_song.name),
-                  file=sys.stderr)
+            self.warn("unknown keyword %s inside %s"
+                      % (repr(words), self.cur_obj or self.cur_song.name),
+                      file=sys.stderr)
         self.unk_keywords += 1
 
 # Pass 3: Try to find envelopes that overlap envelopes
@@ -1808,7 +1854,7 @@ def wrapdata(atoms, lineprefix, maxlength=79):
     yield lineprefix+','.join(out)
 
 def print_all_dicts(parser):
-    print("\nParsed %d lines, with %d using a keyword not yet implemented"
+    print("\n;Parsed %d lines, with %d using a keyword not yet implemented"
           % (parser.linenum, parser.unk_keywords))
     dicts_to_print = [
         ('Sound effects', parser.sfxs),
@@ -1818,8 +1864,8 @@ def print_all_dicts(parser):
         ('Patterns', parser.patterns),
     ]
     for name, d in dicts_to_print:
-        print("%s (%d)" % (name, len(parser.sfxs)))
-        print("\n".join("%s\n  %s" % (name, json.dumps(el))
+        print(";%s (%d)" % (name, len(parser.sfxs)))
+        print("\n".join(";%s\n;  %s" % (name, json.dumps(el))
                         for name, el in d.items()))
 
 # Perfect optimization of these is unlikely in the near future
@@ -1995,10 +2041,12 @@ def getPeriodValues(maxNote=64, region='ntsc', a=440.0):
     semitone = 2.0**(1./12)
     relFreqs = [(1 << (i // 12)) * semitone**(i % 12)
                 for i in range(maxNote)]
-    periods = [int(round(octaveBase / freq)) - 1 for freq in relFreqs]
+    periods = [min(2048, int(round(octaveBase / freq))) - 1
+               for freq in relFreqs]
     return periods
 
 def parse_argv(argv):
+    warntypes = ['error']
     parser = argparse.ArgumentParser()
     parser.add_argument("infilename", nargs='?',
                         help='Pently-MML file to process or - for standard input; omit for period table only')
@@ -2015,7 +2063,12 @@ def parse_argv(argv):
                         help='frequency in Hz of A above middle C (default: 440)')
     parser.add_argument("--segment", default='RODATA',
                         help='place output in this segment (default: RODATA)')
+    parser.add_argument("-v", '--verbose', action="store_true",
+                        help='show tracebacks and other verbose diagnostics')
+    parser.add_argument("-W", '--warn', action="append", choices=warntypes,
+                        help='enable warning options')
     args = parser.parse_args(argv[1:])
+    args.warn = set(args.warn or [])
     if not args.infilename and not args.periods:
         parser.error('at least one of infilename and --periods is required')
     if args.periods < 0:
@@ -2024,38 +2077,49 @@ def parse_argv(argv):
         parser.error('2A03 not precise enough for NUMSEMITONES > 88')
     min_tuning = region_period_numerator[args.period_region] / 256
     if args.period_tuning < min_tuning:
-        parser.error('tuning below %.1f Hz in %s makes low A unreachable'
-                     % (min_tuning, args.period_region))
+        msg = ("tuning below %.1f Hz in %s makes 'a,,' unreachable"
+               % (min_tuning, args.period_region))
+        if 'error' in args.warn:
+            parser.error(msg)
+        else:
+            print("%s: warning: %s" % (parser.prog, msg), file=sys.stderr)
     return args
 
 def main(argv=None):
-    args = parse_argv(argv or sys.argv)
+    argv = argv or sys.argv
+    prog = os.path.basename(argv[0])
+    args = parse_argv(argv)
 
     lines = [
         '; Generated using Pently music assembler'
     ]
     if args.infilename:
-        parser = PentlyInputParser()
         is_stdin = args.infilename == '-'
+        display_filename = "<stdin>" if is_stdin else args.infilename
+        parser = PentlyInputParser(filename=display_filename)
         infp = sys.stdin if is_stdin else open(args.infilename, 'r')
         try:
             parser.extend(infp)
+            if parser.cur_song:
+                self.warn("song %s was not ended" % sys.stderr)
+            lines.append('; Music from ' + display_filename)
+            lines.extend(render_file(parser, args.segment))
         except Exception as e:
-            import traceback
-            traceback.print_exc()
-            print("%s:%d: %s" % (args.infilename, parser.linenum, e),
+            if args.verbose:
+                import traceback
+                traceback.print_exc()
+            print("%s:%d: %s" % (display_filename, parser.linenum, e),
                   file=sys.stderr)
             sys.exit(1)
         finally:
             if not is_stdin:
                 infp.close()
+            parser.print_warnings()
 
-        if parser.cur_song:
-            print("%s:%d: warning: song %s was not ended"
-                  % (args.infilename, parser.linenum, parser.cur_song.name),
-                  file=sys.stderr)
-        lines.append('; Music from ' + ('standard input' if is_stdin else args.infilename))
-        lines.extend(render_file(parser, args.segment))
+    if 'error' in args.warn:
+        print("%s: exiting due to warnings (-Werror)" % (prog,),
+              file=sys.stderr)
+        sys.exit(1)
 
     if args.periods > 0:
         periods = getPeriodValues(args.periods, args.period_region,
