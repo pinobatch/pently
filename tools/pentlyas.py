@@ -122,6 +122,7 @@ arp_names
             self.reset_arp()
             self.simul_notes = False
             self.arp_names = ChainMap({}, default_arp_names)
+            self.mml_octaves = True
         else:
             self.set_language(other.language)
             self.last_octave = other.last_octave
@@ -132,6 +133,7 @@ arp_names
             self.last_chord = other.last_chord
             self.simul_notes = other.simul_notes
             self.arp_names = other.arp_names.new_child()
+            self.mml_octaves = other.mml_octaves
 
     def set_language(self, language):
         language = language.lower()
@@ -343,6 +345,8 @@ Return None (if arp is falsey), 2 hex digits, or '-' followed by
             raise ValueError("%s doesn't look like a pitch in %s mode"
                              % (pitch, self.octave_mode))
         g = list(m.groups())
+        if g[0] and not self.mml_octaves:
+            raise ValueError("%s: MML octave notation is off" % pitch)
         g.append(None)  # no arpeggio
         notenum, arp = self.parse_pitch(*g)
         return notenum
@@ -1048,6 +1052,8 @@ class PentlyPattern(PentlyRenderable):
             return None, None, None, None, None
         (preoctave, notename, accidental, postoctave,
          duration, duraugment, arp, slur) = m.groups()
+        if preoctave and not self.pitchctx.mml_octaves:
+            raise ValueError("%s: MML octave notation is off" % pitch)
         semi = self.pitchctx.parse_pitch(
             preoctave, notename, accidental, postoctave, arp.lstrip(':')
         )
@@ -1481,9 +1487,10 @@ Used to find the target of a time, scale, durations, or notenames command.
         pitchctx = self.get_pitchrhy_parent().pitchctx
         value = words[1].lower()
         try:
-            value = self.boolean_names[language]
+            value = self.boolean_names[value]
         except KeyError:
-            raise ValueError("unknown MML octaves behavior %s; try on or off")
+            raise ValueError("unknown MML octaves behavior %s; try on or off"
+                             % value)
         pitchctx.mml_octaves = value
 
     boolean_names = {
