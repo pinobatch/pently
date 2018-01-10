@@ -925,9 +925,9 @@ noArpRestart:
   ldx xsave
   tya
 
-  ; Combine new arp phase with old arp rate setting
+  ; Combine new arp phase and non-inject setting with old arp rate setting
   eor arpPhase,x
-  and #%00000111
+  and #%10000111
   eor arpPhase,x
 .else
   ; If arpeggio support is off, just clear the attack injection flag
@@ -1025,7 +1025,7 @@ notCutNote:
 VIBRATO_PERIOD = 12
 
 calc_vibrato:
-  .if ::PENTLY_USE_PORTAMENTO && ::PENTLY_USE_ATTACK_PHASE
+  .if ::PENTLY_USE_PORTAMENTO && ::PENTLY_USE_ATTACK_TRACK
     ; Don't apply portamento to injected attacks
     lda arpPhase,x
     bmi is_injected

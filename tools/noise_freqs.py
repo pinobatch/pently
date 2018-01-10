@@ -30,7 +30,7 @@ def main():
     xpositions = []
     lines = ["""{| class="wikitable"
 |+ Pitches of 93-step noise on NTSC
-! Period setting || Sample rate || Fundamental || Note number || Pitch"""]
+! Period setting || Sample rate || Fundamental || MIDI note || Pitch"""]
     for i, period in enumerate(noiseperiods):
         updatefreq = 39375000/22/period
         fundamental = updatefreq/93
@@ -41,7 +41,7 @@ def main():
             "%.1f Hz" % updatefreq,
             "%.1f Hz" % fundamental,
             "%.2f" % (cts / 100),
-            "%s + %d¢" % (lynotename(notefloor), ctsdiff)
+            "<nowiki>%s</nowiki> + %d¢" % (lynotename(notefloor), ctsdiff)
         )
         lines.append("|-\n| " + " || ".join(row))
 
