@@ -108,11 +108,11 @@ Pently features, many of which would fit a song in less ROM space.
   decreases at the end of an envelope, the instrument can compress
   the tail end to nothing.
 * Attack track  
-  Play an ostinato with a staccato instrument over the top of the
-  harmony on the same channel.  Or play a staccato melody over
-  arpeggiated pad chords.  This can substitute for the MMC5 expansion
-  in some cases, and one converter maps the MMC5's pulse channel to
-  this track.
+  Play an ostinato with a staccato instrument overlaid on the
+  harmony on the same channel.  Or play a staccato melody or
+  countermelody over arpeggiated pad chords.  This can substitute
+  for the MMC5 expansion in some cases, and one converter maps
+  the MMC5's pulse channel to this track.
 * Drum interruption  
   Each drum consists of one or two "sound effects", which amount to
   notes with fixed arpeggio envelopes played on a particular channel.

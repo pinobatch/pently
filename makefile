@@ -24,6 +24,9 @@ objlist := main \
 objlistnsf := nsfshell \
   pentlysound pentlymusic $(scorename)
 
+# List of documents included in zipfile
+docs_md := usage bytecode pentlyas famitracker
+
 AS65 = ca65
 LD65 = ld65
 CFLAGS65 := 
@@ -63,8 +66,8 @@ clean:
 # makefile changes.
 dist: zip
 zip: $(title)-$(version).zip
-$(title)-$(version).zip: zip.in all \
-  TODO.txt README.md CHANGES.txt docs/usage.md docs/pentlyas.md \
+$(title)-$(version).zip: zip.in all CHANGES.txt \
+  README.md CHANGES.txt $(foreach o,$(docs_md),docs/$(o).md) \
   $(objdir)/index.txt
 	zip -9 -u $@ -@ < $<
 
