@@ -280,10 +280,10 @@ song argument
   at 33
   mark add bass
   pattern bass with bass on triangle
-    a,4 a8 a,4 a8  a,4 a a,
-    c4 c'8 c4 c'8  c4 c' c4
-    g,4 g8 g,4 g8  g,4 g g,
-    d4 d'8 d4 d'8  d4 d' d4
+    a,4 a8 a,4 a8 | a,4 a a, |
+    c4 c'8 c4 c'8 | c4 c' c4 |
+    g,4 g8 g,4 g8 | g,4 g g, |
+    d4 d'8 d4 d'8 | d4 d' d4 |
 
   stop pulse2
   play bass
@@ -482,7 +482,10 @@ song argument
 
 # Isometry
 # By Damian Yerrick, 2006
-
+# This piece was composed to time a workout.  It is nominally in
+# D flat mixolydian, but because it uses bVII and bVI chords (the V
+# and IV of the relative major of the parallel minor), double flats
+# are abundant.
 song Isometry
   time 4/4
   scale 16
@@ -654,6 +657,7 @@ song Isometry
   da capo
 
 # from picking up sticks video
+# By Damian Yerrick
 
 song sticks
   time 12/8
@@ -678,7 +682,7 @@ song sticks
   at 3:3
   pattern introbanjo2 with banjo on pulse1
     relative
-    b4. c4 d8 e4 d8 e4. e4 g4. a8
+    b4. c4 d8 | e4 d8 e4. e4 g4. a8 |
     d2.:47 w4. r
   play introbanjo2
   

@@ -363,15 +363,18 @@ specified the same way as for sound effects.  For drum patterns,
 one of the names defined in a `drum` command is used instead.
 These commands can be used instead of a note:
 
-* `r` is a rest, which cuts the current note.  `p` (pause) does
-  the same thing.
+* `r` (rest) or `p` (pause) cuts the current note.
 * `w` (wait) does not change the pitch or restart the note.
   This represents a note tied to the previous note.
-* `l` (length) does not play a note or rest but sets the duration
-  (see below) for subsequent notes, rests, and waits in a pattern
-  that lack their own duration.
 * `q` repeats the previous chord, skipping any intervening notes
   that have no chord.
+* `l` (length) does not play a note or rest but sets the duration
+  for subsequent notes, rests, and waits in a pattern that lack
+  their own duration.
+* `|` performs a bar check.  If the musical time so far in this
+  pattern is not a multiple of a measure, it emits a warning.
+  A new pattern inherits the musical time from the song where
+  it is defined, or it can be set with the `pickup` command.
 
 Note durations are fractions of a whole note, whose length depends
 on the `scale`.  Recognized note durations include `1`, `2`, `4`,
@@ -379,8 +382,8 @@ on the `scale`.  Recognized note durations include `1`, `2`, `4`,
 Durations may be augmented by 50% or 75% by adding `.` or `..`
 after the number.
 
-Duration is optional for each note.  The `durations` command controls
-how missing durations are assigned.
+Duration is optional for each note, repeated chord, rest, or wait.
+The `durations` command controls how missing durations are assigned.
 
 * In `durations temporary` (the default), as in MML, numbers after
   a note change the duration only for that note.  Only `l` commands
@@ -423,10 +426,6 @@ modify durations in compound prolation for a swing feel.
 
 **TODO:** A future version of Pently may introduce a command to
 automatically introduce rests between notes for staccato feel.
-
-**TODO:** A future version of Pently may introduce a command to
-"bar check", or ensure that a particular point in a pattern lies
-at a measure boundary.
 
 Pattern effects
 ---------------
@@ -516,7 +515,8 @@ The `pickup` command sets what the parser thinks is the current beat,
 so that the `at` command knows how many rows to wait.  For example,
 in a piece in 3/4 that starts on the third beat, use `pickup 0:3`,
 where `0` means the measure preceding the first full measure, and
-`3` means the third beat.
+`3` means the third beat.  The `pickup` command also works in
+patterns; because only bar check uses it, the measure is ignored.
 
 In addition to the tracks for pitched channels (`pulse1`, `pulse2`,
 and `triangle`) and the drum track, Pently has an **attack track**

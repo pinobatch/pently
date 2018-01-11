@@ -89,6 +89,8 @@ default_arp_names = {
     'aug':  '48',     # augmented
 }
 
+# The concepts of musical pitch and time ############################
+
 class PentlyPitchContext(object):
     """
 
@@ -420,10 +422,9 @@ class PentlyRhythmContext(object):
 
 notematch -- (pitch, duration denominator, duration augment, slur)
 
-Return (pitch, number of rows, slur) or None if it's not actually a note.
-
+Return (pitch, number of rows, slur) or None if it's not actually a note
+(such as a length command 'l').
 """
-
         pitcharp, denom, augment, slur = notematch[:4]
         if isinstance(pitcharp, tuple) and pitcharp[0] == 'l':
             if denom is None:
@@ -483,10 +484,21 @@ Return (pitch, number of rows, slur) or None if it's not actually a note.
         return measure, actual_row, measure_length, beat_length
 
     def set_measure(self, measure=1, beat=1, row=0):
+        """Set the current musical time."""
         measure, row, _, _ = self.parse_measure(measure, beat, row)
         self.cur_measure, self.row_in_measure = measure, row
 
+    def add_rows(self, rows):
+        """Add a duration in rows to the current musical time."""
+        measure_length = self.get_measure_length()
+        row = self.row_in_measure + rows
+        self.cur_measure += row // measure_length
+        self.row_in_measure = row % measure_length
+
     def wait_for_measure(self, measure, beat=1, row=0):
+        """Seek to a given musical time.
+
+Return rows between old and new positions."""
         measure, row, measure_length, beat_length = self.parse_measure(measure, beat, row)
         if (measure < self.cur_measure
             or (measure == self.cur_measure and row < self.row_in_measure)):
@@ -500,6 +512,8 @@ Return (pitch, number of rows, slur) or None if it's not actually a note.
                         + (row - self.row_in_measure))
         self.cur_measure, self.row_in_measure = measure, row
         return rows_to_wait
+
+# The parts of a score ##############################################
 
 class PentlyRenderable(object):
 
@@ -785,7 +799,7 @@ This is equivalent to a "fixed" arpeggio envelope in FamiTracker.
 
 class PentlyDrum(PentlyRenderable):
 
-    drumnameRE = re.compile('([a-zA-Z_].*[a-zA-Z_])$')
+    drumnameRE = re.compile('([a-zA-Z_][a-zA-Z0-9_]*[a-zA-Z_])$')
 
     def __init__(self, sfxnames, name, linenum=None, warn=None):
         super().__init__(name, linenum, warn=warn)
@@ -1063,7 +1077,7 @@ class PentlyPattern(PentlyRenderable):
         return semi, duration, duraugment, slur
 
     drumnoteRE = re.compile(r"""
-([a-zA-Z_][0-9a-zA-Z_]*[a-zA-Z_]|[lrw])  # drum name, length, rest, or wait
+([a-zA-Z_][0-9a-zA-Z_]*[a-zA-Z_]|[lprw])  # drum name, length, rest, or wait
 ([0-9]*)       # duration
 (|\.|\.\.|g)$  # duration augment
 """, re.VERBOSE)
@@ -1078,6 +1092,21 @@ class PentlyPattern(PentlyRenderable):
             notename = 'w'
         return notename, duration, duraugment, False
 
+    def add_notematch(self, notematch):
+        """Convert the duration in a notematch to rows and add it to the pattern.
+
+notematch -- (pitch, duration denominator, duration augment, slur)
+
+Return the fixed notematch as (pitch, rows, slur) or None if non-note.
+"""
+        f = self.rhyctx.fix_note_duration(notematch)
+        if f:
+            self.notes.append(f)
+            rowduration = f[1]
+            if rowduration > 0:
+                self.rhyctx.add_rows(rowduration)
+        return f
+
     arpeggioRE = re.compile(r"""
 EN(-?(?:
   [a-zA-Z][0-9a-zA-Z]*|[0-9a-fA-F]{1,2}  # arpeggio chord name
@@ -1086,6 +1115,7 @@ EN(-?(?:
     vibratoRE = re.compile("MP(OF|[0-9a-fA-F])$")
     portamentoRE = re.compile("EP(OF|[0-2][0-9a-fA-F])$")
     def add_pattern_note(self, word):
+        """Parse a word of a pattern and add it."""
         if word in ('absolute', 'orelative', 'relative'):
             if self.pitchctx.octave_mode == 'drum':
                 raise ValueError("drum pattern's octave mode cannot be changed")
@@ -1095,6 +1125,15 @@ EN(-?(?:
         volmatch = volcodes.get(word)
         if volmatch is not None:
             self.notes.append("CHVOLUME,%d" % volmatch)
+            return
+
+        if word == '|':  # Bar check
+            m, r = self.rhyctx.cur_measure, self.rhyctx.row_in_measure
+            if r != 0:
+                rpb = self.rhyctx.get_beat_length()
+                b, r = 1 + r // rpb, r % rpb
+                self.warn("bar check failed at musical time %d:%d:%d"
+                          % (m, b, r))
             return
 
         # ENxx: Arpeggio
@@ -1155,21 +1194,18 @@ EN(-?(?:
             if drummatch[0] is not None and notematch[0] is not None:
                 # Only note length and rest/wait commands keep the pattern
                 # in an indeterminate state between pitched and drum
-                if notematch[0][0] not in ('l', 'r', 'w'):
+                if notematch[0][0] not in ('l', 'p', 'r', 'w'):
                     raise ValueError("%s is ambiguous: it could be a drum or a pitch"
                                      % word)
-                f = self.rhyctx.fix_note_duration(drummatch)
-                if f: self.notes.append(f)
+                self.add_notematch(drummatch)
                 return
             elif drummatch[0] is not None:
                 self.track = self.pitchctx.octave_mode = 'drum'
-                f = self.rhyctx.fix_note_duration(drummatch)
-                if f: self.notes.append(f)
+                self.add_notematch(drummatch)
                 return
             elif notematch[0] is not None:
                 self.pitchctx.set_pitched_mode()
-                f = self.rhyctx.fix_note_duration(notematch)
-                if f: self.notes.append(f)
+                self.add_notematch(notematch)
                 return
             else:
                 raise ValueError("unknown first note %s" % word)
@@ -1177,16 +1213,14 @@ EN(-?(?:
         if self.pitchctx.octave_mode == 'drum':
             drummatch = self.parse_drum_note(word)
             if drummatch[0] is not None:
-                f = self.rhyctx.fix_note_duration(drummatch)
-                if f: self.notes.append(f)
+                self.add_notematch(drummatch)
             else:
                 raise ValueError("unknown drum pattern note %s" % word)
             return
 
         notematch = self.parse_note(word)
         if notematch[0] is not None:
-            f = self.rhyctx.fix_note_duration(notematch)
-            if f: self.notes.append(f)
+            self.add_notematch(notematch)
         else:
             raise ValueError("unknown pitched pattern note %s" % word)
 
@@ -1673,7 +1707,7 @@ Used to find the target of a time, scale, durations, or notenames command.
         if not self.cur_song:
             raise ValueError("tempo must be used in a song")
         if len(words) != 2:
-            raise ValueError("must have 2 words: pickup MEASURE[:BEAT[:ROW]]")
+            raise ValueError("must have 2 words: tempo BPMVALUE")
         tempo = float(words[1])
         if not 1.0 <= tempo <= 1500.0:
             raise ValueError("tempo must be positive and no more than 1500 rows per minute")
@@ -1697,12 +1731,13 @@ Used to find the target of a time, scale, durations, or notenames command.
         if len(words) > 2:
             self.dokeyword(words[2:])
 
-    def add_song_pickup(self, words):
-        if not self.cur_song:
-            raise ValueError("pickup must be used in a song")
+    def add_pickup(self, words):
+        in_a_pattern = self.cur_obj and self.cur_obj[0] == 'pattern'
+        if not (in_a_pattern or self.cur_song):
+            raise ValueError("pickup: no song or pattern is open")
         if len(words) != 2:
             raise ValueError("must have 2 words: pickup MEASURE[:BEAT[:ROW]]")
-        rhyctx = self.cur_song.rhyctx
+        rhyctx = self.get_pitchrhy_parent().rhyctx
         mbr = [int(x) for x in words[1].split(':', 2)]
         rhyctx.set_measure(*mbr)
 
@@ -1813,7 +1848,7 @@ Used to find the target of a time, scale, durations, or notenames command.
         'pattern': add_pattern,
         'fallthrough': add_fallthrough,
         'at': add_song_wait,
-        'pickup': add_song_pickup,
+        'pickup': add_pickup,
         'tempo': add_tempo,
         'play': add_play,
         'stop': add_stop,
