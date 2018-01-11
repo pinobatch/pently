@@ -9,8 +9,8 @@
 ; later decided to put the track muting controls in the same screen.
 
 ; Local TODO for https://github.com/pinobatch/pently/issues/27
-; 1. Display song name from tracknames.txt
-; 2. Display rehearsal marks in pently_rehearsal_marks[cur_song]
+; 1. Find rehearsal mark corresponding to current song row
+; 2. 
 ; 3. Display arrow at current rehearsal mark
 ; 4. Check issue
 ; 5. Seek to previous or next rehearsal mark
@@ -19,15 +19,16 @@
 ; 8. Tempo scaling
 ; 9. Playback stepping a row at a time
 ; 10. Bar check
-; 11. Fix grace note bug when skipping rows
+; 11. Continue to watch for grace note glitches
 ; 12. Track mute/solo
 
 .zeropage
 vis_to_clear: .res 1
 .if PENTLY_USE_REHEARSAL
-  vis_num_song_sections: .res 1
-  vis_song_sections_ok:  .res 1
-  vis_cur_song_section:  .res 1
+  vis_cur_song_section: .res 1
+  vis_num_sections: .res 1
+  vis_section_load_row: .res 1
+  vis_section_src: .res 2
 .endif
 
 ; Injection palette
@@ -42,18 +43,30 @@ CH_TRI = $08
 CH_NOISE = $0C
 CH_END = $10
 
+copydst_lo = $0180
+copydst_hi = $0181
+copybuf = $0100
+LF = $0A
+
+songrow = 35
+caporow = 36
+
 .code
 .proc vis
   .if ::PENTLY_USE_REHEARSAL
-    lda #0
-    sta vis_song_sections_ok
-    sta vis_num_song_sections
+    lda #caporow
+    sta vis_section_load_row
     lda #2
     sta vis_to_clear
   .else
+    lda #$FF
+    sta vis_section_load_row
     lda #1
     sta vis_to_clear
   .endif
+
+  jsr load_song_title
+  
 
   ldx #4
   stx oam_used
@@ -96,8 +109,23 @@ vis_loop:
       lda vis_tri_color
       sta PPUDATA
     .endif
-
+    
+    lda copydst_hi
+    bmi nocopy
+      sta PPUADDR
+      lda copydst_lo
+      sta PPUADDR
+      ldx #0
+      :
+        lda copybuf,x
+        sta PPUDATA
+        inx
+        cpx #32
+        bcc :-
+    
+    nocopy:
     lda #VBLANK_NMI|OBJ_1000|BG_0000|1
+    sta copydst_hi
   have_which_nt:
 
   ldx #0
@@ -108,6 +136,7 @@ vis_loop:
   jsr read_pads
   ldx #4
   stx oam_used
+  jsr vis_prepare_vram_row
   .if ::PENTLY_USE_VIS
     jsr vis_update_obj
   .endif
@@ -119,7 +148,6 @@ vis_loop:
       clc
       ldx pently_rowshi
       lda pently_rowslo
-      sta $5555
       adc #128
       bcc :+
         inx
@@ -137,14 +165,85 @@ vis_done:
   rts
 .endproc
 
+; Song name and section names ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+.proc clear_copybuf
+  tya
+  sec
+  ror a
+  sta copydst_hi
+  lda #0
+  ror a
+  lsr copydst_hi
+  ror a
+  lsr copydst_hi
+  ror a
+  sta copydst_lo
+  ldx #31
+  lda #' '
+  :
+    sta copybuf,x
+    dex
+    bpl :-
+  bail:
+  rts
+.endproc
+
+.proc load_song_title
+bail = clear_copybuf::bail
+src = $00
+newlines_left = $03
+  ldy #songrow
+  jsr clear_copybuf
+  lda #>tracknames_txt
+  ldy #<tracknames_txt
+  sta src+1
+
+  lda cur_song
+  beq found
+  sta newlines_left
+  lda #0
+  sta src+0
+  searchloop:
+    lda (src),y
+    beq bail
+    iny
+    bne :+
+      inc src+1
+    :
+    cmp #LF
+    bne searchloop
+    dec newlines_left
+    bne searchloop
+  found:
+  sty src+0
+  ldx #2
+.endproc
+.proc print_to_copybuf
+src = $00
+  ldy #0
+  copyloop:
+    lda (src),y
+    beq not_found
+    cmp #LF
+    beq not_found
+    sta copybuf,x
+    iny
+    inx
+    cpx #32
+    bcc copyloop
+  not_found:
+  rts
+.endproc
+
 .proc vis_clear_part
   clc
   adc #$23
   sta PPUADDR
-  lda #$60
+  lda #$80
   sta PPUADDR
   lda #' '
-  ldx #72
+  ldx #64
   :
     sta PPUDATA
     sta PPUDATA
@@ -153,13 +252,91 @@ vis_done:
     dex
     bne :-
   dec vis_to_clear
+bail:
   rts
 .endproc
 
-.proc vis_update_bg
-  rts
+.proc vis_prepare_vram_row
+nope = vis_clear_part::bail
+src = $00
+
+  ; Ensure there's something to load
+  ldy vis_section_load_row
+  bmi nope
+  
+  ; and room to load it
+  lda copydst_hi
+  bpl nope
+
+  jsr clear_copybuf
+  lda vis_section_load_row
+  sec
+  sbc #caporow + 1
+  bcs past_caporow
+    ; 'Capo' row: Load the word "capo"
+    lda #'c'
+    sta copybuf+3
+    lda #'a'
+    sta copybuf+4
+    lda #'p'
+    sta copybuf+5
+    lda #'o'
+    sta copybuf+6
+
+    ; With that out of the way, we can find the rehearsal marks
+    lda cur_song
+    asl a
+    tax
+    lda pently_rehearsal_marks,x
+    sta vis_section_src+0
+    lda pently_rehearsal_marks+1,x
+    sta vis_section_src+1
+    ldy #0
+    lda (vis_section_src),y
+    sta $5555
+    sta vis_num_sections
+    beq no_marks_left
+
+    ; Skip past the row counts to the mark names
+    asl a
+    adc #2
+    adc vis_section_src
+    sta vis_section_src
+    bcc :+
+      inc vis_section_src+1
+    :
+    inc vis_section_load_row
+    rts
+  past_caporow:
+    lda vis_section_src
+    sta src
+    lda vis_section_src+1
+    sta src+1
+    ldx #3
+    jsr print_to_copybuf
+    
+    ; If at NUL terminator, stop
+    cmp #0
+    beq no_marks_left
+
+    ; Move to next piece
+    sec
+    tya
+    adc vis_section_src
+    sta vis_section_src
+    bcc :+
+      inc vis_section_src+1
+    :
+    inc vis_section_load_row
+    rts
+
+no_marks_left:
+  lda #$FF
+  sta vis_section_load_row
+
 .endproc
 
+; Visualizer ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 VIS_PITCH_Y = 183
 TARGET_NOTE_DOT_TILE = $13
@@ -412,6 +589,5 @@ whitekey_pos:
   .byte       16*2+1
   .byte 16*2+0
   .byte       16*2+1
-
 
 .endif  ; PENTLY_USE_VIS

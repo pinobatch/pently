@@ -23,7 +23,9 @@
 OAM = $0200
 
 ; main.s fields
-.globalzp cur_keys, new_keys, nmis, tvSystem, is_fast_forward
+.globalzp cur_keys, new_keys, nmis, tvSystem
+.globalzp cur_song, is_fast_forward
+.global tracknames_txt
 .global STATUS_BAR_TOP
 
 ; profiler.s fields
