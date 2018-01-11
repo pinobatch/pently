@@ -249,13 +249,11 @@ forever:
     sta cyclespeaklo
   notUp:
 
-  .if ::PENTLY_USE_VIS
-    lda new_keys
-    and #KEY_RIGHT|KEY_A
-    beq notEnterVis
-      jsr vis
-    notEnterVis:
-  .endif
+  lda new_keys
+  and #KEY_RIGHT|KEY_A
+  beq notEnterVis
+    jsr vis
+  notEnterVis:
 
   ; Prepare the next frame
   lda #4
@@ -446,6 +444,7 @@ status_strips:
   .dbyt TRACKMUTE_ADDR + 13
   .byte $EE, 2
   ; Keyboard
+.if PENTLY_USE_VIS
   .dbyt KEYBOARD_ADDR
   .byte $E0, 10
   .dbyt KEYBOARD_ADDR + 10
@@ -464,6 +463,7 @@ status_strips:
   .byte $F1, 9
   .dbyt KEYBOARD_ADDR + 64 + 19
   .byte $F1, 9
+.endif
   ; Terminator
   .byte $FF
 

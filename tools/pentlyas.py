@@ -1388,7 +1388,7 @@ tie_rests -- True if track has no concept of a "note off"
         self.asmdata = bytedata
         self.bytesize = sum(len(s.split(',')) for s in bytedata) + 2
 
-# Pass 1: Load objects ##############################################
+# Parse the score into objects ######################################
 
 class PentlyInputParser(object):
 
@@ -1645,8 +1645,6 @@ Used to find the target of a time, scale, durations, or notenames command.
             raise ValueError("mark %s encountered outside song"
                              % markname)
         song.add_mark(markname, self.linenum)
-        self.warn("%s: setting rehearsal mark %s at %d rows"
-                  % (song.name, markname, song.total_rows))
 
     def add_time(self, words):
         if len(words) < 2:
@@ -1845,35 +1843,7 @@ Used to find the target of a time, scale, durations, or notenames command.
                       file=sys.stderr)
         self.unk_keywords += 1
 
-# Pass 3: Try to find envelopes that overlap envelopes
-
-def wrapdata(atoms, lineprefix, maxlength=79):
-    lpfx = len(lineprefix)
-    maxlength -= lpfx
-    out, lout = [], 0
-    for atom in atoms:
-        lthis = len(atom)
-        if len(out) > 0 and lthis + lout > maxlength:
-            yield lineprefix+','.join(out)
-            out, lout = [], 0
-        out.append(atom)
-        lout += lthis + 1
-    yield lineprefix+','.join(out)
-
-def print_all_dicts(parser):
-    print("\n;Parsed %d lines, with %d using a keyword not yet implemented"
-          % (parser.linenum, parser.unk_keywords))
-    dicts_to_print = [
-        ('Sound effects', parser.sfxs),
-        ('Instruments', parser.instruments),
-        ('Drums', parser.drums),
-        ('Songs', parser.songs),
-        ('Patterns', parser.patterns),
-    ]
-    for name, d in dicts_to_print:
-        print(";%s (%d)" % (name, len(parser.sfxs)))
-        print("\n".join(";%s\n;  %s" % (name, json.dumps(el))
-                        for name, el in d.items()))
+# Finding pieces of data that can overlap each other ################
 
 # Perfect optimization of these is unlikely in the near future
 # because the shortest common supersequence problem is NP-complete.
@@ -1907,6 +1877,86 @@ def subseq_pack(subseqs):
         key = inclen_seqs[i][0]
         out_seqs[key] = handle_one_seq(inclen_seqs, i)
     return out_seqs
+
+# Rendering #########################################################
+
+def print_all_dicts(parser):
+    print("\n;Parsed %d lines, with %d using a keyword not yet implemented"
+          % (parser.linenum, parser.unk_keywords))
+    dicts_to_print = [
+        ('Sound effects', parser.sfxs),
+        ('Instruments', parser.instruments),
+        ('Drums', parser.drums),
+        ('Songs', parser.songs),
+        ('Patterns', parser.patterns),
+    ]
+    for name, d in dicts_to_print:
+        print(";%s (%d)" % (name, len(parser.sfxs)))
+        print("\n".join(";%s\n;  %s" % (name, json.dumps(el))
+                        for name, el in d.items()))
+
+def wrapdata(atoms, lineprefix, maxlength=79):
+    lpfx = len(lineprefix)
+    maxlength -= lpfx
+    out, lout = [], 0
+    for atom in atoms:
+        lthis = len(atom)
+        if len(out) > 0 and lthis + lout > maxlength:
+            yield lineprefix+','.join(out)
+            out, lout = [], 0
+        out.append(atom)
+        lout += lthis + 1
+    yield lineprefix+','.join(out)
+
+MAX_REHEARSAL_MARKS = 15
+
+def render_rehearsal(parser):
+    """Render the rehearsal marks
+
+A pointer table called pently_rehearsal_marks points to the start of
+each song's rehearsal mark table, which consists of the following:
+
+byte: Number of rehearsal marks
+byte: Reserved for future use
+16-bit words: Number of rows preceding each rehearsal mark
+n bytes: ASCII encoded rehearsal mark names, separated by $0A,
+    terminated by $00
+"""
+    songs = sorted(parser.songs.items(), key=lambda x: x[1].linenum)
+    lines = [
+        "; Rehearsal mark data begin",
+        ".export pently_rehearsal_marks",
+        "pently_rehearsal_marks:"
+    ]
+    rmidxnames = ["PRM_%s" % row[0] for row in songs]
+    lines.extend(wrapdata(rmidxnames, ".addr "))
+
+    for songname, songdata in songs:
+        rm = [
+            (name, rows)
+            for name, (rows, linenum) in songdata.rehearsal_marks.items()
+        ]
+        if len(rm) > MAX_REHEARSAL_MARKS:
+            parser.warn("%s has %d rehearsal marks; only %d will fit"
+                        % (songname, len(rm), MAX_REHEARSAL_MARKS))
+        rm.sort(key=lambda row: row[1])
+        lines.extend([
+            "",
+            "PRM_%s:" % songname,
+            ".byte %2d  ; number of rehearsal marks" % len(rm),
+            ".byte  0  ; reserved"
+        ])
+
+        if rm:
+            rmrowsdata = ("%d" % row[1] for row in rm)
+            lines.extend(wrapdata(rmrowsdata, ".word "))
+            rmnames = "\n".join(row[0] for row in rm)
+            rmnamesdata = ["%d" % x for x in rmnames.encode("ascii")]
+            rmnamesdata.append("0")
+            lines.extend(wrapdata(rmnamesdata, ".byte "))
+
+    lines.append("; Rehearsal mark end")
+    return lines
 
 def render_file(parser, segment='RODATA'):
     # each entry in this row is a tuple of the form
@@ -2070,6 +2120,8 @@ def parse_argv(argv):
                         help='frequency in Hz of A above middle C (default: 440)')
     parser.add_argument("--segment", default='RODATA',
                         help='place output in this segment (default: RODATA)')
+    parser.add_argument("--rehearse", action='store_true',
+                        help='include rehearsal mark data in output')
     parser.add_argument("-v", '--verbose', action="store_true",
                         help='show tracebacks and other verbose diagnostics')
     parser.add_argument("-W", '--warn', action="append", choices=warntypes,
@@ -2111,6 +2163,8 @@ def main(argv=None):
                 self.warn("song %s was not ended" % sys.stderr)
             lines.append('; Music from ' + display_filename)
             lines.extend(render_file(parser, args.segment))
+            if args.rehearse:
+                lines.extend(render_rehearsal(parser))
         except Exception as e:
             if args.verbose:
                 import traceback

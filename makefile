@@ -20,7 +20,7 @@ scorename = musicseq
 # whether source code or generated
 objlist := main \
   pads ppuclear paldetect math bpmmath profiler vis \
-  pentlysound pentlymusic $(scorename)
+  pentlysound pentlymusic $(scorename)-rmarks
 objlistnsf := nsfshell \
   pentlysound pentlymusic $(scorename)
 
@@ -101,7 +101,8 @@ $(objdir)/%.o: $(objdir)/%.s
 # Files that depend on additional headers
 $(objdir)/musicseq.o $(objdir)/pentlymusic.o: $(srcdir)/pentlyseq.inc
 $(objdir)/pentlysound.o $(objdir)/pentlymusic.o \
-$(objdir)/bpmmath.o $(objdir)/nsfshell.o: $(srcdir)/pentlyconfig.inc
+$(objdir)/bpmmath.o $(objdir)/nsfshell.o $(objdir)/vis.o: \
+  $(srcdir)/pentlyconfig.inc
 $(objdir)/pentlymusic.o: $(objdir)/pentlybss.inc
 
 # Files that depend on .incbin'd files
@@ -114,6 +115,8 @@ $(objdir)/pentlybss.inc: tools/mkrammap.py $(srcdir)/pentlyconfig.inc
 # Translate music project
 $(objdir)/%.s: tools/pentlyas.py src/%.pently
 	$(PY) $^ -o $@ --periods 76
+$(objdir)/%-rmarks.s: tools/pentlyas.py src/%.pently
+	$(PY) $^ -o $@ --periods 76 --rehearse
 
 # Rules for CHR ROM
 
