@@ -9,18 +9,18 @@
 ; later decided to put the track muting controls in the same screen.
 
 ; Local TODO for https://github.com/pinobatch/pently/issues/27
-; 1. Seek to previous or next rehearsal mark
+; 1. Default song and rehearsal mark when building ROM
 ; 2. Check issue
-; 3. What is causing a higher than expected Peak on song start?
-; 4. Bar check
-; 5. Check issue
-; 6. 
-; 7. Default song and rehearsal mark when building ROM
-; 8. Tempo scaling
-; 9. Playback stepping a row at a time
-; 10. 
+; 3. Draw what mute/solo should look like
+; 4. Check issue
+; 5. Track mute/solo
+; 6. Tempo scaling
+; 7. Playback stepping a row at a time
+; 8. Check issue
+; 9. 
+; 10. What is causing a higher than expected Peak on song start?
 ; 11. Continue to watch for grace note glitches
-; 12. Track mute/solo
+; 12. 
 
 .zeropage
 vis_to_clear: .res 1
@@ -144,19 +144,33 @@ vis_loop:
   .if ::PENTLY_USE_REHEARSAL
     jsr find_current_row
     jsr draw_row_arrow
+
+    ; Down: Go to start of next section
     lda new_keys
     and #KEY_DOWN
     beq notDown
-      clc
-      ldx pently_rowshi
-      lda pently_rowslo
-      adc #128
-      bcc :+
-        inx
-      :
-      jsr pently_skip_to_row
-    
+    lda vis_cur_song_section
+    cmp vis_num_sections
+    bcs notDown
+      lda #1
+      adc vis_cur_song_section
+      jsr seek_to_section
     notDown:
+
+    ; Up: Rewind, then go to start of previous section
+    lda new_keys
+    and #KEY_UP
+    beq notUp
+    lda vis_cur_song_section
+    beq notUp
+      lda cur_song
+      jsr pently_start_music
+      lda vis_cur_song_section
+      sec
+      sbc #1
+      bcc notUp
+      jsr seek_to_section
+    notUp:
   .endif
 
   lda new_keys
@@ -409,7 +423,28 @@ have_section:
   sta OAM+2,y
   lda #16
   sta OAM+3,y
+bail:
   rts
+.endproc
+
+.proc seek_to_section
+src = $00
+  asl a
+  beq draw_row_arrow::bail
+  tay
+  lda cur_song
+  asl a
+  tax
+  lda pently_rehearsal_marks,x
+  sta src+0
+  lda pently_rehearsal_marks+1,x
+  sta src+1
+  iny
+  lda (src),y
+  tax
+  dey
+  lda (src),y
+  jmp pently_skip_to_row
 .endproc
 .endif
 

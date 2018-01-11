@@ -2,14 +2,19 @@
 * PENTLY_USE option to disable 303 portamento
 * Correctly cancels injection when attack ends (fixing regression
   introduced with slow arps)
+* Cancels grace note when pattern begins
 * NES shell: New visualizer
+* NES shell: Seek to rehearsal marks defined in score
+* pentlyas.py: add warning infrastructure
 * pentlyas.py: v1 through v4 as synonyms for pp through ff
 * pentlyas.py: p (pause) is synonym for r (rest)
 * pentlyas.py: q repeats last chord, as in LilyPond
-* pentlyas.py: add warning infrastructure
+* pentlyas.py: bar check in pattern to warn if not on a measure
+  boundary
+* pentlyas.py: pickup works in patterns as well
 * pentlyas.py: unreachable A in tunings below A=437 is nonfatal
 * pentlyas.py: mmloctaves off, which one chord syntax will require
-* Script to estimate pitch of noise
+* Script to estimate pitch of 93-step noise
 * docs: Recalculate PENTLY_USE savings
 
 0.05wip8 (2017-12)
