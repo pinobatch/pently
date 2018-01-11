@@ -9,25 +9,26 @@
 ; later decided to put the track muting controls in the same screen.
 
 ; Local TODO for https://github.com/pinobatch/pently/issues/27
-; 1. Find rehearsal mark corresponding to current song row
-; 2. 
-; 3. Display arrow at current rehearsal mark
-; 4. Check issue
-; 5. Seek to previous or next rehearsal mark
-; 6. Check issue
+; 1. Seek to previous or next rehearsal mark
+; 2. Check issue
+; 3. What is causing a higher than expected Peak on song start?
+; 4. Bar check
+; 5. Check issue
+; 6. 
 ; 7. Default song and rehearsal mark when building ROM
 ; 8. Tempo scaling
 ; 9. Playback stepping a row at a time
-; 10. Bar check
+; 10. 
 ; 11. Continue to watch for grace note glitches
 ; 12. Track mute/solo
 
 .zeropage
 vis_to_clear: .res 1
+vis_section_load_row: .res 1
+
 .if PENTLY_USE_REHEARSAL
   vis_cur_song_section: .res 1
   vis_num_sections: .res 1
-  vis_section_load_row: .res 1
   vis_section_src: .res 2
 .endif
 
@@ -80,7 +81,6 @@ vis_loop:
     cmp nmis
     beq :-
 
-  ; Clearing nametable must be FAST
   lda vis_to_clear
   beq vis_cleared
     jsr vis_clear_part
@@ -142,6 +142,8 @@ vis_loop:
   .endif
   
   .if ::PENTLY_USE_REHEARSAL
+    jsr find_current_row
+    jsr draw_row_arrow
     lda new_keys
     and #KEY_DOWN
     beq notDown
@@ -237,6 +239,7 @@ src = $00
 .endproc
 
 .proc vis_clear_part
+  ; Clearing nametable must be FAST
   clc
   adc #$23
   sta PPUADDR
@@ -259,6 +262,8 @@ bail:
 .proc vis_prepare_vram_row
 nope = vis_clear_part::bail
 src = $00
+
+.if ::PENTLY_USE_REHEARSAL
 
   ; Ensure there's something to load
   ldy vis_section_load_row
@@ -331,10 +336,82 @@ src = $00
     rts
 
 no_marks_left:
+
+.endif
   lda #$FF
   sta vis_section_load_row
-
+  rts
 .endproc
+
+.if PENTLY_USE_REHEARSAL
+
+;;
+; Sets vis_cur_song_section to the lowest section number whose ending
+; row number is greater than the current row number.
+.proc find_current_row
+src = $00
+nleft = $02
+
+  ; If rows not printed yet, assume section 0
+  lda vis_section_load_row
+  cmp #caporow+16
+  lda #0
+  bcc have_section
+
+  lda cur_song
+  asl a
+  tax
+  lda pently_rehearsal_marks,x
+  sta src+0
+  lda pently_rehearsal_marks+1,x
+  sta src+1
+  ldy #0
+  lda (src),y
+  beq have_section
+  sta nleft
+  iny
+  iny
+  sectloop:
+    lda pently_rowslo
+    cmp (src),y
+    iny
+    lda pently_rowshi
+    sbc (src),y
+    bcc have_y
+    iny
+    dec nleft
+    bne sectloop
+  have_y:
+  tya
+  lsr a
+  sec
+  sbc #1
+have_section:
+  sta vis_cur_song_section
+  rts
+.endproc
+
+.proc draw_row_arrow
+  ldy oam_used
+  tya
+  clc
+  adc #4
+  sta oam_used
+  lda vis_cur_song_section
+  asl a
+  asl a
+  asl a
+  adc #(caporow - 32) * 8 - 1
+  sta OAM,y
+  lda #RIGHT_ARROW_SPRITE_TILE
+  sta OAM+1,y
+  lda #0
+  sta OAM+2,y
+  lda #16
+  sta OAM+3,y
+  rts
+.endproc
+.endif
 
 ; Visualizer ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

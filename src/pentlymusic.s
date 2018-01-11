@@ -184,8 +184,11 @@ pentlymusic_code_start = *
     tya  ; Y is $FF from the clear everything loop
     sta musicPattern,x
     .if ::PENTLY_USE_CHANNEL_VOLUME
-      lda #MAX_CHANNEL_VOLUME
-      sta channelVolume,x
+      cpx #ATTACK_TRACK
+      bcs :+
+        lda #MAX_CHANNEL_VOLUME
+        sta channelVolume,x
+      :
     .endif
     dex
     dex
@@ -260,8 +263,8 @@ music_not_playing:
     iny
     cpy pently_rows_per_beat
     bcc :+
-    ldy #0
-  :
+      ldy #0
+    :
     sty pently_row_beat_part
   .endif
 

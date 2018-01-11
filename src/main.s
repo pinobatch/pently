@@ -468,8 +468,6 @@ status_strips:
   .byte $FF
 
 .code
-
-RIGHT_ARROW_SPRITE_TILE = $14
 ;;
 ; @param Y vertical position
 ; @param X horizontal position

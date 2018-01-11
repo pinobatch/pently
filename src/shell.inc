@@ -22,6 +22,8 @@
 
 OAM = $0200
 
+RIGHT_ARROW_SPRITE_TILE = $14
+
 ; main.s fields
 .globalzp cur_keys, new_keys, nmis, tvSystem
 .globalzp cur_song, is_fast_forward
