@@ -218,31 +218,6 @@ pentlymusic_code_start = *
   rts
 .endproc
 
-.if PENTLY_USE_REHEARSAL
-; Known bug: Tracks with GRACE effects may fall behind
-.proc skip_to_row_top
-  pha
-  txa
-  pha
-  lda #0
-  sta pently_tempoCounterHi
-  sta pently_tempoCounterLo
-  jsr pently_next_row
-  pla
-  tax
-  pla
-bottom:
-  cpx pently_rowshi
-  beq :+
-    bcs skip_to_row_top
-  :
-  cmp pently_rowslo
-  bcs skip_to_row_top
-  rts
-.endproc
-pently_skip_to_row = skip_to_row_top::bottom
-.endif
-
 .proc pently_update_music
   lda pently_music_playing
   beq music_not_playing
@@ -561,6 +536,8 @@ noSecondDrum:
   jmp skipNote
 
 startPattern:
+  lda #0
+  sta graceTime,x
   lda musicPattern,x
   cmp #255
   bcc @notSilentPattern
@@ -709,6 +686,46 @@ handle_ch_volume:
 .endif
 
 .endproc
+
+.if PENTLY_USE_REHEARSAL
+; Known bug: Tracks with GRACE effects may fall behind
+.proc skip_to_row_top
+  pha
+  txa
+  pha
+  
+  ; Fake out grace processing
+  ldx #LAST_TRACK
+  graceloop:
+    lda graceTime,x
+    beq noGraceThisCh
+      lda #0
+      sta graceTime,x
+      jsr pently_next_row::processTrackPattern
+      jmp graceloop
+    noGraceThisCh:
+    dex
+    dex
+    dex
+    dex
+    bpl graceloop
+  
+  lda #0
+  sta pently_tempoCounterHi
+  sta pently_tempoCounterLo
+  jsr pently_next_row
+  pla
+  tax
+  pla
+bottom:
+  cpx pently_rowshi
+  bne skip_to_row_top
+  cmp pently_rowslo
+  bne skip_to_row_top
+  rts
+.endproc
+pently_skip_to_row = skip_to_row_top::bottom
+.endif
 
 ;;
 ; Plays note A on channel X (0, 4, 8, 12) with instrument Y.
