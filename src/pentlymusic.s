@@ -218,6 +218,31 @@ pentlymusic_code_start = *
   rts
 .endproc
 
+.if PENTLY_USE_REHEARSAL
+; Known bug: Tracks with GRACE effects may fall behind
+.proc skip_to_row_top
+  pha
+  txa
+  pha
+  lda #0
+  sta pently_tempoCounterHi
+  sta pently_tempoCounterLo
+  jsr pently_next_row
+  pla
+  tax
+  pla
+bottom:
+  cpx pently_rowshi
+  beq :+
+    bcs skip_to_row_top
+  :
+  cmp pently_rowslo
+  bcs skip_to_row_top
+  rts
+.endproc
+pently_skip_to_row = skip_to_row_top::bottom
+.endif
+
 .proc pently_update_music
   lda pently_music_playing
   beq music_not_playing
@@ -228,18 +253,19 @@ pentlymusic_code_start = *
   lda music_tempoHi
   adc pently_tempoCounterHi
   sta pently_tempoCounterHi
-  bcs new_tick
+  bcs pently_next_row
 music_not_playing:
   rts
-new_tick:
+.endproc
 
-.if ::PENTLY_USE_PAL_ADJUST
-  ldy tvSystem
-.else
-  ldy #0
-.endif
+.proc pently_next_row
 
   ; Subtract tempo
+  .if ::PENTLY_USE_PAL_ADJUST
+    ldy tvSystem
+  .else
+    ldy #0
+  .endif
   lda pently_tempoCounterLo
   sbc pently_fpmLo,y
   sta pently_tempoCounterLo
@@ -247,6 +273,12 @@ new_tick:
   sbc pently_fpmHi,y
   sta pently_tempoCounterHi
 
+  .if ::PENTLY_USE_REHEARSAL
+    inc pently_rowslo
+    bne :+
+      inc pently_rowshi
+    :
+  .endif
   .if ::PENTLY_USE_BPMMATH
     ; Update row
     ldy pently_row_beat_part
@@ -799,7 +831,7 @@ out_pitchadd = pently_zptemp + 4
   beq nograce
   dec graceTime,x
   bne nograce
-    jsr pently_update_music::processTrackPattern
+    jsr pently_next_row::processTrackPattern
   nograce:
   
 .if ::PENTLY_USE_PORTAMENTO

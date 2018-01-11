@@ -128,6 +128,13 @@ PENTLY_USE_BPMMATH = 1
 ; (Implemented in bpmmath.s)
 .global pently_get_beat_fraction
 
+;;
+; Skips to a given row in the sequence, which must be later than the
+; current row. (Requires PENTLY_USE_REHEARSAL)
+; @param X rows*256
+; @param A rows
+.global pently_skip_to_row
+
 ; Constant arrays ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Frames per minute for each TV system
@@ -158,6 +165,11 @@ PENTLY_USE_BPMMATH = 1
 ; Used for enhanced visualization
 .global pently_vis_pitchlo, pently_vis_pitchhi, pently_vis_dutyvol
 .global pently_vis_arpphase, pently_vis_note
+
+;;
+; Number of sequence rows that have been processed
+; (Requires PENTLY_USE_REHEARSAL)
+.global pently_rowslo, pently_rowshi
 
 ; Size (for debugging) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .global PENTLYSOUND_SIZE, PENTLYMUSIC_SIZE

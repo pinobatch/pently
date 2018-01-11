@@ -54,10 +54,12 @@ conductorWaitRows SINGLETON
 pently_rows_per_beat SINGLETON       BPMMATH
 pently_row_beat_part SINGLETON       BPMMATH
 
-# Visualization
+# Visualization and rehearsal
 pently_vis_dutyvol PER_CHANNEL       VIS
 pently_vis_pitchlo PER_CHANNEL       VIS
 pently_vis_pitchhi PER_CHANNEL       VIS
+pently_rowslo      PER_CHANNEL       REHEARSAL
+pently_rowshi      PER_CHANNEL       REHEARSAL
 
 """
 specs = [row.strip() for row in specs.split("\n")]

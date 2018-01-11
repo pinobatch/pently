@@ -2,25 +2,32 @@
 .include "pently.inc"
 .include "nes.inc"
 .include "shell.inc"
+.import pently_rehearsal_marks
 
 ; At first, the plan was to make the visualization/rehearsal screen
 ; inaccessible unless visualization or rehearsal is enabled.  It was
 ; later decided to put the track muting controls in the same screen.
 
-; TODO:
-; [ ] Display song name from tracknames.txt
-; [ ] Store rehearsal marks in file
-; [ ] Display rehearsal marks
-; [ ] Count overall rows waited
-; [ ] Display arrow at current rehearsal mark
-; [ ] Skip a given number of rows
-; [ ] Track muting
+; Local TODO for https://github.com/pinobatch/pently/issues/27
+; 1. Display song name from tracknames.txt
+; 2. Display rehearsal marks in pently_rehearsal_marks[cur_song]
+; 3. Display arrow at current rehearsal mark
+; 4. Check issue
+; 5. Seek to previous or next rehearsal mark
+; 6. Check issue
+; 7. Default song and rehearsal mark when building ROM
+; 8. Tempo scaling
+; 9. Playback stepping a row at a time
+; 10. Bar check
+; 11. Fix grace note bug when skipping rows
+; 12. Track mute/solo
 
 .zeropage
 vis_to_clear: .res 1
 .if PENTLY_USE_REHEARSAL
   vis_num_song_sections: .res 1
-  vis_song_sections_ok: .res 1
+  vis_song_sections_ok:  .res 1
+  vis_cur_song_section:  .res 1
 .endif
 
 ; Injection palette
@@ -103,6 +110,23 @@ vis_loop:
   stx oam_used
   .if ::PENTLY_USE_VIS
     jsr vis_update_obj
+  .endif
+  
+  .if ::PENTLY_USE_REHEARSAL
+    lda new_keys
+    and #KEY_DOWN
+    beq notDown
+      clc
+      ldx pently_rowshi
+      lda pently_rowslo
+      sta $5555
+      adc #128
+      bcc :+
+        inx
+      :
+      jsr pently_skip_to_row
+    
+    notDown:
   .endif
 
   lda new_keys
