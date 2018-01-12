@@ -1432,6 +1432,8 @@ class PentlyInputParser(object):
         self.instruments = {}
         self.patterns = {}
         self.songs = {}
+        self.resume_song = self.resume_linenum = None
+        self.resume_row = 0
         self.cur_obj = self.cur_song = None
         self.linenum = 0
         self.rhyctx = PentlyRhythmContext()
@@ -1714,6 +1716,16 @@ Used to find the target of a time, scale, durations, or notenames command.
         song = self.cur_song
         song.rhyctx.tempo = tempo  # to be picked up on next wait rows
 
+    def add_resume(self, words):
+        if not self.cur_song:
+            raise ValueError("resume must be used in a song")
+        if self.resume_linenum:
+            raise ValueError("resume point already set on line %d"
+                             % self.resume_linenum)
+        self.resume_linenum = self.linenum
+        self.resume_song = self.cur_song.name
+        self.resume_rows = self.cur_song.total_rows
+
     def add_song_wait(self, words):
         if not self.cur_song:
             raise ValueError("at must be used in a song")
@@ -1849,6 +1861,7 @@ Used to find the target of a time, scale, durations, or notenames command.
         'fallthrough': add_fallthrough,
         'at': add_song_wait,
         'pickup': add_pickup,
+        'resume': add_resume,
         'tempo': add_tempo,
         'play': add_play,
         'stop': add_stop,
@@ -1960,13 +1973,17 @@ n bytes: ASCII encoded rehearsal mark names, separated by $0A,
     songs = sorted(parser.songs.items(), key=lambda x: x[1].linenum)
     lines = [
         "; Rehearsal mark data begin",
-        ".export pently_rehearsal_marks",
+        ".exportzp pently_resume_song",
+        ".export pently_rehearsal_marks, pently_resume_rows",
         "pently_rehearsal_marks:"
     ]
     rmidxnames = ["PRM_%s" % row[0] for row in songs]
     lines.extend(wrapdata(rmidxnames, ".addr "))
 
-    for songname, songdata in songs:
+    resume_song = resume_rows = 0
+    for i, (songname, songdata) in enumerate(songs):
+        if parser.resume_song == songname:
+            resume_song, resume_rows = i, parser.resume_rows
         rm = [
             (name, rows)
             for name, (rows, linenum) in songdata.rehearsal_marks.items()
@@ -1990,7 +2007,11 @@ n bytes: ASCII encoded rehearsal mark names, separated by $0A,
             rmnamesdata.append("0")
             lines.extend(wrapdata(rmnamesdata, ".byte "))
 
-    lines.append("; Rehearsal mark end")
+    lines.extend([
+        "pently_resume_song = %d" % resume_song,
+        "pently_resume_rows = %d" % resume_rows,
+        "; Rehearsal mark end"
+    ])
     return lines
 
 def render_file(parser, segment='RODATA'):

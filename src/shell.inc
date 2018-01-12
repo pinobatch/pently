@@ -47,6 +47,8 @@ RIGHT_ARROW_SPRITE_TILE = $14
 
 ; vis.s methods
 .global vis
+.globalzp pently_resume_song
+.global pently_rehearsal_marks, pently_resume_rows
 
 ; math.s methods
 .global mul8

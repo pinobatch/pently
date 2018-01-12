@@ -124,9 +124,18 @@ SPRITE_0_BEHIND = $20
   jsr pently_init
   jsr display_tracknames
   
-  lda #0
+  .if ::PENTLY_USE_REHEARSAL
+    lda #pently_resume_song
+  .else
+    lda #0
+  .endif
   sta cur_song
   jsr pently_start_music
+  .if ::PENTLY_USE_REHEARSAL
+    lda #<pently_resume_rows
+    ldx #>pently_resume_rows
+    jsr pently_skip_to_row
+  .endif
 
   ; Set up sprite 0 hit, on the same line as the status bar
   lda #STATUS_BAR_TOP * 8 - 1

@@ -3,8 +3,8 @@
 * Correctly cancels injection when attack ends (fixing regression
   introduced with slow arps)
 * Cancels grace note when pattern begins
-* NES shell: New visualizer
-* NES shell: Seek to rehearsal marks defined in score
+* NES shell: add visualizer
+* NES shell: seek to resume point and rehearsal marks in score
 * pentlyas.py: add warning infrastructure
 * pentlyas.py: v1 through v4 as synonyms for pp through ff
 * pentlyas.py: p (pause) is synonym for r (rest)

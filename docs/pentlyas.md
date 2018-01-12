@@ -570,7 +570,20 @@ instrument may change unexpectedly.
 The loop point is set with the **`segno`** (sen-yoh) command.  A song
 ends with the **`fine`** (fee-neh) command, which stops playback, or
 the **`dal segno`** command, which loops back to `segno` if it exists
-or the beginning of the song otherwise.
+or the beginning of the song otherwise.  When there is no `segno`,
+the `da capo` command also works.
+
+To add a **rehearsal mark** for navigation within a song, use the
+`mark` command after an `at`.  Each song can have up to 16 marks,
+including the automatic marks for the start and loop point.
+Each mark has a name of 1 to 25 ASCII (basic Latin) characters:
+
+    at 65
+    mark cadenza
+
+The **`resume`** command starts playback from a specific point in one
+of the songs in a score.  This makes the edit-build-listen cycle more
+convenient.  A score can contain only one `resume`.
 
 The included `musicseq.pently` file contains examples of complete songs.
 

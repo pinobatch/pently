@@ -2,7 +2,6 @@
 .include "pently.inc"
 .include "nes.inc"
 .include "shell.inc"
-.import pently_rehearsal_marks
 
 ; At first, the plan was to make the visualization/rehearsal screen
 ; inaccessible unless visualization or rehearsal is enabled.  It was

@@ -725,6 +725,11 @@ bottom:
   bne skip_to_row_top
   cmp pently_rowslo
   bne skip_to_row_top
+  
+  ; When seeking, kill cymbals because they tend to leave an
+  ; envelope hanging
+  lda #0
+  sta noteEnvVol+DRUM_TRACK
   rts
 .endproc
 pently_skip_to_row = skip_to_row_top::bottom
