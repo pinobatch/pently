@@ -30,6 +30,7 @@ vis_to_clear: .res 1
 vis_dirty: .res 1
 vis_section_load_row: .res 1
 vis_A_gesture_time: .res 1
+vis_cursor_x: .res 1
 
 .if PENTLY_USE_REHEARSAL
   vis_cur_song_section: .res 1
@@ -79,9 +80,11 @@ muterow = 56
   .endif
 
   jsr load_song_title
-  
+
   lda #0
   sta vis_A_gesture_time
+  sta vis_cursor_x
+  lda #DIRTY_MUTE
   sta vis_dirty
   ldx #4
   stx oam_used
@@ -154,44 +157,31 @@ vis_loop:
   .if ::PENTLY_USE_VIS
     jsr vis_update_obj
   .endif
+  .if ::PENTLY_USE_VARMIX
+    jsr vis_draw_mute_cursor
+  .endif
+
+  lda vis_A_gesture_time
+  beq :+
+    dec vis_A_gesture_time
+  :
   
   .if ::PENTLY_USE_REHEARSAL
     jsr find_current_row
-    jsr draw_row_arrow
 
-    ; Down: Go to start of next section
-    lda new_keys
-    and #KEY_DOWN
-    beq notDown
-    lda vis_cur_song_section
-    cmp vis_num_sections
-    bcs notDown
-      lda #1
-      adc vis_cur_song_section
-      jsr seek_to_section
-    notDown:
-
-    ; Up: Rewind, then go to start of previous section
-    lda new_keys
-    and #KEY_UP
-    beq notUp
-    lda vis_cur_song_section
-    beq notUp
-      lda cur_song
-      jsr pently_start_music
-      .if ::PENTLY_USE_VARMIX
-        jsr vis_set_mute
-      .endif
-      lda vis_cur_song_section
-      sec
-      sbc #1
-      bcc notUp
-      jsr seek_to_section
-    notUp:
+    lda vis_cursor_x
+    bne notRehearsalKeys
+      jsr vis_draw_section_arrow
+      jsr vis_handle_rehearsal_keys
+    notRehearsalKeys:
+  .endif
+  
+  .if ::PENTLY_USE_VARMIX
+    jsr vis_handle_varmix_keys
   .endif
 
   lda new_keys
-  and #KEY_B|KEY_LEFT
+  and #KEY_B
   bne vis_done
   jmp vis_loop
 vis_done:
@@ -308,7 +298,7 @@ no_room = vis_clear_part::bail
   .if ::PENTLY_USE_VARMIX
     lda vis_dirty
     and #DIRTY_MUTE
-    bcc not_dirty0
+    beq not_dirty0
       jmp vis_draw_mute
     not_dirty0:
   .endif
@@ -435,7 +425,7 @@ have_section:
   rts
 .endproc
 
-.proc draw_row_arrow
+.proc vis_draw_section_arrow
   ldy oam_used
   tya
   clc
@@ -460,7 +450,7 @@ bail:
 .proc seek_to_section
 src = $00
   asl a
-  beq draw_row_arrow::bail
+  beq vis_draw_section_arrow::bail
   tay
   lda cur_song
   asl a
@@ -475,6 +465,39 @@ src = $00
   dey
   lda (src),y
   jmp pently_skip_to_row
+.endproc
+
+.proc vis_handle_rehearsal_keys
+  ; Down: Go to start of next section
+  lda new_keys
+  and #KEY_DOWN
+  beq notDown
+  lda vis_cur_song_section
+  cmp vis_num_sections
+  bcs notDown
+    lda #1
+    adc vis_cur_song_section
+    jsr seek_to_section
+  notDown:
+
+  ; Up: Rewind, then go to start of previous section
+  lda new_keys
+  and #KEY_UP
+  beq notUp
+  lda vis_cur_song_section
+  beq notUp
+    lda cur_song
+    jsr pently_start_music
+    .if ::PENTLY_USE_VARMIX
+      jsr vis_set_mute
+    .endif
+    lda vis_cur_song_section
+    sec
+    sbc #1
+    bcc notUp
+    jsr seek_to_section
+  notUp:
+  rts
 .endproc
 .endif
 
@@ -735,7 +758,7 @@ whitekey_pos:
 .endif  ; PENTLY_USE_VIS
 
 ; Track muting ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+.code
 .if PENTLY_USE_VARMIX
 .proc vis_set_initial_mute
   lda #pently_resume_mute
@@ -757,34 +780,135 @@ mutebit = $08
   rts
 .endproc
 
+MUTE_X = 15
 .proc vis_draw_mute
   lda #<~DIRTY_MUTE
   sta vis_dirty
   lda #muterow
   jsr clear_copybuf
   
-  lda #2
   ldx #31
   :
+    lda chmute_status_bar,x
     sta copybuf,x
     dex
     bpl :-
 
-  ; Title bar
-  ldx #2
-  lda #$08  ; start of title
-  clc
-  :
-    sta copybuf,x
-    adc #1
+  ldx #15
+  lda vis_mute
+  chloop:
+    lsr a
+    bcc :+
+      tay
+      lda #$FE
+      sta copybuf,x
+      tya
+    :
+    cpx #(LAST_TRACK / 4) * 3 + MUTE_X
     inx
-    cpx #10
-    bcc :-
-  
-  lda #'M'
-  sta copybuf+29
-
+    inx
+    inx
+    bcc chloop
   rts
 .endproc
+
+.proc vis_handle_varmix_keys
+MUTE_ALL = (1 << (LAST_TRACK / 4 + 1)) - 1
+  lda vis_cursor_x
+  beq notLeft
+  lda new_keys
+  and #KEY_LEFT
+  beq notLeft
+    dec vis_cursor_x
+    jmp cancel_A_gesture
+  notLeft:
+
+  lda vis_cursor_x
+  cmp #(LAST_TRACK / 4) + 1
+  bcs notRight
+  lda new_keys
+  and #KEY_RIGHT
+  beq notRight
+    inc vis_cursor_x
+  cancel_A_gesture:
+    lda #0
+    sta vis_A_gesture_time
+  notA:
+    rts
+  notRight:
+
+  ldx vis_cursor_x
+  beq notA
+  lda new_keys
+  bpl notA
+  lda vis_A_gesture_time
+  bne is_double_click
+    ; Single click: Toggle this channel
+    lda #15
+    sta vis_A_gesture_time
+    lda one_shl_x-1,x
+    eor vis_mute
+    jmp have_vis_mute
+    
+is_double_click:
+  ; Double-click with at least one other channel not muted puts this
+  ; channel on solo
+  lda vis_mute
+  eor #MUTE_ALL  ; A: channels NOT muted
+  and not_1_shl_x-1,x  ; A: channels other than this not muted
+  beq unmute_all
+    lda not_1_shl_x-1,x
+    and #MUTE_ALL
+    jmp have_vis_mute
+  unmute_all:
+    lda #0
+  have_vis_mute:
+
+  sta vis_mute
+  lda #DIRTY_MUTE
+  ora vis_dirty
+  sta vis_dirty
+  jmp vis_set_mute
+.endproc
+
+.proc vis_draw_mute_cursor
+  lda vis_cursor_x
+  beq no_cursor
+    ldy oam_used
+    tya
+    clc
+    adc #4
+    sta oam_used
+    
+    lda #(muterow - 32) * 8 + 4
+    sta OAM+0,y
+    lda #ARROW_SPRITE_TILE
+    sta OAM+1,y
+    lda #1
+    sta OAM+2,y
+    lda vis_cursor_x
+    asl a
+    adc vis_cursor_x
+    asl a
+    asl a
+    asl a
+    adc #(MUTE_X - 3) * 8 + 4
+    sta OAM+3,y
+  no_cursor:
+  rts
+.endproc
+
+.rodata
+chmute_status_bar:
+  .byte $02,$02,$08,$09,$0A,$0B,$0C,$0D,$0E,$0F,$02,$02,$02,$02,$02,$FF
+  .byte $EA,$EB,$FF,$FA,$FB,$FF,$EC,$ED,$FF,$FC,$FD,$FF,$EE,$EF,$02,$02
+one_shl_x:
+  .repeat 8, I
+    .byte 1 << I
+  .endrepeat
+not_1_shl_x:
+  .repeat 8, I
+    .byte $FF ^ (1 << I)
+  .endrepeat
 
 .endif

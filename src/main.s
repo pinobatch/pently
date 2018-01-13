@@ -266,7 +266,7 @@ forever:
   notUp:
 
   lda new_keys
-  and #KEY_RIGHT|KEY_A
+  and #KEY_A
   beq notEnterVis
     jsr vis
   notEnterVis:
@@ -448,17 +448,6 @@ status_strips:
   ; Copyright notice
   .dbyt STATUS_BAR_ADDR + 18
   .byte $14, 12
-  ; Mute notice for each track
-  .dbyt TRACKMUTE_ADDR + 1
-  .byte $EA, 2
-  .dbyt TRACKMUTE_ADDR + 4
-  .byte $FA, 2
-  .dbyt TRACKMUTE_ADDR + 7
-  .byte $EC, 2
-  .dbyt TRACKMUTE_ADDR + 10
-  .byte $FC, 2
-  .dbyt TRACKMUTE_ADDR + 13
-  .byte $EE, 2
   ; Keyboard
 .if PENTLY_USE_VIS
   .dbyt KEYBOARD_ADDR
@@ -528,7 +517,7 @@ bytes_txt:
 
 main_palette:
   .byt $0F,$00,$10,$30, $0F,$00,$10,$30, $0F,$00,$10,$30, $0F,$00,$10,$30
-  .byt $0F,$26,$10,$30, $0F,$2A,$10,$30, $0F,$12,$10,$30, $0F,$00,$10,$30
+  .byt $0F,$26,$10,$30, $0F,$2A,$00,$30, $0F,$12,$10,$30, $0F,$00,$10,$30
 
 .segment "CHR"
   .incbin "obj/nes/bggfx.chr"
