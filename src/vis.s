@@ -3,16 +3,17 @@
 .include "nes.inc"
 .include "shell.inc"
 
-; At first, the plan was to make the visualization/rehearsal screen
-; inaccessible unless visualization or rehearsal is enabled.  It was
-; later decided to put the track muting controls in the same screen.
+ARROW_SPRITE_TILE = $15
 
+; This screen covers visualization, rehearsal mark seeking,
+; slowdown/step playback, and track muting.
+;
 ; Local TODO for https://github.com/pinobatch/pently/issues/27
-; 1. Default song and rehearsal mark when building ROM
+; 1. Draw what mute/solo should look like
 ; 2. Check issue
-; 3. Draw what mute/solo should look like
-; 4. Check issue
-; 5. Track mute/solo
+; 3. Track mute/solo
+; 4. 
+; 5. 
 ; 6. Tempo scaling
 ; 7. Playback stepping a row at a time
 ; 8. Check issue
@@ -20,6 +21,7 @@
 ; 10. What is causing a higher than expected Peak on song start?
 ; 11. Continue to watch for grace note glitches
 ; 12. 
+
 
 .zeropage
 vis_to_clear: .res 1
@@ -37,11 +39,17 @@ vis_section_load_row: .res 1
   vis_pulse2_color: .res 1
   vis_tri_color: .res 1
   vis_noise_color: .res 1
+  vis_mute: .res 1
 .endif
 
 CH_TRI = $08
 CH_NOISE = $0C
 CH_END = $10
+.if PENTLY_USE_ATTACK_TRACK
+  LAST_TRACK = $10
+.else
+  LAST_TRACK = $0C
+.endif
 
 copydst_lo = $0180
 copydst_hi = $0181
@@ -67,7 +75,6 @@ caporow = 36
 
   jsr load_song_title
   
-
   ldx #4
   stx oam_used
 vis_loop:
@@ -164,6 +171,9 @@ vis_loop:
     beq notUp
       lda cur_song
       jsr pently_start_music
+      .if ::PENTLY_USE_VARMIX
+        jsr vis_set_mute
+      .endif
       lda vis_cur_song_section
       sec
       sbc #1
@@ -702,3 +712,29 @@ whitekey_pos:
   .byte       16*2+1
 
 .endif  ; PENTLY_USE_VIS
+
+; Track muting ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+pently_resume_mute = %00000111
+
+.if PENTLY_USE_VARMIX
+.proc vis_set_initial_mute
+  lda #pently_resume_mute
+  sta vis_mute
+.endproc
+.proc vis_set_mute
+mutebit = $08
+  lda vis_mute
+  ldx #0
+  loop:
+    lsr a
+    ror pently_mute_track,x
+    inx
+    inx
+    inx
+    inx
+    cpx #LAST_TRACK+4
+    bcc loop
+  rts
+.endproc
+.endif

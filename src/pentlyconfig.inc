@@ -13,6 +13,7 @@ PENTLY_USE_CHANNEL_VOLUME = 1
 PENTLY_USE_SQUARE_POOLING = 1
 PENTLY_USE_MUSIC_IF_LOUDER = 1
 PENTLY_USE_PAL_ADJUST = 1
+PENTLY_USE_VARMIX = 1
 
 ; Utilities used by that aren't needed unless syncing animation
 ; to the audio
@@ -21,7 +22,7 @@ PENTLY_USE_ROW_CALLBACK = 0
 PENTLY_USE_VIS = 1
 PENTLY_USE_REHEARSAL = 1
 
-; Should sound effects be selectable?
+; Should sound effects be selectable in the NSF?
 PENTLY_USE_NSF_SOUND_FX = 0
 
 ; 0-127; higher means quieter tri/noise

@@ -131,10 +131,14 @@ SPRITE_0_BEHIND = $20
   .endif
   sta cur_song
   jsr pently_start_music
-  .if ::PENTLY_USE_REHEARSAL
+  .if ::PENTLY_USE_VARMIX
     lda #<pently_resume_rows
     ldx #>pently_resume_rows
     jsr pently_skip_to_row
+  .endif
+
+  .if ::PENTLY_USE_VARMIX
+    jsr vis_set_initial_mute
   .endif
 
   ; Set up sprite 0 hit, on the same line as the status bar
@@ -253,6 +257,9 @@ forever:
     have_new_song:
     sta cur_song
     jsr pently_start_music
+    .if ::PENTLY_USE_VARMIX
+      jsr vis_set_mute
+    .endif
     lda #0
     sta cyclespeakhi
     sta cyclespeaklo

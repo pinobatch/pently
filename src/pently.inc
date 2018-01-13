@@ -46,6 +46,11 @@ PENTLY_USE_VIS = 0
 PENTLY_USE_REHEARSAL = 0
 .endif
 
+; Enable variable mix (track muting)
+.ifndef PENTLY_USE_VARMIX
+PENTLY_USE_VARMIX = 0
+.endif
+
 ; Enable vibrato (sinusoidal pitch modulation with an LFO of
 ; period 12 frames)
 .ifndef PENTLY_USE_VIBRATO
@@ -170,6 +175,13 @@ PENTLY_USE_BPMMATH = 1
 ; Number of sequence rows that have been processed
 ; (Requires PENTLY_USE_REHEARSAL)
 .global pently_rowslo, pently_rowshi
+
+; Modifiable fields ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;
+; Play all notes in this track as rests if bit 7 is set.
+; (Requires PENTLY_USE_VARMIX)
+.global pently_mute_track
 
 ; Size (for debugging) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .global PENTLYSOUND_SIZE, PENTLYMUSIC_SIZE

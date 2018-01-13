@@ -41,6 +41,9 @@ The following methods, declared in the assembly language include file
   Channel is 0, 4, 8, 12, or 16, representing pulse 1, pulse 2,
   triangle, noise, and attack.  Instrument is an element of the
   `pently_instruments` table.
+* `pently_skip_to_row` skips to row X*256+A.  This row must be on
+  or after the current position; otherwise, behavior is undefined.
+  This method is available only if `PENTLY_USE_REHEARSE` is enabled.
 * `getTVSystem`, defined in `paldetect.s`, waits for the PPU to
   stabilize and counts the time between vertical blanking periods
   to determine which TV system is in use.  It returns a region
@@ -112,6 +115,19 @@ channel for its entire duration.
 If `PENTLY_USE_NSF_SOUND_FX` is enabled, drums and other sound
 effects are placed after music in the NSF's song order.
 
+If `PENTLY_USE_REHEARSE` is enabled, seeking to a point in the song
+is possible.  This is useful for creating rehearsal marks within a
+song so that a composer can skip around or repeat a section.
+
+If `PENTLY_USE_VIS` is enabled, Pently updates a bunch of public
+variables based on the state of each channel, whose names start
+with `pently_vis_`.  These are useful for building a visualizer.
+
+If `PENTLY_USE_VARMIX` is enabled, setting bit 7 of
+`pently_mute_track` for each track will turn all note-on commands
+on that track into note-offs.  Use this when composing to hear a
+part more clearly or in a game to make a [variable mix].
+
 `PENTLY_INITIAL_4011` controls what's written to the DMC's value in
 `pently_init`.  Because of nonlinearity in the NES's audio output,
 this ends up controlling the balance between the pulse channels and
@@ -166,6 +182,8 @@ Other features that save substantial ROM bytes:
   60 ROM bytes, 4 RAM bytes
 * `PENTLY_USE_BPMMATH`  
   30 ROM bytes, 2 RAM bytes
+
+[variable mix]: https://allthetropes.org/wiki/Variable_Mix
 
 Pitch
 -----

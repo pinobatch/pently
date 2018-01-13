@@ -496,12 +496,17 @@ isNoteCmd:
   lda durations,y
   sta noteRowsLeft,x
   pla
+  .if ::PENTLY_USE_VARMIX
+    ldy pently_mute_track,x
+    bmi isKeyOff
+  .endif
   lsr a
   lsr a
   lsr a
   cmp #25
   bcc isTransposedNote
   beq notKeyOff
+  isKeyOff:
     lda #0
     .if ::PENTLY_USE_ATTACK_TRACK
       cpx #ATTACK_TRACK
@@ -524,6 +529,10 @@ isNoteCmd:
     jmp skipNote
 
 isDrumNote:
+  .if ::PENTLY_USE_VARMIX
+    ldy pently_mute_track+DRUM_TRACK
+    bmi skipNote
+  .endif
   asl a
   pha
   tax

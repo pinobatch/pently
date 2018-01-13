@@ -53,6 +53,7 @@ music_tempoHi    SINGLETON
 conductorWaitRows SINGLETON
 pently_rows_per_beat SINGLETON       BPMMATH
 pently_row_beat_part SINGLETON       BPMMATH
+pently_mute_track  PER_TRACK         VARMIX
 
 # Visualization and rehearsal
 pently_vis_dutyvol PER_CHANNEL       VIS
