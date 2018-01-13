@@ -901,7 +901,8 @@ class PentlySong(PentlyRenderable):
         self.bytesize += 4
         self.conductor.append(abstract_cmd)
 
-    def stop_tracks(self, tracks):
+    @staticmethod
+    def parse_trackset(tracks):
         tracks_to_stop = set()
         tracks_unknown = []
         for trackname in tracks:
@@ -917,6 +918,10 @@ class PentlySong(PentlyRenderable):
                 tracks_to_stop.add(track)
         if tracks_unknown:
             raise ValueError("unknown track names: "+" ".join(tracks_unknown))
+        return tracks_to_stop
+
+    def stop_tracks(self, tracks):
+        tracks_to_stop = self.parse_trackset(tracks)
         abstract_cmds = [('stopPat', track) for track in tracks_to_stop]
         self.conductor.extend(abstract_cmds)
         self.bytesize += 4 * len(abstract_cmds)
@@ -1432,9 +1437,9 @@ class PentlyInputParser(object):
         self.instruments = {}
         self.patterns = {}
         self.songs = {}
-        self.resume_song = self.resume_linenum = None
-        self.resume_row = 0
-        self.cur_obj = self.cur_song = None
+        self.resume_mute_linenum = self.resume_linenum = None
+        self.resume_row = self.resume_mute = 0
+        self.cur_obj = self.cur_song = self.resume_song = None
         self.linenum = 0
         self.rhyctx = PentlyRhythmContext()
         self.pitchctx = PentlyPitchContext()
@@ -1719,13 +1724,26 @@ Used to find the target of a time, scale, durations, or notenames command.
     def add_resume(self, words):
         if not self.cur_song:
             raise ValueError("resume must be used in a song")
-        if self.resume_linenum:
+        if self.resume_linenum is not None:
             raise ValueError("resume point already set on line %d"
                              % self.resume_linenum)
         self.resume_linenum = self.linenum
         self.resume_song = self.cur_song.name
         self.resume_rows = self.cur_song.total_rows
 
+    def add_mute(self, words):
+        is_solo = words[0] == 'solo'
+        if self.resume_mute_linenum is not None:
+            raise ValueError("resume muting already set on line %d"
+                             % self.resume_mute_linenum)
+        trackbits = 0
+        for track in self.cur_song.parse_trackset(words[1:]):
+            trackbits |= 1 << track
+        if is_solo:
+            trackbits = trackbits ^ 0x1F
+        self.resume_mute = trackbits
+        self.warn("muting $%02x" % trackbits)
+    
     def add_song_wait(self, words):
         if not self.cur_song:
             raise ValueError("at must be used in a song")
@@ -1862,6 +1880,8 @@ Used to find the target of a time, scale, durations, or notenames command.
         'at': add_song_wait,
         'pickup': add_pickup,
         'resume': add_resume,
+        'mute': add_mute,
+        'solo': add_mute,
         'tempo': add_tempo,
         'play': add_play,
         'stop': add_stop,
@@ -2057,7 +2077,7 @@ def render_file(parser, segment='RODATA'):
         '.exportzp NUM_SONGS, NUM_SOUNDS',
     ]
     all_export = []
-    all_exportzp = []
+    all_exportzp = ['pently_resume_mute']
     bytes_lines = []
     songbytes = {'': 0}
     total_partbytes = 0
@@ -2122,6 +2142,7 @@ def render_file(parser, segment='RODATA'):
         '; Sound effect, instrument, and song names for your program to .importzp'
     ])
     lines.extend(wrapdata(all_exportzp, ".exportzp "))
+    lines.append("pently_resume_mute = $%02X" % parser.resume_mute)
     lines.extend([
         '',
         '; Total music data size: %d bytes' % total_partbytes

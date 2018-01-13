@@ -23,9 +23,13 @@ ARROW_SPRITE_TILE = $15
 ; 12. 
 
 
+DIRTY_MUTE = $01
+
 .zeropage
 vis_to_clear: .res 1
+vis_dirty: .res 1
 vis_section_load_row: .res 1
+vis_A_gesture_time: .res 1
 
 .if PENTLY_USE_REHEARSAL
   vis_cur_song_section: .res 1
@@ -58,6 +62,7 @@ LF = $0A
 
 songrow = 35
 caporow = 36
+muterow = 56
 
 .code
 .proc vis
@@ -69,12 +74,15 @@ caporow = 36
   .else
     lda #$FF
     sta vis_section_load_row
-    lda #1
+    lda #0
     sta vis_to_clear
   .endif
 
   jsr load_song_title
   
+  lda #0
+  sta vis_A_gesture_time
+  sta vis_dirty
   ldx #4
   stx oam_used
 vis_loop:
@@ -193,7 +201,6 @@ vis_done:
 ; Song name and section names ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 .proc clear_copybuf
-  tya
   sec
   ror a
   sta copydst_hi
@@ -218,7 +225,7 @@ vis_done:
 bail = clear_copybuf::bail
 src = $00
 newlines_left = $03
-  ldy #songrow
+  lda #songrow
   jsr clear_copybuf
   lda #>tracknames_txt
   ldy #<tracknames_txt
@@ -283,19 +290,37 @@ bail:
 .endproc
 
 .proc vis_prepare_vram_row
-nope = vis_clear_part::bail
+no_room = vis_clear_part::bail
+
+  ; Ensure there's room in the VRAM copy buffer to load something
+  lda copydst_hi
+  bpl no_room
+
+  ; Now look for things to load
+  .if ::PENTLY_USE_REHEARSAL
+    ; Are the section names drawn yet?
+    lda vis_section_load_row
+    bmi not_section_name
+      jmp vis_draw_section_name
+    not_section_name:
+  .endif
+
+  .if ::PENTLY_USE_VARMIX
+    lda vis_dirty
+    and #DIRTY_MUTE
+    bcc not_dirty0
+      jmp vis_draw_mute
+    not_dirty0:
+  .endif
+
+  rts
+.endproc
+
+.if PENTLY_USE_REHEARSAL
+.proc vis_draw_section_name
 src = $00
 
-.if ::PENTLY_USE_REHEARSAL
-
-  ; Ensure there's something to load
-  ldy vis_section_load_row
-  bmi nope
-  
-  ; and room to load it
-  lda copydst_hi
-  bpl nope
-
+  lda vis_section_load_row
   jsr clear_copybuf
   lda vis_section_load_row
   sec
@@ -357,16 +382,12 @@ src = $00
     :
     inc vis_section_load_row
     rts
-
 no_marks_left:
 
-.endif
   lda #$FF
   sta vis_section_load_row
   rts
 .endproc
-
-.if PENTLY_USE_REHEARSAL
 
 ;;
 ; Sets vis_cur_song_section to the lowest section number whose ending
@@ -715,8 +736,6 @@ whitekey_pos:
 
 ; Track muting ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-pently_resume_mute = %00000111
-
 .if PENTLY_USE_VARMIX
 .proc vis_set_initial_mute
   lda #pently_resume_mute
@@ -737,4 +756,35 @@ mutebit = $08
     bcc loop
   rts
 .endproc
+
+.proc vis_draw_mute
+  lda #<~DIRTY_MUTE
+  sta vis_dirty
+  lda #muterow
+  jsr clear_copybuf
+  
+  lda #2
+  ldx #31
+  :
+    sta copybuf,x
+    dex
+    bpl :-
+
+  ; Title bar
+  ldx #2
+  lda #$08  ; start of title
+  clc
+  :
+    sta copybuf,x
+    adc #1
+    inx
+    cpx #10
+    bcc :-
+  
+  lda #'M'
+  sta copybuf+29
+
+  rts
+.endproc
+
 .endif

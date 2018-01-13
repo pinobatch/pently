@@ -573,6 +573,14 @@ the **`dal segno`** command, which loops back to `segno` if it exists
 or the beginning of the song otherwise.  When there is no `segno`,
 the `da capo` command also works.
 
+The included `musicseq.pently` file contains examples of complete songs.
+
+Rehearsal
+---------
+The following commands primarily control playback in the NES ROM
+player (`pently.nes`).  They make the edit-build-listen cycle more
+convenient, but they're not that useful in games or NSF output.
+
 To add a **rehearsal mark** for navigation within a song, use the
 `mark` command after an `at`.  Each song can have up to 16 marks,
 including the automatic marks for the start and loop point.
@@ -581,11 +589,14 @@ Each mark has a name of 1 to 25 ASCII (basic Latin) characters:
     at 65
     mark cadenza
 
-The **`resume`** command starts playback from a specific point in one
-of the songs in a score.  This makes the edit-build-listen cycle more
-convenient.  A score can contain only one `resume`.
+Two control
 
-The included `musicseq.pently` file contains examples of complete songs.
+The **`resume`** command starts playback in `pently.nes` from a
+specific point in one of the songs in a score.  The **`mute`**
+command followed by one or more track names (as with `stop`) causes
+tracks to be muted when `pently.nes` starts; **`solo`** is similar
+but mutes all tracks other than those specified.  A score can contain
+only one `resume` and only `mute` or `solo`.
 
 Output file
 ===========
