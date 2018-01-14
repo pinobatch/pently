@@ -296,6 +296,7 @@ song argument
   play melody
 
   at 65
+  mark swell
   attack on pulse2
   pattern melodyend with bf98_flute2 on attack
     orelative
@@ -446,7 +447,7 @@ song argument
   play harmony68_3
 
   at 65
-  mark second melody
+  mark B melody
   play drum68top
   play melody68
   play drum68allkick
@@ -914,8 +915,17 @@ song canon
   play melody
   at 5
   play melody on pulse1 with fiddle2
+  at 13
+  mark 16th notes
   at 19
   mark 32nd notes
+  at 27
+  mark more 16ths
+  at 39
+  mark dots
+  at 47
+  mark syncopation
+  
   at 56:2
   tempo 50
   at 56:3

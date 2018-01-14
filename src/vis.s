@@ -9,19 +9,10 @@ ARROW_SPRITE_TILE = $15
 ; slowdown/step playback, and track muting.
 ;
 ; Local TODO for https://github.com/pinobatch/pently/issues/27
-; 1. Draw what mute/solo should look like
-; 2. Check issue
-; 3. Track mute/solo
-; 4. 
-; 5. 
-; 6. Tempo scaling
-; 7. Playback stepping a row at a time
-; 8. Check issue
-; 9. 
-; 10. What is causing a higher than expected Peak on song start?
-; 11. Continue to watch for grace note glitches
-; 12. 
-
+; 1. Tempo scaling
+; 2. Playback stepping a row at a time
+; 3. Check issue
+; 4. What is causing a higher than expected Peak on song start?
 
 DIRTY_MUTE = $01
 

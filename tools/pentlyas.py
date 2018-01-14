@@ -1155,8 +1155,7 @@ EN(-?(?:
                 self.pitchctx.set_arp(arpvalue)
             return
         if word.startswith("EN") and not arpmatch:
-            self.warn("malformed arpeggio %s" % repr(word),
-                      file=sys.stderr)
+            self.warn("malformed arpeggio %s" % repr(word))
 
         # EPxx: Portamento rate
         slidematch = (self.portamentoRE.match(word)
@@ -1169,8 +1168,7 @@ EN(-?(?:
             self.notes.append("BEND,$"+bendhex)
             return
         if word.startswith("EP") and not slidematch:
-            self.warn("malformed portamento %s" % repr(word),
-                      file=sys.stderr)
+            self.warn("malformed portamento %s" % repr(word))
 
         # MPxx: Vibrato
         vibratomatch = (self.vibratoRE.match(word)
@@ -1907,8 +1905,7 @@ Used to find the target of a time, scale, durations, or notenames command.
             return
         if self.unk_keywords < 100:
             self.warn("unknown keyword %s inside %s"
-                      % (repr(words), self.cur_obj or self.cur_song.name),
-                      file=sys.stderr)
+                      % (repr(words), self.cur_obj or self.cur_song.name))
         self.unk_keywords += 1
 
 # Finding pieces of data that can overlap each other ################
