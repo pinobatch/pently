@@ -183,5 +183,11 @@ PENTLY_USE_BPMMATH = 1
 ; (Requires PENTLY_USE_VARMIX)
 .global pently_mute_track
 
+;;
+; Bit 7: Pause playback for step at a time playback
+; Bits 2-0: Scale tempo by a factor of 4
+; (Requires PENTLY_USE_REHEARSAL)
+.global pently_tempo_scale
+
 ; Size (for debugging) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .global PENTLYSOUND_SIZE, PENTLYMUSIC_SIZE

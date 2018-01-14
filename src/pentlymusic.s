@@ -224,11 +224,34 @@ pentlymusic_code_start = *
 .proc pently_update_music
   lda pently_music_playing
   beq music_not_playing
+  
+  .if ::PENTLY_USE_REHEARSAL
+scaled_tempoHi  = pently_zptemp + 0
+
+    lda music_tempoHi
+    sta scaled_tempoHi
+    lda music_tempoLo
+    ldx pently_tempo_scale
+    beq have_scaled_tempoLo
+    cpx #10
+    bcs music_not_playing
+    shiftLoop:
+      lsr scaled_tempoHi
+      ror a
+      dex
+      bne shiftLoop
+    have_scaled_tempoLo:
+    clc
+    adc pently_tempoCounterLo
+    sta pently_tempoCounterLo
+    lda scaled_tempoHi
+  .else
   lda music_tempoLo
-  clc
-  adc pently_tempoCounterLo
-  sta pently_tempoCounterLo
-  lda music_tempoHi
+    clc
+    adc pently_tempoCounterLo
+    sta pently_tempoCounterLo
+    lda music_tempoHi
+  .endif
   adc pently_tempoCounterHi
   sta pently_tempoCounterHi
   bcs pently_next_row

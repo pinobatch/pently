@@ -27,6 +27,7 @@ vis_cursor_x: .res 1
   vis_cur_song_section: .res 1
   vis_num_sections: .res 1
   vis_section_src: .res 2
+  vis_start_held: .res 1
 .endif
 
 ; Injection palette
@@ -73,6 +74,7 @@ muterow = 56
   jsr load_song_title
 
   lda #0
+  sta vis_start_held
   sta vis_A_gesture_time
   sta vis_cursor_x
   lda #DIRTY_MUTE
@@ -165,6 +167,7 @@ vis_loop:
       jsr vis_draw_section_arrow
       jsr vis_handle_rehearsal_keys
     notRehearsalKeys:
+    jsr vis_handle_tempo_keys
   .endif
   
   .if ::PENTLY_USE_VARMIX
@@ -459,6 +462,10 @@ src = $00
 .endproc
 
 .proc vis_handle_rehearsal_keys
+  lda cur_keys
+  and #KEY_START
+  bne startHeld
+
   ; Down: Go to start of next section
   lda new_keys
   and #KEY_DOWN
@@ -477,19 +484,93 @@ src = $00
   beq notUp
   lda vis_cur_song_section
   beq notUp
+    lda pently_tempo_scale
+    pha
     lda cur_song
     jsr pently_start_music
     .if ::PENTLY_USE_VARMIX
       jsr vis_set_mute
     .endif
+    pla
+    sta pently_tempo_scale
     lda vis_cur_song_section
     sec
     sbc #1
     bcc notUp
     jsr seek_to_section
   notUp:
+
+startHeld:
   rts
 .endproc
+
+.proc vis_handle_tempo_keys
+  lda new_keys
+  and #KEY_START
+  ora vis_start_held
+  sta vis_start_held
+  lda cur_keys
+  eor #$FF
+  and vis_start_held
+  beq not_start_release
+  lda #$80
+  eor pently_tempo_scale
+  sta pently_tempo_scale
+  jmp consume_start_held
+
+not_start_release:
+  ; Test for Start+Up and Start+Down
+  lda cur_keys
+  and #KEY_START
+  beq nope
+
+  lda pently_tempo_scale
+  and #$03
+  tax
+
+  lda new_keys
+  and #KEY_UP
+  beq not_start_up
+    cpx #0
+    beq :+
+      dec pently_tempo_scale
+    :
+    jmp consume_start_held
+  not_start_up:
+  
+  lda new_keys
+  and #KEY_DOWN
+  beq nope
+    cpx #3
+    beq :+
+      inc pently_tempo_scale
+    :
+
+consume_start_held:
+  lda #0
+  sta vis_start_held
+nope:
+
+  ; Check for A while paused = step once
+  
+  lda pently_tempo_scale
+  and new_keys
+  bpl not_paused_A
+  lda vis_cursor_x
+  bne not_paused_A
+    clc
+    ldx pently_rowshi
+    lda pently_rowslo
+    adc #1
+    bcc :+
+      inx
+    :
+    jsr pently_skip_to_row
+  not_paused_A:
+
+  rts
+.endproc
+
 .endif
 
 ; Visualizer ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

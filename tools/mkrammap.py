@@ -59,8 +59,9 @@ pently_mute_track  PER_TRACK         VARMIX
 pently_vis_dutyvol PER_CHANNEL       VIS
 pently_vis_pitchlo PER_CHANNEL       VIS
 pently_vis_pitchhi PER_CHANNEL       VIS
-pently_rowslo      PER_CHANNEL       REHEARSAL
 pently_rowshi      PER_CHANNEL       REHEARSAL
+pently_rowslo      PER_CHANNEL       REHEARSAL
+pently_tempo_scale SINGLETON         REHEARSAL
 
 """
 specs = [row.strip() for row in specs.split("\n")]
