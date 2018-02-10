@@ -486,49 +486,51 @@ song argument
 # This piece was composed to time a workout.  It is nominally in
 # D flat mixolydian, but because it uses bVII and bVI chords (the V
 # and IV of the relative major of the parallel minor), double flats
-# are abundant.
+# are abundant. So I respelled it to C sharp mixolydian.
 song Isometry
   time 4/4
   scale 16
   tempo 90
-    
+
+  resume
+
   pattern triosti on triangle with isobeep
-    db'16
+    c#'16
   
   pattern trifill on triangle with bass
-    db'16 r8.
+    c#'16 r8.
   
   pattern tinkle1 on attack with isotinkle
     relative
-    f'''16 db ab f
+    e#'''16 c# g# e#
   
   pattern tinkle2 on attack with isotinkle
     relative
-    f'''16 eb cb gb
+    e#'''16 d# b f#
   
   pattern tinkle3 on attack with isotinkle
     relative
-    fb'''16 db bbb fb
+    e'''16 c# a e
 
   pattern melmaj2 on pulse2 with isopiano
     relative
-    f'8. f gb4. ab8 gb
-    f8. f eb8 w2
+    e#'8. e# f#4. g#8 f#
+    e#8. e# d#8 w2
 
   pattern melmaj1 on pulse1 with isopiano
     relative
-    db'8. db eb4. f8 eb
-    db8. db cb8 w2
+    c#'8. c# d#4. e#8 d#
+    c#8. c# b8 w2
 
   pattern melmin2 on pulse2 with isopiano
     relative
-    fb'8. fb gb4. ab8 gb
-    fb8. fb eb8 w2
+    e'8. e f#4. g#8 f#
+    e8. e d#8 w2
 
   pattern melmin1 on pulse1 with isopiano
     relative
-    db'8. db eb4. fb8 eb
-    db8. db cb8 w2
+    c#'8. c# d#4. e8 d#
+    c#8. c# b8 w2
 
   pattern drum
     lkick4 lsnare clhat lsnare
@@ -600,12 +602,12 @@ song Isometry
   mark rest between sets
   pattern restperiod1 on pulse1 with isopiano
     relative
-    f4. gb ab4 w1
+    e#4. f# g#4 w1
 
   pattern restperiod2 on pulse1 with isopiano
     relative
-    db4. eb fb4 w1
-    db4. eb f4 w1
+    c#4. d# e4 w1
+    c#4. d# e#4 w1
 
   stop pulse2
   play triosti

@@ -29,13 +29,13 @@ Arguments:
   `NUMSEMITONES` is usually 64 to 80.
 * `--period-region {dendy,ntsc,pal}`  
   Make period table for this region (default: `ntsc`).
-* `--period-tuning FREQ`
+* `--period-tuning FREQ`  
   Set the frequency of the A above middle C (`a'`) in the period
   table.  Common concert pitch is 440 Hz; some orchestras (and
   NSD.lib) use 442 Hz.
-* '--segment SEGMENT'
+* `--segment SEGMENT`  
   Places output in this ca65 `.segment`.  Useful if you are stashing
-  Pently in its own bank of ROM.
+  Pently in its own bank of PRG ROM.
 
 Overall structure
 =================
@@ -650,7 +650,8 @@ studied music theory and MIDI.
 * Note: A musical event with a pitch and a duration.
 * Note value: A duration expressed as a binary fraction of a
   whole note.
-* Octave: A frequency ratio of 2 to 1 between two pitches.
+* Octave: A pitch difference corresponding to a frequency ratio of
+  2 to 1.  In Western music, note names repeat at the octave.
 * Pattern: A musical phrase, consisting of a list of notes and rests.
 * Pickup measure: A partial measure at the start of a piece of music.
   Also called "anacrusis".
@@ -664,8 +665,9 @@ studied music theory and MIDI.
 * Row: The shortest rhythmically significant duration in a piece of
   sequenced music.  Also called a subdivision, tick, or tatum (after
   American jazz pianist Art Tatum).
-* Semitone: One-twelfth of an octave, or a frequency ratio of 1.0595
-  (the twelfth root of 2) to 1 between pitches.
+* Semitone: A pitch difference of one-twelfth of an octave,
+  corresponding to the frequency ratio 1.0595 (the twelfth root of 2)
+  to 1.
 * Song: A piece of music, which plays patterns at various times.
 * Sound effect: A set of pitch, volume, and timbre envelopes
   without necessarily a definite pitch.
