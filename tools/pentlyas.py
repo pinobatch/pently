@@ -1480,10 +1480,12 @@ class PentlyInputParser(object):
                            else frozenset(allowed_objects))
         if not self.cur_obj or self.cur_obj[0] not in allowed_objects:
             allowed_objects = sorted(allowed_objects)
-            article = 'an' if allowed_objects[0].lower() in 'aeiou' else 'a'
+            print(allowed_objects, file=sys.stderr)
+            article = 'an' if allowed_objects[0].lower()[0] in 'aeiou' else 'a'
             wrong_type = self.cur_obj_type()
             sep = ' ' if len(allowed_objects) < 2 else ', '
-            allowed_objects[-1] = 'or ' + allowed_objects[-1]
+            if len(allowed_objects) > 1:
+                allowed_objects[-1] = 'or ' + allowed_objects[-1]
             allowed_objects = sep.join(allowed_objects)
             raise ValueError("%s must be inside %s %s, not %s"
                              % (parent, article, allowed_objects, wrong_type))

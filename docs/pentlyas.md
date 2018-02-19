@@ -596,7 +596,7 @@ specific point in one of the songs in a score.  The **`mute`**
 command followed by one or more track names (as with `stop`) causes
 tracks to be muted when `pently.nes` starts; **`solo`** is similar
 but mutes all tracks other than those specified.  A score can contain
-only one `resume` and only `mute` or `solo`.
+only one `resume` and only one `mute` or `solo`.
 
 Output file
 ===========
@@ -629,6 +629,7 @@ studied music theory and MIDI.
   and `noise`.
 * Channel type: A set of channels with the same behavior.  The 2A03
   has three channel types: `pulse`, `triangle`, and `noise`.
+* Downbeat: The first beat of a measure.
 * Drum: A sound effect played to express rhythm.  Usually represents
   unpitched percussion.
 * Envelope: The change in pitch, volume, or timbre over the course
@@ -638,8 +639,8 @@ studied music theory and MIDI.
   Like other NES music engines, Pently counts frames based on the
   vertical retrace of the picture generator.  An NTSC PPU produces
   60.1 frames per second, and a PAL PPU produces 50.0 frames per
-  second.  This usually ends up assigning three to fifteen frames per
-  row depending on the tempo and scale.
+  second.  This usually ends up assigning three to fifteen frames
+  per row depending on the tempo and scale.
 * HOPO: Instantaneous change in a note's pitch.  (After guitar
   techniques called "hammer-on" and "pull-off" that produce this.)
 * Illusory continuity: The tendency of the human auditory system to
@@ -653,8 +654,9 @@ studied music theory and MIDI.
 * Octave: A pitch difference corresponding to a frequency ratio of
   2 to 1.  In Western music, note names repeat at the octave.
 * Pattern: A musical phrase, consisting of a list of notes and rests.
-* Pickup measure: A partial measure at the start of a piece of music.
-  Also called "anacrusis".
+* Pickup measure: A partial measure at the start of a piece of music,
+  which may begin on an upbeat or a fractional beat.  Also called
+  "anacrusis".
 * Pitch: The frequency of a tone expressed using a logarithmic scale.
 * Pitched: Relating to a channel with a `pulse` or `triangle` type,
   which plays pitches rather than noise.
@@ -680,9 +682,9 @@ studied music theory and MIDI.
 * Track: A logical structure on which notes can be played.  Pently
   has five tracks: one for each pitched channel, one more that can
   replace the attack on a pitched channel's track, and a drum track.
-* Upbeat: A beat other than a measure's first beat.
+* Upbeat: A beat other than a downbeat.
 * Whole note: The name in American English, German, Greek, Japanese,
   and other languages for a note whose duration is that of a measure
   of common (4/4) time.  Also called "semibreve" in Italian and
-  British English, or words meaning "round" in Catalan, French and
-  Spanish.
+  British English, or words meaning "round" in Catalan, French,
+  and Spanish.

@@ -1,7 +1,7 @@
 0.05wip9 (2018-future)
 * PENTLY_USE option to disable 303 portamento
-* Regression fix: Cancel injection when attack ends (broken since
-  slow arps)
+* Regression fix: Cancel injection when attack ends (had been broken
+  since slow arps)
 * Cancel grace note when pattern begins
 * Add rehearsal transport control to skip to a row or slow down or
   pause playback
@@ -16,7 +16,7 @@
 * pentlyas.py: pickup works in patterns as well
 * pentlyas.py: unreachable A in tunings below A=437 is nonfatal
 * pentlyas.py: mmloctaves off, which future chord syntax will require
-* pentlyas.py: set rehearsal points for navigation in score
+* pentlyas.py: set rehearsal marks for navigation in score
 * pentlyas.py: set initial playback position and track muting
 * NES shell: add per-song screen with visualizer, rehearsal mark
   navigation, track muting, tempo, and pause-and-step
