@@ -7,7 +7,7 @@
 ; the copyright notice and this notice are preserved in all source
 ; code copies.  This file is offered as-is, without any warranty.
 ;
-.include "nes.h"
+.include "nes.inc"
 .export ppu_zero_nt, ppu_clear_nt, ppu_clear_oam, ppu_screen_on
 .import OAM
 

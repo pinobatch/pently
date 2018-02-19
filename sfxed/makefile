@@ -33,6 +33,7 @@ imgdir = tilesets
 
 #EMU := "/C/Program Files/Nintendulator/Nintendulator.exe"
 EMU := fceux
+DEBUGEMU := ~/.wine/drive_c/Program\ Files\ \(x86\)/FCEUX/fceux.exe
 # other options for EMU are start (Windows) or gnome-open (GNOME)
 
 # Occasionally, you need to make "build tools", or programs that run
@@ -54,10 +55,12 @@ else
 DOTEXE=
 endif
 
-.PHONY: run dist zip clean
+.PHONY: run debug dist zip clean
 
 run: $(title).nes
 	$(EMU) $<
+debug: $(title).nes
+	$(DEBUGEMU) $<
 
 clean:
 	-rm $(objdir)/*.o $(objdir)/*.chr $(objdir)/*.ov53 $(objdir)/*.sav $(objdir)/*.pb53 $(objdir)/*.s
@@ -84,7 +87,7 @@ objlistntsc = $(foreach o,$(objlist),$(objdir)/$(o).o)
 map.txt $(title).nes: nrom128chrram.cfg $(objlistntsc)
 	$(LD65) -o $(title).nes -C $^ -m map.txt
 
-$(objdir)/%.o: $(srcdir)/%.s $(srcdir)/nes.h $(srcdir)/ram.h $(srcdir)/mbyt.h
+$(objdir)/%.o: $(srcdir)/%.s $(srcdir)/nes.inc $(srcdir)/global.inc $(srcdir)/mbyt.inc
 	$(AS65) $(CFLAGS65) $< -o $@
 
 $(objdir)/%.o: $(objdir)/%.s

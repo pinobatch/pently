@@ -1,5 +1,5 @@
-.include "nes.h"
-.include "ram.h"
+.include "nes.inc"
+.include "global.inc"
 
 ;;
 ; @param X, Y mouse

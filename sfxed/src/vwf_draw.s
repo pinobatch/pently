@@ -1,5 +1,5 @@
 ; NES variable width font drawing library
-; Copyright 2006 Damian Yerrick and Shay Green
+; Copyright 2006-2015 Damian Yerrick
 ;
 ; Copying and distribution of this file, with or without
 ; modification, are permitted in any medium without royalty provided
@@ -7,26 +7,31 @@
 ; code copies.  This file is offered as-is, without any warranty.
 
 ; Change history:
-; 2006-03: vwfPutTile rewritten by "Blargg" (SG)
+; 2006-03: vwfPutTile rewritten by "Blargg" (Shay Green)
 ; and then adapted by Damian Yerrick to match old semantics
-; 2010-06: DY decided to skip completely transparent pattern bytes
+; 2010-06: DY skipped completely transparent pattern bytes
 ; 2011-11: DY added string length measuring
 ; 2012-01: DY added support for inverse video
-; 2014-04: DY fixed some slight glitches in shift111 OR logic
+; 2015-02: vwfPutTile rewritten by DY again; no more Blargg code
 
-.include "nes.h"
+.include "nes.inc"
 .export vwfPutTile, vwfPuts, vwfPuts0
 .export vwfGlyphWidth, vwfStrWidth, vwfStrWidth0
-.export clearLineImg, copyLineImg, lineImgBuf, invertTiles
+.export clearLineImg, lineImgBuf, invertTiles, copyLineImg
 .exportzp lineImgBufLen
-.import chrData, chrWidths
+.import vwfChrData, vwfChrWidths
 
-VWF_TEST = 1
-
-lineImgBuf = $100  ; overlap unused parts of the stack
+lineImgBuf = $0100
 lineImgBufLen = 128
+FONT_HT = 8
 
+srcStr = $00
+horzPos = $04
+shiftedByte = $05
 tileAddr = $06
+shiftContinuation = $08
+leftMask = $0A
+rightMask = $0B
 
 .segment "CODE"
 ;;
@@ -44,47 +49,6 @@ tileAddr = $06
   rts
 .endproc
 
-;;
-; Copies a rendered line of text to the screen
-; in:  AAYY = destination address in VRAM
-; trash: tileAddr ($06)
-.proc copyLineImg
-ppuaddr_lo = tileAddr
-  tax
-  sty ppuaddr_lo
-  lda #VBLANK_NMI|VRAM_DOWN
-  sta PPUCTRL
-  ldy #15
-loop:
-  lda chrstarts,y
-  clc
-  adc ppuaddr_lo
-  bcs xfix
-  stx PPUADDR
-xfix_end:
-  sta PPUADDR
-  .repeat ::lineImgBufLen/16,step
-    lda lineImgBuf + step*16, y
-    sta PPUDATA
-  .endrep
-  dey
-  bpl loop
-  rts
-xfix:
-  inx
-  stx PPUADDR
-  dex
-  bcs xfix_end
-
-.pushseg
-.segment "RODATA"
-chrstarts:
-  .byt  0, 1, 2, 3, 4, 5, 6, 7, 16,17,18,19,20,21,22,23
-.popseg
-.endproc
-
-.segment "CODE"
-
 .macro getTileAddr
   sec
   sbc #' '
@@ -95,202 +59,99 @@ chrstarts:
   asl a     ; 5 4321 076-
   tay
   and #%00000111
-  adc #>chrData
+  adc #>vwfChrData
   sta tileAddr+1
   tya
   and #%11111000
   sta tileAddr
 .endmacro
 
+.res 1  ; 1 or 32 to adjust shiftslide
+
 ;;
 ; Puts a 1-bit tile to position X in the line image buffer.
 ; In:   A = tile number
 ;       X = destination X position
-; Trash: $05-$07
+; Trash: AXY, $05-$0B
 .proc vwfPutTile
-@temp = $05
   getTileAddr
-  ldy #7
-  
-  ; Handle each shift count separately.  Uses ad-hoc dispatch
-  ; rather than binary to allow favoring the slower shifts more.
-  ; Counts for each shift are clocks beyond the basic loop elements.
-  ; Adjustment for low three bits of x is made by offsetting
-  ; lineImgBuf.
-  stx @temp
+
+  ; Construct fast shifter
   txa
-  ora #%0111
-  tax
-  lda @temp
-  and #%111
-  cmp #%100
-  bcs @shift1xx
-  cmp #%011
-  bcc @shift0xx
-@shift011: ; 18
-  lda (tileAddr),y
-  beq @clear011
-  lsr a    ; 0 -765 4321
-  ror a    ; 1 0-76 5432
-  ror a    ; 2 10-7 6543
-  sta @temp
-  and #%00011111
-  ora lineImgBuf,x
-  sta lineImgBuf,x
-  lda @temp
-  ror a
-  and #%11100000
-  ora lineImgBuf+8,x
-  sta lineImgBuf+8,x
-@clear011:
-  dex
-  dey
-  bpl @shift011
-  rts
-  
-@shift1xx:
-  bne @not_shift100
-@shift100: ; 18
-  lda (tileAddr),y
-  beq @clear100
-  asl a    ; 7 6543 210-
-  rol a    ; 6 5432 10-7
-  rol a    ; 5 4321 0-76
-  rol a    ; 4 3210 -765
-  sta @temp
-  and #%11110000
-  ora lineImgBuf+8,x
-  sta lineImgBuf+8,x
-  lda @temp
-  rol a
-  and #%00001111
-  ora lineImgBuf,x
-  sta lineImgBuf,x
-@clear100:
-  dex
-  dey
-  bpl @shift100
-  rts
-
-@shift0xx:
-  lsr a
-  beq @shift00x
-@shift010: ; 16
-  lda (tileAddr),y
-  beq @clear010
-  lsr a    ; 0 -765 4321
-  ror a    ; 1 0-76 5432
-  sta @temp
-  and #%00111111
-  ora lineImgBuf,x
-  sta lineImgBuf,x
-  lda @temp
-  ror a
-  and #%11000000
-  ora lineImgBuf+8,x
-  sta lineImgBuf+8,x
-@clear010:
-  dex
-  dey
-  bpl @shift010
-  rts
-
-@not_shift100:
-  cmp #%110
-  bcs @shift11x
-@shift101: ; 16
-  lda (tileAddr),y
-  beq @clear101
-  asl a    ; 7 6543 210-
-  rol a    ; 6 5432 10-7
-  rol a    ; 5 4321 0-76
-  sta @temp
-  and #%11111000
-  ora lineImgBuf+8,x
-  sta lineImgBuf+8,x
-  lda @temp
-  rol a
   and #%00000111
-  ora lineImgBuf,x
-  sta lineImgBuf,x
-@clear101:
-  dex
-  dey
-  bpl @shift101
-  rts
+  tay
+  lda leftMasks,y
+  sta leftMask
+  eor #$FF
+  sta rightMask
+  lda shiftContinuations,y
+  sta shiftContinuation
+  lda #>shiftslide
+  sta shiftContinuation+1
 
-@shift00x:
-  bcc @shift000
-@shift001: ; 6
+  ; Process scanlines from the bottom up
+  txa
+  .if ::FONT_HT = 8
+    ora #8-1
+  .elseif ::FONT_HT = 16
+    asl a
+    ora #16-1
+  .else
+    .assert 0, error, "font size must be 8 or 16"
+  .endif
+  tax
+  ldy #FONT_HT - 1
+chrbyteloop:
   lda (tileAddr),y
-  beq @clear001
-  lsr a
-  ora lineImgBuf,x
-  sta lineImgBuf,x
-  ror a
-  and #%10000000
-  ora lineImgBuf+8,x
-  sta lineImgBuf+8,x
-@clear001:
-  dex
-  dey
-  bpl @shift001
-  rts
-
-@shift11x:
-  lsr a
-  bcs @shift111
-@shift110: ; 14
-  lda (tileAddr),y
-  beq @clear110
-  asl a    ; 7 6543 210-
-  rol a    ; 6 5432 10-7
-  sta @temp
-  and #%11111100
-  ora lineImgBuf+8,x
-  sta lineImgBuf+8,x
-  lda @temp
+  beq isBlankByte
+  jmp (shiftContinuation)
+shiftslide:
   rol a
-  and #%00000011
-  ora lineImgBuf,x
-  sta lineImgBuf,x
-@clear110:
-  dex
-  dey
-  bpl @shift110
-  rts
-
-@shift000: ; -8
-  lda (tileAddr),y
-  ora lineImgBuf,x
-  sta lineImgBuf,x
-  dex
-  dey
-  bpl @shift000
-  rts
-
-@shift111: ; 4
-  lda (tileAddr),y
-  beq @clear111
-  asl a
-  ora lineImgBuf+8,x
-  sta lineImgBuf+8,x
-  lda #0
   rol a
+  rol a
+  rol a
+  rol a
+  rol a
+  rol a
+  sta shiftedByte
+  and rightMask
+  ora lineImgBuf+FONT_HT,x
+  sta lineImgBuf+FONT_HT,x
+  lda shiftedByte
+  rol a
+  and leftMask
+dontshift:
   ora lineImgBuf,x
   sta lineImgBuf,x
-@clear111:
+isBlankByte:
   dex
   dey
-  bpl @shift111
+  bpl chrbyteloop
   rts
+
+; If you get this error, go up to "adjust shiftslide"
+  .assert >shiftslide = >dontshift, error, "shiftslide crosses page boundary"
+
+
+.pushseg
+.segment "RODATA"
+leftMasks:
+  .repeat 8, I
+    .byte $FF >> I
+  .endrepeat
+shiftContinuations:
+  .byte <dontshift
+  .repeat 7, I
+    .byte <(shiftslide+I)
+  .endrepeat
+.popseg
 .endproc
 
 ;;
 ; Calculates the width in pixels of a string.
 ; @param AAYY: string address, stored to $00-$01
-; @return total pen-advance in A and $02
-; @return strlen in Y; carry set if overflowed
+; @return total pen-advance in A; strlen in Y; carry set if overflowed
+; Trash: $02
 .proc vwfStrWidth
 str = $00
   sty str
@@ -299,7 +160,6 @@ str = $00
 ;;
 ; Same as vwfStrWidth.
 ; @param $00-$01: string address
-; @return A, $02: width; Y: strlen
 .proc vwfStrWidth0
 str = vwfStrWidth::str
 width = $02
@@ -307,10 +167,9 @@ width = $02
   sty width
 loop:
   lda (str),y
-  cmp #32
-  bcc bail
+  beq bail
   tax
-  lda chrWidths-32,x
+  lda vwfChrWidths-32,x
   clc
   adc width
   sta width
@@ -323,11 +182,13 @@ bail:
 .endproc
 
 ;;
+; Finds both the pen-advance of a glyph and the
+; columns actually occupied by opaque pixels.
 ; in: A = character number (32-127)
 ; out: A = columns containing a bit; X: pen-advance in pixels
 .proc vwfGlyphWidth
   tay
-  ldx chrWidths-32,y
+  ldx vwfChrWidths-32,y
   getTileAddr
   ldy #7
   lda #0
@@ -339,44 +200,40 @@ bail:
 .endproc
 
 ;;
-; Puts a string to position X, terminated by ctrl character or null.
+; Writes a string to position X, terminated by $00-$1F byte.
 ; In:   AAYY = string base address, stored to $00-$01
 ;       X = destination X position
 ; Out:  X = ending X position
-;       $00-$01 = END of string (points at null or newline)
-;       AAYY = If stopped at $00: End of string
-;              If stopped at $01-$1F: Next character
-; Trash: $04-$07
+;       $00-$01 = END of string
+;       AAYY = End of string, plus one if greater than 0
+; Trash: $04-$0B
 .proc vwfPuts
-str = $00
-  sty str
-  sta str+1
+  sty srcStr
+  sta srcStr+1
 .endproc
 .proc vwfPuts0
-str = vwfPuts::str
-horz = 4
-  stx horz
+  stx horzPos
 loop:
   ldy #0
-  lda (str),y
+  lda (srcStr),y
   beq done0
   cmp #32
   bcc doneNewline
   beq isSpace
-  ldx horz
+  ldx horzPos
   jsr vwfPutTile
   ldy #0
 isSpace:
-  lda (str),y
-  inc str
+  lda (srcStr),y
+  inc srcStr
   bne :+
-  inc str+1
+  inc srcStr+1
 :
   tax
-  lda chrWidths-32,x
+  lda vwfChrWidths-32,x
   clc
-  adc horz
-  sta horz
+  adc horzPos
+  sta horzPos
   cmp #lineImgBufLen
   bcc loop
 
@@ -384,20 +241,23 @@ doneNewline:
   lda #1
 done0:
   clc
-  adc str
+  adc srcStr
   tay
   lda #0
-  adc str+1
-  ldx horz 
+  adc srcStr+1
+  ldx horzPos 
   rts
 .endproc
 
 ;;
-; Inverts the first A 8x8 pixel tiles in lineImgBuf.
+; Inverts the first A tiles in lineImgBuf.
 .proc invertTiles
   asl a
   asl a
   asl a
+  .if ::FONT_HT = 16
+    asl a
+  .endif
   tax
   dex
 invertloop:
@@ -405,8 +265,42 @@ invertloop:
   eor lineImgBuf,x
   sta lineImgBuf,x
   dex
-  bpl invertloop
+  bne invertloop
+  lda #$FF
+  eor lineImgBuf
+  sta lineImgBuf
   rts
 .endproc
 
+;;
+; Copies a 20-tile rendered line of text to the screen
+; in:  AAYY = destination address in VRAM
+; trash: $00
+.proc copyLineImg
+ppuaddr_lo = 0
+  tax
+  sty ppuaddr_lo
+  lda #VBLANK_NMI|VRAM_DOWN
+  sta PPUCTRL
+  ldy #15
+@loop:
+  ; each pass takes 102 cycles (I think)
+  stx PPUADDR
+  lda chrstarts,y
+  clc
+  adc ppuaddr_lo
+  sta PPUADDR
+  .repeat ::lineImgBufLen/16,step
+    lda lineImgBuf + step*16, y
+    sta PPUDATA
+  .endrep
+  dey
+  bpl @loop
+  rts
 
+.pushseg
+.segment "RODATA"
+chrstarts:
+  .byt  0, 1, 2, 3, 4, 5, 6, 7, 16,17,18,19,20,21,22,23
+.popseg
+.endproc

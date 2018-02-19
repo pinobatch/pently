@@ -1,5 +1,5 @@
-.include "nes.h"
-.include "ram.h"
+.include "nes.inc"
+.include "global.inc"
 .segment "ZEROPAGE"
 action_release_keys: .res 1
 held_keys: .res 1

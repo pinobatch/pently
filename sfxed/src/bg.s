@@ -1,6 +1,6 @@
-.include "nes.h"
-.include "ram.h"
-.include "mbyt.h"
+.include "nes.inc"
+.include "global.inc"
+.include "mbyt.inc"
 
 LETTERNAME_TILE = $B0
 UNMUTE_TILE = $BC

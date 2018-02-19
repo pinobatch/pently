@@ -1,6 +1,6 @@
-.include "nes.h"
-.include "ram.h"
-.include "mbyt.h"
+.include "nes.inc"
+.include "global.inc"
+.include "mbyt.inc"
 
 OAM = $0200
 INCLUDE_SAMPLE_DATA = 0
