@@ -17,7 +17,13 @@ __pycache__/
 
 /sfxed/sfxed.nes
 /sfxed/map.txt
+/sfxed/obj/nes/*.s
 /sfxed/obj/nes/*.ch1
+
+# Dependencies copied automatically from the master copy of Pently
+/sfxed/src/pently.inc
+/sfxed/src/pentlysound.s
+/sfxed/tools/pilbmp2nes.py
 
 # this is NES homebrew, not DSiWare
 *.DS_Store

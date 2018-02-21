@@ -22,8 +22,6 @@ das_timer: .res 2
 cur_keys: .res 2
 new_keys: .res 2
 
-pently_zp_state: .res 16
-
 .segment "BSS"
 .align 256
 psg_sound_data: .res NUM_SOUNDS * BYTES_PER_SOUND

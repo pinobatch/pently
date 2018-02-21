@@ -64,7 +64,7 @@ pentlysound_code_start = *
 ;;
 ; Initializes all sound channels.
 ; Call this at the start of a program or as a "panic button" before
-; entering a long stretch of code where you don't call update_sound.
+; entering a long stretch of code where you don't call pently_update.
 ;
 .proc pently_init
   lda #$0F

@@ -23,13 +23,17 @@ lib_modules := vwf_draw ppuclear pads mouse random bcd
 audio_modules := pentlysound ntscPeriods
 objlist := $(align_sensitive_modules) $(game_modules) \
   $(lib_modules) $(audio_modules)
+pentlyfiles := \
+  tools/pentlyas.py tools/pilbmp2nes.py \
+  src/pently.inc src/pentlysound.s
 
 AS65 = ca65
 LD65 = ld65
 CFLAGS65 = -DUSE_DAS=1 -DDPCM_UNSAFE_PADS=1
-objdir = obj/nes
-srcdir = src
-imgdir = tilesets
+objdir:=obj/nes
+srcdir:=src
+imgdir:=tilesets
+PENTLY_MASTER:=..
 
 #EMU := "/C/Program Files/Nintendulator/Nintendulator.exe"
 EMU := fceux
@@ -46,16 +50,15 @@ DEBUGEMU := ~/.wine/drive_c/Program\ Files\ \(x86\)/FCEUX/fceux.exe
 CC = gcc
 CFLAGS = -std=gnu99 -Wall -DNDEBUG -O
 
-# Windows needs .exe suffixed to the names of executables; UNIX does
-# not.  COMSPEC will be set to the name of the shell on Windows and
-# not defined on UNIX.
+# Things differing between UNIX and Windows.  COMSPEC will be set
+# to the name of the shell on Windows and not defined on UNIX.
 ifdef COMSPEC
-DOTEXE=.exe
+  PY:=py
 else
-DOTEXE=
+  PY:=python3
 endif
 
-.PHONY: run debug dist zip clean
+.PHONY: run debug dist zip clean dep
 
 run: $(title).nes
 	$(EMU) $<
@@ -63,7 +66,8 @@ debug: $(title).nes
 	$(DEBUGEMU) $<
 
 clean:
-	-rm $(objdir)/*.o $(objdir)/*.chr $(objdir)/*.ov53 $(objdir)/*.sav $(objdir)/*.pb53 $(objdir)/*.s
+	-rm $(objdir)/*.o $(objdir)/*.ch1 $(objdir)/*.chr $(objdir)/*.s
+	-rm $(pentlyfiles)
 
 # Rule to create or update the distribution zipfile by adding all
 # files listed in zip.in.  Actually the zipfile depends on every
@@ -98,35 +102,22 @@ $(objdir)/bg.o: $(objdir)/sprites.chr $(objdir)/coltiles.ch1
 
 # Generate lookup tables
 
-$(objdir)/ntscPeriods.s: tools/mktables.py
-	$< period $@
+$(objdir)/ntscPeriods.s: tools/pentlyas.py
+	$(PY) $< --periods 64 -o $@
 
 # Rules for graphics data conversion
 
-$(objdir)/menu_furni.pb53: $(objdir)/menu_furni16.chr
-	tools/pb53.py --block-size=4 --no-prev $< $@
+$(objdir)/%.chr: $(imgdir)/%.png dep
+	$(PY) tools/pilbmp2nes.py $< $@
 
-$(objdir)/%.pb53: $(objdir)/%
-	tools/pb53.py --raw $< $@
-
-$(objdir)/%.chr: $(imgdir)/%.png
-	tools/pilbmp2nes.py $< $@
-
-$(objdir)/%.ch1: $(imgdir)/%.png
-	tools/pilbmp2nes.py -1 $< $@
-
-$(objdir)/%16.chr: $(imgdir)/%.png
-	tools/pilbmp2nes.py -H 16 $< $@
+$(objdir)/%.ch1: $(imgdir)/%.png dep
+	$(PY) tools/pilbmp2nes.py -1 $< $@
 
 $(objdir)/%.s: tools/vwfbuild.py tilesets/%.png
-	$^ $@
+	$(PY) $^ $@
 
-# Currently unused
-
-$(objdir)/title2.sav: $(imgdir)/titlewordmark.png
-	tools/savtool.py --palette=0f1016290f1012290f0016290f161229 $< $@
-
-$(objdir)/titlescreensprites.ov53: tools/mkspritemap.py \
-$(srcdir)/titlescreensprites.in $(imgdir)/titlespritelayer.png
-	$^ $@
-
+# Files identical to files in standard Pently so that they can be 
+# .gitignore'd
+dep: $(pentlyfiles)
+$(pentlyfiles): %: $(PENTLY_MASTER)/%
+	cp $< $@
