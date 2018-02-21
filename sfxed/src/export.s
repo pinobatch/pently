@@ -21,7 +21,7 @@ dstlo = exportdst+0
 dsthi = exportdst+1
 
   ; First fill most of SRAM with lines of spaces to make the .sav
-  ; look like a text file
+  ; look like a text file with UNIX line endings
   lday #$6000
   stay dstlo
   ldx #($8000-$6000)/64
@@ -59,7 +59,7 @@ clearloop:
   
   ; which is all commented out
   ldy #0
-  lda #';'
+  lda #'#'
   jsr export_putchar
   lda #' '
   jsr export_putchar
@@ -103,6 +103,8 @@ putbytewithcrc:
   jsr crc16_update
   pla
 .endproc
+
+; Writes two hexadecimal digits at exportdst+Y
 .proc export_putbyte
   pha
   lsr a
@@ -122,13 +124,12 @@ putnibble:
   sta (exportdst),y
   iny
   bne :+
-  inc exportdst+1
-:
+    inc exportdst+1
+  :
   rts
 .endproc
 
 ; LOAD SOUNDS AS HEX ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 
 ;;
 ; resulting CRC
@@ -215,14 +216,6 @@ nibbletmp = $02
 
 ; HUMAN READABLE EXPORT ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-.proc export_putbyte_dollar
-  pha
-  lda #'$'
-  jsr export_putchar
-  pla
-  jmp export_putbyte
-.endproc
-
 .proc export_puts
   lda export_puts_strs,x
   beq done
@@ -235,21 +228,37 @@ done:
 
 .segment "RODATA"
 export_puts_strs:
-str_tablelabel = * - export_puts_strs
-  .byte "pently_sfx_table:",0
-str_16bitaddr = * - export_puts_strs
-  .byte "  .addr ",0
-str_labelpart1 = * - export_puts_strs
-  .byte "sound",0
-str_labelpart2 = * - export_puts_strs
-  .byte "data",0
-str_bytes = * - export_puts_strs
-  .byte "  .byte ",0
+str_header1 = * - export_puts_strs
+  .byte LF,LF,"sfx sfxed_",0
+str_header2 = * - export_puts_strs
+  .byte " on ",0
+str_rateheader = * - export_puts_strs
+  .byte LF,"  rate",0
+str_volumeheader = * - export_puts_strs
+  .byte LF,"  volume",0
+str_pitchheader = * - export_puts_strs
+  .byte LF,"  pitch",0
+str_dutyheader = * - export_puts_strs
+  .byte LF,"  timbre",0
+str_pulse = * - export_puts_strs
+  .byte "pulse",0
+str_triangle = * - export_puts_strs
+  .byte "triangle",0
+str_noise = * - export_puts_strs
+  .byte "noise",0
+
+export_puts_chnames:
+  .byte str_pulse, str_pulse, str_triangle, str_noise
+
+lilypond_pitchnames:
+  .byte 'c', 'c'|$80, 'd', 'd'|$80, 'e'
+  .byte 'f', 'f'|$80, 'g', 'g'|$80, 'a', 'a'|$80, 'h'
+
 .segment "CODE"
 
 ;;
-; Some versions of my sound engine require bit 7 set in each volume
-; byte of a triangle channel sound.
+; Pently with PENTLY_USE_TRIANGLE_DUTY_FIX turned off requires
+; bit 7 set in each volume byte of a triangle channel sound effect.
 .proc correct_triangle_timbre
 fxdata = 0
   asl a
@@ -281,155 +290,278 @@ not_triangle:
 .endproc
 
 ;;
-; Exports the sound header for sound A.
-.proc export_sound_header
+; Writes a space then a pitch in Lilypond's variant of Helmholtz
+; notation using export_putchar.
+; A-0 to B-0 are a,, to h,,
+; C-1 to B-1 are c, to h,
+; C-2 to B-2 are c to h
+; C-3 to B-3 are c' to h'
+; C-4 to B-4 are c'' to h''
+; etc.
+; @param Y low byte of destination position
+.proc export_write_pitch
+octavenum = $05
+xsave = $04
 
-  ; Write the name of the sound (.addr sound1data)
-  ldy #0
-  pha
-  ldx #str_16bitaddr
-  jsr export_puts
-  ldx #str_labelpart1
-  jsr export_puts
-  pla
-  pha
+  stx xsave
+  ; C-2 is c but the loop adds 1 unconditionally
+  ldx #<-3
+  stx octavenum
+
   clc
-  adc #'1'
-  jsr export_putchar
-  ldx #str_labelpart2
-  jsr export_puts
-  lda #LF
-  jsr export_putchar
-  
-  ; Write the rate, channel, and length
-  ldx #str_bytes
-  jsr export_puts
-  pla
-  asl a
-  asl a
+  adc #9  ; shift octave to multiple of 12
+  sec
+  octaveloop:
+    inx
+    sbc #12
+    bcs octaveloop
+  adc #12
+  stx octavenum
+
+  ; A = note number
   tax
-  lda pently_sfx_table+2,x
-  and #$FE  ; muted bit doesn't matter in export
-  jsr export_putbyte_dollar
-  lda #','
+  lda #' '
   jsr export_putchar
-  lda pently_sfx_table+3,x
-  jsr export_putbyte_dollar
-  jmp export_eol_fix_y
-.endproc
+  lda lilypond_pitchnames,x
+  and #$7F
+  jsr export_putchar
+  lda lilypond_pitchnames,x
+  bpl not_sharp
+    lda #'#'
+    jsr export_putchar
+  not_sharp:
 
-;;
-; @param A number of bytes on this line (1-16)
-; @param $00 source bytes pointer (modified)
-.proc export_byte_line
-srclo = $00
-srchi = $01
-bytesleft = $02
-  sta bytesleft
-  ldy #0
-  ldx #str_bytes
-  jsr export_puts
-  ldx #0
-bytesloop:
-  lda (srclo,x)
-  inc srclo
-  bne :+
-  inc srchi
-:
-  jsr export_putbyte_dollar
-  dec bytesleft
-  beq done
-  lda #','
-  jsr export_putchar
-  jmp bytesloop
-done:
-.endproc
-.proc export_eol_fix_y
-  lda #LF
-  jsr export_putchar
-.endproc
-.proc export_fix_y
-  tya
-  clc
-  adc exportdst
-  sta exportdst
-  bcc :+
-  inc exportdst+1
-:
+  ldx octavenum
+  beq no_octave_difference
+  bpl write_apostrophes
+    ; Write commas for octaves below C-2
+    lda #','
+    :
+      jsr export_putchar
+      inx
+      bne :-
+    beq no_octave_difference  
+  write_apostrophes:
+    ; Write apostrophes for octaves above B-2
+    lda #$27
+    :
+      jsr export_putchar
+      dex
+      bne :-
+  no_octave_difference:
+  ldx xsave
   rts
 .endproc
+;;
+; Writes a space and then a decimal value 0-255
+; @param A decimal value
+; @param Y used by export_putchar
+.proc export_putbyte_decimal
+highdigits = $00
+  jsr bcd8bit
+  pha
+  lda #' '
+  jsr export_putchar
+  lda highdigits
+  beq nohighdigits
+    cmp #$10
+    bcc nohundreds
+      jsr export_putbyte
+      jmp nohighdigits
+    nohundreds:
+    lda highdigits
+    and #$0F
+    ora #'0'
+    jsr export_putchar
+  nohighdigits:
+  pla
+  ora #'0'
+  jmp export_putchar
+.endproc
 
-.proc export_all_as_text
-sound_num = gesture_x
-bytes_left = gesture_y
-srclo = $00
-srchi = $01
-  lday #textfilestart
-  stay exportdst
-  .if <::textfilestart <> 0
-    ldy #0
-  .endif
-  ldx #str_tablelabel
+
+sound_num = $08
+
+;;
+; Writes one sound effect.
+; @param sound_num sound number (0 to NUM_SOUNDS - 1)
+.proc export_write_sound
+sound_ch = $09
+sound_pos = $0A
+sound_ptr = $0C
+sound_rate = $0E
+sound_len = $0F
+
+  ; "sfx sfxedN"
+  ldx #str_header1
   jsr export_puts
-  jsr export_eol_fix_y
-  lda #0
-  sta sound_num
-headerloop:
-  ldx sound_num
-  jsr update_sound_length
-  lda sound_num
-  jsr correct_triangle_timbre
-  lda sound_num
-  jsr export_sound_header
-  inc sound_num
-  lda sound_num
-  cmp #NUM_SOUNDS
-  bcc headerloop
-  
-  lda #0
-  sta sound_num
-data_soundloop:
-  ldy #0
-  ldx #str_labelpart1
-  jsr export_puts
-  lda sound_num
+  lda #'1'
   clc
-  adc #'1'
+  adc sound_num
   jsr export_putchar
-  ldx #str_labelpart2
+
+  ; "on CHNAME"
+  ldx #str_header2
   jsr export_puts
-  lda #':'
-  jsr export_putchar
-  jsr export_eol_fix_y
   lda sound_num
   asl a
   asl a
   tax
   lda pently_sfx_table+0,x
-  sta srclo
+  sta sound_ptr
   lda pently_sfx_table+1,x
-  sta srchi
+  sta sound_ptr+1
   lda pently_sfx_table+3,x
-  beq no_bytes
-  asl a
-lineloop:
-  sta bytes_left
-  cmp #16
-  bcc :+
-  lda #16
-:
-  pha
-  jsr export_byte_line
-  
-  pla
-  eor #$FF
-  sec
-  adc bytes_left
-  bne lineloop
-no_bytes:
-  inc sound_num
-  lda sound_num
-  cmp #NUM_SOUNDS
-  bcc data_soundloop
+  sta sound_len
+  lda pently_sfx_table+2,x
+  lsr a
+  lsr a
+  lsr a
+  lsr a
+  sta sound_rate
+  lda pently_sfx_table+2,x
+  lsr a
+  lsr a
+  and #$03
+  sta sound_ch
+  tax
+  lda export_puts_chnames,x
+  tax
+  jsr export_puts
+
+  ; "rate x"
+  lda sound_rate
+  beq implicit_rate_1
+    ldx #str_rateheader
+    jsr export_puts
+    inc sound_rate
+    lda sound_rate
+    jsr export_putbyte_decimal
+  implicit_rate_1:
+  ; No longer need sound_rate
+
+sound_lenleft = sound_rate
+
+  ; "volume x x x x x"
+  ldx #str_volumeheader
+  jsr puts_and_rewind
+  volloop:
+    jsr read1byte
+    jsr skip1byte
+    and #$0F
+    jsr export_putbyte_decimal
+    dec sound_lenleft
+    bne volloop
+
+  ; "pitch x x x x x"
+  ldx #str_pitchheader
+  jsr puts_and_rewind
+  pitchloop:
+    jsr skip1byte
+    jsr read1byte
+    ldx sound_ch
+    cpx #3
+    bne pitchloop_notnoise
+      and #$0F
+      jsr export_putbyte_decimal
+      jmp pitchloop_continue
+    pitchloop_notnoise:
+      and #$7F
+      jsr export_write_pitch
+    pitchloop_continue:
+    dec sound_lenleft
+    bne pitchloop
+
+  ldx sound_ch
+  cpx #2
+  beq no_duty_envelope
+
+  ; "timbre x x x x x"
+  bcs noise_duty_envelope
+    ldx #str_dutyheader
+    jsr puts_and_rewind
+    dutyloop:
+      jsr read1byte
+      jsr skip1byte
+      and #$C0
+      asl a
+      rol a
+      rol a
+      jsr export_putbyte_decimal
+      dec sound_lenleft
+      bne dutyloop
+    beq no_duty_envelope
+  noise_duty_envelope:
+    ldx #str_dutyheader
+    jsr puts_and_rewind
+    ndutyloop:
+      jsr skip1byte
+      jsr read1byte
+      and #$80
+      asl a
+      rol a
+      jsr export_putbyte_decimal
+      dec sound_lenleft
+      bne ndutyloop
+  no_duty_envelope:
+  rts
+
+puts_and_rewind:
+  lda sound_ptr+0
+  sta sound_pos+0
+  lda sound_ptr+1
+  sta sound_pos+1
+  lda sound_len
+  sta sound_lenleft
+  jmp export_puts
+
+read1byte:
+  ldx #0
+  lda (sound_pos,x)
+skip1byte:
+  inc sound_pos
+  bne :+
+    inc sound_pos+1
+  :
+  rts
+.endproc
+
+.proc export_all_as_text
+  ; Step 1: Tidy all sounds, trimming trailing silence
+  ; and changing triangle duty to 2.
+  lda #>textfilestart
+  sta exportdst+1
+  ldy #0
+  sty exportdst+0
+  .if <::textfilestart <> 0
+    ldy #<textfilestart
+  .endif
+
+  ldx #NUM_SOUNDS-1
+  tidyloop:
+    jsr update_sound_length
+    txa
+    pha
+    jsr correct_triangle_timbre
+    pla
+    tax
+    dex
+    bpl tidyloop
+
+  inx
+  exportloop:
+    stx sound_num
+    txa
+    asl a
+    asl a
+    tax
+    lda pently_sfx_table+3,x
+    beq absent_sound
+      jsr export_write_sound
+    absent_sound:
+    ldx sound_num
+    inx
+    cpx #NUM_SOUNDS
+    bcc exportloop
   rts
 .endproc
