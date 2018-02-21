@@ -1,5 +1,8 @@
 ; Configuration settings for Pently
 
+; Master switch for build supporting only sound effects
+PENTLY_USE_MUSIC = 1
+
 ; Disable features to save ROM and RAM space
 PENTLY_USE_VIBRATO = 1
 PENTLY_USE_PORTAMENTO = 1

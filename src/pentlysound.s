@@ -22,8 +22,10 @@
 
 .include "pentlyconfig.inc"
 .include "pently.inc"
-.import pently_update_music, pently_update_music_ch, pently_sfx_table
-.import periodTableLo, periodTableHi
+.if PENTLY_USE_MUSIC
+  .import pently_update_music, pently_update_music_ch
+.endif
+.import periodTableLo, periodTableHi, pently_sfx_table
 .if PENTLY_USE_PAL_ADJUST
   .importzp tvSystem
 .endif
@@ -34,7 +36,9 @@
 
 SNDCHN = $4015
 
-.if PENTLY_USE_ATTACK_PHASE
+.if PENTLY_USE_MUSIC = 0
+  PENTLYZP_SIZE = 16
+.elseif PENTLY_USE_ATTACK_PHASE
   PENTLYZP_SIZE = 32
 .else
   PENTLYZP_SIZE = 21
@@ -72,12 +76,12 @@ pentlysound_code_start = *
   sta ch_lastfreqhi+0
   sta ch_lastfreqhi+8
   sta ch_lastfreqhi+4
-  lda #$80
-  sta $4008
   lda #8
   sta $4001
   sta $4005
-  lda #0
+  lda #$80
+  sta $4008
+  asl a
   sta $4003
   sta $4007
   sta $400F
@@ -89,7 +93,9 @@ pentlysound_code_start = *
   sta sfx_ratecd+4
   sta sfx_ratecd+8
   sta sfx_ratecd+12
-  sta pently_music_playing
+  .if ::PENTLY_USE_MUSIC
+    sta pently_music_playing
+  .endif
   lda #PENTLY_INITIAL_4011
   sta $4011
   rts
@@ -165,10 +171,14 @@ ch_full:
 ; Updates sound effect channels.
 ;
 .proc pently_update
-  jsr pently_update_music
+  .if ::PENTLY_USE_MUSIC
+    jsr pently_update_music
+  .endif
   ldx #12
 loop:
-  jsr pently_update_music_ch
+  .if ::PENTLY_USE_MUSIC
+    jsr pently_update_music_ch
+  .endif
   jsr pently_update_one_ch
   dex
   dex
@@ -187,17 +197,19 @@ tpitchadd = pently_zptemp + 4
 
 
   ; At this point, the music engine should have left duty and volume
-  ; in 2 and pitch in 3.
+  ; in tvol and pitch in tpitch.
   lda sfx_remainlen,x
   ora sfx_ratecd,x
   bne ch_not_done
   
   ; Only music is playing
-  lda tvol
-  .if ::PENTLY_USE_VIS
-    sta pently_vis_dutyvol,x
+  .if ::PENTLY_USE_MUSIC
+    lda tvol
+    .if ::PENTLY_USE_VIS
+      sta pently_vis_dutyvol,x
+    .endif
+    bne update_channel_hw
   .endif
-  bne update_channel_hw
 
   ; Turn off the channel and force a reinit of the length counter.
   cpx #8
@@ -228,25 +240,27 @@ ch_not_done:
     inc sfx_datahi,x
   :
   ldy #0
-  .if ::PENTLY_USE_MUSIC_IF_LOUDER
-    lda tvol
-    pha
-    and #$0F
-    sta tvol
-    lda (srclo),y
-    and #$0F
-    
-    ; At this point: A = sfx volume; tvol = music volume
-    cmp tvol
-    pla
-    sta tvol
-    bcc music_was_louder
-  .endif
-  .if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
-    sty tpitchadd  ; sfx don't support fine pitch adjustment
-    .if ::PENTLY_USE_VIS
-      tya
-      sta pently_vis_pitchlo,x
+  .if ::PENTLY_USE_MUSIC
+    .if ::PENTLY_USE_MUSIC_IF_LOUDER
+      lda tvol
+      pha
+      and #$0F
+      sta tvol
+      lda (srclo),y
+      and #$0F
+
+      ; At this point: A = sfx volume; tvol = music volume
+      cmp tvol
+      pla
+      sta tvol
+      bcc music_was_louder
+    .endif
+    .if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
+      sty tpitchadd  ; sfx don't support fine pitch adjustment
+      .if ::PENTLY_USE_VIS
+        tya
+        sta pently_vis_pitchlo,x
+      .endif
     .endif
   .endif
   lda (srclo),y
@@ -258,6 +272,7 @@ music_was_louder:
   dec sfx_remainlen,x
 
 update_channel_hw:
+  ; XXX vis does not work with no-music
   .if ::PENTLY_USE_VIS
     lda tpitch
     sta pently_vis_pitchhi,x

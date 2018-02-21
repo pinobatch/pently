@@ -183,6 +183,10 @@ Other features that save substantial ROM bytes:
 * `PENTLY_USE_BPMMATH`  
   30 ROM bytes, 2 RAM bytes
 
+`PENTLY_USE_MUSIC = 0` builds only the sound effects portion with
+no music support, such as for a tool to edit sound effects.  It is
+intended that such a build not include `pentlymusic.s` at all.
+
 [variable mix]: https://allthetropes.org/wiki/Variable_Mix
 
 Pitch

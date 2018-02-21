@@ -31,6 +31,11 @@
 PENTLY_USE_PAL_ADJUST = 1
 .endif
 
+; Enable music playback
+.ifndef PENTLY_USE_MUSIC
+PENTLY_USE_MUSIC = 1
+.endif
+
 ; Enable row callbacks
 .ifndef PENTLY_USE_ROW_CALLBACK
 PENTLY_USE_ROW_CALLBACK = 0
