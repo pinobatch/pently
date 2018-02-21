@@ -11,7 +11,7 @@
 
 # These are used in the title of the NES program and the zip file.
 title = pently
-version = 0.05wip8
+version = 0.05wip9
 
 # Name of Pently score (minus .pently)
 scorename = musicseq
@@ -48,7 +48,7 @@ PY:=
 endif
 
 
-.PHONY: run debug clean dist zip all 
+.PHONY: run debug clean dist zip all zip.in
 
 run: $(title).nes
 	$(EMU) $<

@@ -62,33 +62,38 @@ pattern).
 Save file format
 ----------------
 
-When you save, the editor writes both the raw sound data and an
-assembly language form of the data to SRAM.
+When you save, the editor writes both the raw sound data and a
+human-readable form of the data to SRAM.  The resulting save file
+is a plain text file in ASCII encoding with UNIX newlines and can
+be opened with Notepad++ or any other standard text editor.
 
-The assembly language form is intended for Damian Yerrick's sound
-engine and consists of a sound lookup table with four entries, one
-for each sound, followed by the raw sound data.  The lookup table
-consists of the address of the sound data, followed by a mode byte,
-followed by the number of rows in the sound.  The mode byte has the
-following form:
+At the end of the file is the raw data encoded in hexadecimal form.
+This includes each sound's sequence of pitches, each sound's mode
+byte (rate and channel), and a CRC-16 value to detect corruption of
+SRAM.  The editor reads this copy when it starts.
 
-    7654 3210
-    |||| ||||  
-    |||| ||++- Unused
-    |||| ++--- 0: pulse; 2: triangle; 3: noise
-    ++++------ Rate (number of frames per row) minus 1
+In addition, the save file includes the sounds in a form that can be
+copied into a score for the Pently audio engine by Damian Yerrick.
 
-Each row is 2 bytes: a duty/volume byte (for $4000, $4008, or $400C)
-followed by a pitch byte.  For melodic sounds, the pitch byte is a
-semitone number; for noise, it's a value to be written directly to
-$400F with timbre in bit 7 and period in bits 3-0.  Silent rows are
-omitted from the assembly language.
+    sfx sfxed_1 on pulse
+      volume 10 10 10 10 10 10 10 10 10
+      pitch e''' a'' d'' g' e''' a'' d'' g' c'
+      timbre 2 2 2 2 2 2 2 2 2
 
-At the bottom of the .sav file is a second copy with just the hex
-nibbles of the mode bytes, which is what the editor actually loads
-when it starts.  It consists of all rows for each sound, followed
-by a mode byte for each sound, and finally a CRC-16 to detect
-corruption of SRAM.
+The `volume` values are 0 to 15, representing volume for pulse and
+noise or priority for triangle.
+
+The `pitch` values for melodic sounds are in LilyPond's variant of
+Helmholtz notation: `c` through `a` and `h` represent the octave
+below middle C, and commas or apostrophes lower or raise the pitch
+by one octave.  Noise `pitch` is numbers from 0 to 15 representing
+values of $0F through $00 written to $400E.
+
+The `timbre` values for pulse are 0, 1, or 2 for 1/8, 1/4, or 1/2
+duty.  For noise, they are 0 for hiss or 1 for buzz.  Again,
+triangle has no timbre selection.
+
+A `rate` appears if greater than 1.
 
 Known issues
 ------------
@@ -98,19 +103,10 @@ Known issues
   controller 1 to save.
 * A-0 and A#0 notes on triangle aren't always played.
 * Pitches between two semitones are not supported.
-* Some versions of the sound engine require bit 7 of the duty/volume
-  byte to be set for each row of a triangle sound.  If you save
-  something as triangle and then change it to pulse, its duty will
-  be all 1/2.
+* Changing a sound to or from noise may produce unexpected pitches.
 
-Legal
+License
 -----
 
-The program and its manual are distributed under the following terms:
-
-Copyright 2014 Damian Yerrick
-
-Copying and distribution of this file, with or without modification,
-are permitted in any medium without royalty provided the copyright
-notice and this notice are preserved.  This file is offered as-is,
-without any warranty.
+Copyright © 2009-2018 Damian Yerrick.
+Pently is free software, under the zlib License.

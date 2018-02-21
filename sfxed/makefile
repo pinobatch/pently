@@ -97,8 +97,9 @@ $(objdir)/%.o: $(srcdir)/%.s $(srcdir)/nes.inc $(srcdir)/global.inc $(srcdir)/mb
 $(objdir)/%.o: $(objdir)/%.s
 	$(AS65) $(CFLAGS65) $< -o $@
 
-# Files that depend on .incbin'd files
+# Files that depend on included files
 $(objdir)/bg.o: $(objdir)/sprites.chr $(objdir)/coltiles.ch1
+$(objdir)/pentlysound.o: $(srcdir)/pently.inc $(srcdir)/pentlyconfig.inc
 
 # Generate lookup tables
 
@@ -107,10 +108,10 @@ $(objdir)/ntscPeriods.s: tools/pentlyas.py
 
 # Rules for graphics data conversion
 
-$(objdir)/%.chr: $(imgdir)/%.png dep
+$(objdir)/%.chr: $(imgdir)/%.png tools/pilbmp2nes.py
 	$(PY) tools/pilbmp2nes.py $< $@
 
-$(objdir)/%.ch1: $(imgdir)/%.png dep
+$(objdir)/%.ch1: $(imgdir)/%.png tools/pilbmp2nes.py
 	$(PY) tools/pilbmp2nes.py -1 $< $@
 
 $(objdir)/%.s: tools/vwfbuild.py tilesets/%.png

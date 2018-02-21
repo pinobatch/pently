@@ -28,5 +28,5 @@ To use an entirely different score file, open `makefile` and change
 
 ## License
 
-Copyright &copy; 2009-2017 Damian Yerrick.
+Copyright © 2009-2018 Damian Yerrick.
 Pently is free software, under the zlib License.

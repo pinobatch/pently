@@ -24,6 +24,7 @@ __pycache__/
 /sfxed/src/pently.inc
 /sfxed/src/pentlysound.s
 /sfxed/tools/pilbmp2nes.py
+/sfxed/tools/pentlyas.py
 
 # this is NES homebrew, not DSiWare
 *.DS_Store

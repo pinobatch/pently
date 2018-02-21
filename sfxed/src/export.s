@@ -463,6 +463,7 @@ sound_lenleft = sound_rate
     cpx #3
     bne pitchloop_notnoise
       and #$0F
+      eor #$0F
       jsr export_putbyte_decimal
       jmp pitchloop_continue
     pitchloop_notnoise:
