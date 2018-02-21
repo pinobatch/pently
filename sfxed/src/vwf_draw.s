@@ -275,9 +275,9 @@ invertloop:
 ;;
 ; Copies a 20-tile rendered line of text to the screen
 ; in:  AAYY = destination address in VRAM
-; trash: $00
+; trash: $04
 .proc copyLineImg
-ppuaddr_lo = 0
+ppuaddr_lo = tileAddr
   tax
   sty ppuaddr_lo
   lda #VBLANK_NMI|VRAM_DOWN

@@ -191,8 +191,13 @@ nextcmd:
   lda (uitxtptr),y
   cmp #$FF
   beq done
+  
+  ; $00-$7F: X position of following nul-terminated C string
   cmp #$80
   bcc not_copy
+
+  ; $80-$9F: Write this line to plane 0 starting here
+  ; $C0-$DF: Write this line to plane 1 starting here
   pha
   lda #16
   jsr invertTiles

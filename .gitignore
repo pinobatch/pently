@@ -14,7 +14,10 @@ __pycache__/
 *.pyc
 /pently-*.zip
 /docs/future/
+
 /sfxed/sfxed.nes
+/sfxed/map.txt
+/sfxed/obj/nes/*.ch1
 
 # this is NES homebrew, not DSiWare
 *.DS_Store
