@@ -269,7 +269,7 @@ xbase = $03
   and #$FC
   sta xbase
   tax
-  lda psg_sound_table+2,x
+  lda pently_sfx_table+2,x
   and #$0C
   sta channel
   ; A = mode byte; X = sound number * 4; Y = row number
@@ -277,21 +277,21 @@ xbase = $03
   bcc within_pattern
 
   ; If Y is in the top bar, point to the mode byte (byte 2) of
-  ; the psg_sound_table entry.  But because cpy set the carry,
+  ; the pently_sfx_table entry.  But because cpy set the carry,
   ; add only 1 more.
   txa
   ora #$01
-  adc #<psg_sound_table
+  adc #<pently_sfx_table
   sta datalo
-  lda #>psg_sound_table
+  lda #>pently_sfx_table
   jmp have_high_ac
 within_pattern:
   tya
   asl a
   ; X: sound number * 4; A: offset within the sound's data
-  adc psg_sound_table,x
+  adc pently_sfx_table,x
   sta datalo
-  lda psg_sound_table+1,x
+  lda pently_sfx_table+1,x
 have_high_ac:
   adc #0
   sta datahi
@@ -612,19 +612,19 @@ dst = $02
   lda gesture_x
   and #$FC
   tax
-  lda psg_sound_table+0,x
+  lda pently_sfx_table+0,x
   sta src+0
-  lda psg_sound_table+1,x
+  lda pently_sfx_table+1,x
   sta src+1
   lda cursor_x
   and #$FC
   tay
-  lda psg_sound_table+0,y
+  lda pently_sfx_table+0,y
   sta dst+0
-  lda psg_sound_table+1,y
+  lda pently_sfx_table+1,y
   sta dst+1
-  lda psg_sound_table+2,x
-  sta psg_sound_table+2,y
+  lda pently_sfx_table+2,x
+  sta pently_sfx_table+2,y
   ldy #0
 copyloop:
   lda (src),y
@@ -653,17 +653,17 @@ dst = $02
   ; calculate the start of the area affected by the copy
   lda gesture_y
   asl a
-  adc psg_sound_table+0,x
+  adc pently_sfx_table+0,x
   sta src+0
   lda #0
-  adc psg_sound_table+1,x
+  adc pently_sfx_table+1,x
   sta src+1
   lda cursor_y
   asl a
-  adc psg_sound_table+0,x
+  adc pently_sfx_table+0,x
   sta dst+0
   lda #0
-  adc psg_sound_table+1,x
+  adc pently_sfx_table+1,x
   sta dst+1
 
   ; use an increasing or decreasing loop depending on the direction

@@ -82,7 +82,7 @@ byteloop:
   ldx #0
 loop:
   stx srclo
-  lda psg_sound_table+2,x
+  lda pently_sfx_table+2,x
   jsr putbytewithcrc
   lda srclo
   clc
@@ -168,7 +168,7 @@ loop:
   sta importdst
   jsr read2nibbles
   ldx importdst
-  sta psg_sound_table+2,x
+  sta pently_sfx_table+2,x
   jsr crc16_update
   lda importdst
   clc
@@ -236,7 +236,7 @@ done:
 .segment "RODATA"
 export_puts_strs:
 str_tablelabel = * - export_puts_strs
-  .byte "psg_sound_table:",0
+  .byte "pently_sfx_table:",0
 str_16bitaddr = * - export_puts_strs
   .byte "  .addr ",0
 str_labelpart1 = * - export_puts_strs
@@ -255,15 +255,15 @@ fxdata = 0
   asl a
   asl a
   tax
-  lda psg_sound_table+2,x
+  lda pently_sfx_table+2,x
   and #$0C
   cmp #$08
   bne not_triangle
-  lda psg_sound_table+0,x
+  lda pently_sfx_table+0,x
   sta fxdata
-  lda psg_sound_table+1,x
+  lda pently_sfx_table+1,x
   sta fxdata+1
-  lda psg_sound_table+3,x
+  lda pently_sfx_table+3,x
   beq not_triangle
   tax  ; X = length in rows
   ldy #0
@@ -308,12 +308,12 @@ not_triangle:
   asl a
   asl a
   tax
-  lda psg_sound_table+2,x
+  lda pently_sfx_table+2,x
   and #$FE  ; muted bit doesn't matter in export
   jsr export_putbyte_dollar
   lda #','
   jsr export_putchar
-  lda psg_sound_table+3,x
+  lda pently_sfx_table+3,x
   jsr export_putbyte_dollar
   jmp export_eol_fix_y
 .endproc
@@ -405,11 +405,11 @@ data_soundloop:
   asl a
   asl a
   tax
-  lda psg_sound_table+0,x
+  lda pently_sfx_table+0,x
   sta srclo
-  lda psg_sound_table+1,x
+  lda pently_sfx_table+1,x
   sta srchi
-  lda psg_sound_table+3,x
+  lda pently_sfx_table+3,x
   beq no_bytes
   asl a
 lineloop:

@@ -22,14 +22,14 @@ das_timer: .res 2
 cur_keys: .res 2
 new_keys: .res 2
 
-psg_sfx_state: .res 16
+pently_zp_state: .res 16
 
 .segment "BSS"
 .align 256
 psg_sound_data: .res NUM_SOUNDS * BYTES_PER_SOUND
 
 ; each entry is 4 bytes (data low, data high, rate/ch/mute, cached len)
-psg_sound_table: .res 4*8
+pently_sfx_table: .res 4*8
 
 .segment "INESHDR"
 .if USE_MMC1
@@ -106,7 +106,7 @@ clrzploop:
 
   ; load initial PSG sound table
   jsr load_psg_sound_table
-  jsr init_sound
+  jsr pently_init
   
   jsr load_from_sram
   beq sram_is_valid
@@ -185,14 +185,14 @@ forever:
   ldx oam_used
   jsr ppu_clear_oam
   jsr present
-  jsr update_sound
+  jsr pently_update
   jmp forever
 .endproc
 
 ;;
 ; @param X which sound to update (0 to NUM_SOUNDS - 1)
 ; @return A = new sound length, X unchanged,
-; Y = channel X's offset into psg_sound_table
+; Y = channel X's offset into pently_sfx_table
 .proc update_sound_length
 srcdata = 0
 maxfound = 2
@@ -200,9 +200,9 @@ maxfound = 2
   asl a
   asl a
   tay
-  lda psg_sound_table+0,y
+  lda pently_sfx_table+0,y
   sta srcdata+0
-  lda psg_sound_table+1,y
+  lda pently_sfx_table+1,y
   sta srcdata+1
   ldy #0
   sty maxfound
@@ -222,7 +222,7 @@ row_is_silent:
   tay
   lda maxfound
   lsr a
-  sta psg_sound_table+3,y
+  sta pently_sfx_table+3,y
   rts
 .endproc
 
@@ -234,13 +234,13 @@ loop:
   asl a
   asl a
   tay
-  lda psg_sound_table+2,y
+  lda pently_sfx_table+2,y
   lsr a
   bcc is_muted
   stx cur_channel
   jsr update_sound_length
   lda cur_channel
-  jsr start_sound
+  jsr pently_start_sound
   ldx cur_channel
 is_muted:
   dex
@@ -258,7 +258,7 @@ is_muted:
 datalo = $00
 datahi = $01
 channel = $02
-effect_header = psg_sound_table+4*NUM_SOUNDS
+effect_header = pently_sfx_table+4*NUM_SOUNDS
   jsr seek_to_xy
   lda datalo
   sta effect_header+0
@@ -270,7 +270,7 @@ effect_header = psg_sound_table+4*NUM_SOUNDS
   lda #1
   sta effect_header+3
   lda #NUM_SOUNDS
-  jsr start_sound
+  jsr pently_start_sound
 notPlayRow:
 
   lda #0
@@ -559,7 +559,7 @@ cursor_left:
   ldx #0
 setupsndtableloop:
   lda psg_sound_table_load,x
-  sta psg_sound_table,x
+  sta pently_sfx_table,x
   inx
   cpx #4 * (NUM_SOUNDS + 1)
   bcc setupsndtableloop

@@ -358,7 +358,7 @@ sndparams = $0D
   sta ratefield
 sndloop:
   ldx srcaddr
-  lda psg_sound_table+2,x
+  lda pently_sfx_table+2,x
   sta sndparams
   
   ; Top row: channel name
@@ -464,7 +464,7 @@ loop:
 
 .proc prepare_rate_line
 xpos = $0A
-snd_num = $0B
+snd_num = $0D
 
   jsr clearLineImg
   lday #str_rate
@@ -480,7 +480,7 @@ sndloop:
   asl a
   asl a
   sta xpos
-  lda psg_sound_table+2,x
+  lda pently_sfx_table+2,x
   lsr a
   lsr a
   lsr a
@@ -550,16 +550,16 @@ ysave = $0D
   tax
   lda doc_yscroll
   asl a
-  adc psg_sound_table,x
+  adc pently_sfx_table,x
   sta srcptr
   ldy #0
   tya
-  adc psg_sound_table+1,x
+  adc pently_sfx_table+1,x
   sta srcptr+1
   
   ; Find the routine responsible for extracting the pitch and timbre
   ; for the channel assigned to this effect
-  lda psg_sound_table+2,x
+  lda pently_sfx_table+2,x
   and #$0C
   bne :+
   lda #$04

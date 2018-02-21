@@ -18,10 +18,9 @@
 KEY_LMB = KEY_B
 KEY_RMB = KEY_A
 ; sound
-.globalzp psg_sfx_state
-.global init_sound, start_sound
-.global init_sound, start_sound, update_sound
-.global psg_sound_table, psg_sound_data
+.globalzp pently_zp_state
+.global pently_init, pently_start_sound, pently_update
+.global pently_sfx_table, psg_sound_data
 ; paldetect
 .globalzp tvSystem
 .global getTVSystem

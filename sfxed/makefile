@@ -20,7 +20,7 @@ align_sensitive_modules := vwf7 paldetect
 game_modules := \
   main editactions mouseactions bg export
 lib_modules := vwf_draw ppuclear pads mouse random bcd
-audio_modules := sound ntscPeriods
+audio_modules := pentlysound ntscPeriods
 objlist := $(align_sensitive_modules) $(game_modules) \
   $(lib_modules) $(audio_modules)
 
