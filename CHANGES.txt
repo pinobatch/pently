@@ -1,5 +1,7 @@
 0.05wip9 (2018-future)
 * PENTLY_USE option to disable 303 portamento
+* PENTLY_USE option to disable music engine entirely
+* PENTLY_USE option to enable triangle channel duty fix
 * Regression fix: Cancel injection when attack ends (had been broken
   since slow arps)
 * Cancel grace note when pattern begins
@@ -22,6 +24,7 @@
   navigation, track muting, tempo, and pause-and-step
 * Script to estimate pitch of 93-step noise
 * docs: Recalculate PENTLY_USE savings
+* Import Sound Effects Editor as of 2014-09-10
 
 0.05wip8 (2017-12)
 * Reduce BSS (main RAM) footprint when several effects are off

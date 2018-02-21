@@ -112,6 +112,13 @@ effect or a triangle kick drum to stop sooner if a note is playing.
 Turn this off to force a sound effect to silence notes on the same
 channel for its entire duration.
 
+If `PENTLY_USE_TRIANGLE_DUTY_FIX` is enabled, the triangle channel
+behaves correctly no matter the timbre of the instrument or sound
+effect played on it.  Otherwise, an instrument or sound effect
+with timbre 0 or 1 will end prematurely.  To save about 10 bytes,
+a program can disable this sanity check and ensure all instruments
+and sound effects on triangle use timbre 2 or 3.
+
 If `PENTLY_USE_NSF_SOUND_FX` is enabled, drums and other sound
 effects are placed after music in the NSF's song order.
 

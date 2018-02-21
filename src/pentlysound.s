@@ -1,7 +1,7 @@
 ;
 ; Pently audio engine
 ; Sound effect player and "mixer"
-; Copyright 2009-2016 Damian Yerrick
+; Copyright 2009-2018 Damian Yerrick
 ; 
 ; This software is provided 'as-is', without any express or implied
 ; warranty.  In no event will the authors be held liable for any damages
@@ -291,16 +291,27 @@ rate_divider_cancel:
   rts
 
 notnoise:
+  ; If triangle, keep linear counter load (bit 7) on while playing
+  ; so that envelopes don't terminate prematurely
+  .if ::PENTLY_USE_TRIANGLE_DUTY_FIX
+    cpx #8
+    bne :+
+    and #$0F
+    beq :+
+      ora #$80  ; for triangle keep bit 7 (linear counter load) on
+    :
+  .endif
+
   sta $4000,x
   ldy tpitch
-.if ::PENTLY_USE_PAL_ADJUST
-  ; Correct pitch for PAL NES only, not NTSC (0) or PAL famiclone (2)
-  lda tvSystem
-  lsr a
-  bcc :+
-  iny
-:
-.endif
+  .if ::PENTLY_USE_PAL_ADJUST
+    ; Correct pitch for PAL NES only, not NTSC (0) or PAL famiclone (2)
+    lda tvSystem
+    lsr a
+    bcc :+
+      iny
+  :
+  .endif
 
   lda periodTableLo,y
   .if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
