@@ -1,6 +1,6 @@
-0.05wip9 (2018-future)
-* PENTLY_USE option to disable 303 portamento
+0.05wip9 (2018-02-21)
 * PENTLY_USE option to disable music engine entirely
+* PENTLY_USE option to disable 303 portamento
 * PENTLY_USE option to enable triangle channel duty fix
 * Regression fix: Cancel injection when attack ends (had been broken
   since slow arps)
