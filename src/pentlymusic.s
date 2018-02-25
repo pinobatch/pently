@@ -2,7 +2,7 @@
 ; Pently audio engine
 ; Music interpreter and instrument renderer
 ;
-; Copyright 2009-2016 Damian Yerrick
+; Copyright 2009-2018 Damian Yerrick
 ; 
 ; This software is provided 'as-is', without any express or implied
 ; warranty.  In no event will the authors be held liable for any damages
@@ -1435,3 +1435,11 @@ pentlymusic_rodata_size = * - pentlymusic_rodata_start
 .segment PENTLY_CODE
 pentlymusic_code_size = * - pentlymusic_code_start
 PENTLYMUSIC_SIZE = pentlymusic_rodata_size + pentlymusic_code_size
+
+; aliases for cc65
+_pently_start_music = pently_start_music
+_pently_resume_music = pently_resume_music
+_pently_stop_music = pently_stop_music
+.if PENTLY_USE_REHEARSAL
+  _pently_skip_to_row = pently_skip_to_row
+.endif

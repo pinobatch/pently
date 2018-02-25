@@ -2,7 +2,7 @@
 ; Pently audio engine
 ; Player shell as self-contained NES executable
 ;
-; Copyright 2009-2017 Damian Yerrick
+; Copyright 2009-2018 Damian Yerrick
 ; 
 ; This software is provided 'as-is', without any express or implied
 ; warranty.  In no event will the authors be held liable for any damages

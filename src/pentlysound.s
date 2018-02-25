@@ -338,3 +338,8 @@ no_change_to_hi_period:
 .endproc
 
 PENTLYSOUND_SIZE = * - pentlysound_code_start
+
+; aliases for cc65
+_pently_init = pently_init
+_pently_start_sound = pently_start_sound
+_pently_update = pently_update

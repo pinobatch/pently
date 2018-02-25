@@ -1,7 +1,7 @@
 ;
 ; Pently audio engine
 ; Common routines used by NES shell
-; Copyright 2009-2015 Damian Yerrick
+; Copyright 2009-2018 Damian Yerrick
 ; 
 ; This software is provided 'as-is', without any express or implied
 ; warranty.  In no event will the authors be held liable for any damages

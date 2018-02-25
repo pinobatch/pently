@@ -71,8 +71,28 @@ processor for an MML-like music description language.
 [MML]: http://www.nullsleep.com/treasure/mck_guide/
 [LilyPond]: http://lilypond.org/
 
-### Configuration
+### C language API
 
+Some NES game developers use the cc65 compiler.  It requires all
+assembly language symbols accessed from code in the C language to
+begin with an underscore (`_`), and any function that takes more than
+one argument receives its arguments on cc65's data stack.  Thus the
+easiest subset of Pently to adapt are those that take one argument or
+fewer:
+
+    void __fastcall__ pently_init(void);
+    void __fastcall__ pently_start_sound(unsigned char effect);
+    void __fastcall__ pently_start_music(unsigned char song);
+    void __fastcall__ pently_update(void);
+    void __fastcall__ pently_stop_music(void);
+    void __fastcall__ pently_resume_music(void);
+    void __fastcall__ pently_skip_to_row(unsigned short row);
+
+Pently has been used in at least one game written in the C language
+and compiled with cc65.
+
+Configuration
+-------------
 The file `pentlyconfig.inc` contains symbol definitions that enable
 or disable certain features of Pently that take more ROM space or
 require particular support from the host program.  A project using a
@@ -193,6 +213,11 @@ Other features that save substantial ROM bytes:
 `PENTLY_USE_MUSIC = 0` builds only the sound effects portion with
 no music support, such as for a tool to edit sound effects.  It is
 intended that such a build not include `pentlymusic.s` at all.
+
+Because fields associated with each channel are 4 bytes apart, the
+allocation methods inside ca65 itself aren't ideal.  The program
+`mkrammap.py` reads `pentlyconfig.inc`, decides which fields are
+necessary for the enabled features, and allocates them.
 
 [variable mix]: https://allthetropes.org/wiki/Variable_Mix
 
@@ -472,6 +497,8 @@ may pose a problem for some projects:
   the row grid cannot be swung.
 * Pently does not [compose music for you].  Writing an improvisation
   engine that calls `pently_play_note` is left as an exercise.
+* `pently_play_note` and `pently_get_beat_fraction` are not yet
+  adapted to the cc65 C ABI.
 
 [compose music for you]: https://en.wikipedia.org/wiki/Algorithmic_composition
 

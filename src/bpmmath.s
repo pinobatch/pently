@@ -23,7 +23,7 @@
 
 ; This can be used to calculate the song position down to a fraction
 ; of a beat, for use to synchronize a cut scene or a rhythm game.
-; CAUTION:  Rhythm games will be a patent minefield until 2010.
+; CAUTION:  Rhythm games will be a patent minefield until 2019.
 
 .include "pentlyconfig.inc"
 .include "pently.inc"
@@ -125,3 +125,4 @@ no_add_simple:
 ; int(round(65536*6/n)) for n in [3606, 3000]
 reciprocal_fpm: .byt 109, 131
 
+_pently_get_beat_fraction = pently_get_beat_fraction

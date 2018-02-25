@@ -2,7 +2,7 @@
 ; Pently audio engine
 ; Public API
 ;
-; Copyright 2015-2016 Damian Yerrick
+; Copyright 2015-2018 Damian Yerrick
 ; 
 ; This software is provided 'as-is', without any express or implied
 ; warranty.  In no event will the authors be held liable for any damages
@@ -117,30 +117,30 @@ PENTLY_USE_BPMMATH = 1
 ;;
 ; Initializes the sound channels and stops all sound effects
 ; and music.
-.global pently_init
+.global pently_init, _pently_init
 
 ;;
 ; Updates sound registers.  Call this once each frame.
 ; Overwrites: ???
-.global pently_update
+.global pently_update, _pently_update
 
 ;;
 ; Starts a sound effect.
 ; @param A the sound effect ID
-.global pently_start_sound
+.global pently_start_sound, _pently_start_sound
 
 ;;
 ; Starts a piece of music.
 ; @param A the music ID
-.global pently_start_music
+.global pently_start_music, _pently_start_music
 
 ;;
 ; Stops the music.
-.global pently_stop_music
+.global pently_stop_music, _pently_stop_music
 
 ;;
 ; Resumes the stopped music.
-.global pently_resume_music
+.global pently_resume_music, _pently_resume_music
 
 ;;
 ; Plays note A on channel X (0, 4, 8, 12) with instrument Y.
@@ -150,14 +150,14 @@ PENTLY_USE_BPMMATH = 1
 ;;
 ; Returns the playing position as a fraction of a beat from 0 to 95.
 ; (Implemented in bpmmath.s)
-.global pently_get_beat_fraction
+.global pently_get_beat_fraction, _pently_get_beat_fraction
 
 ;;
 ; Skips to a given row in the sequence, which must be later than the
 ; current row. (Requires PENTLY_USE_REHEARSAL)
 ; @param X rows*256
 ; @param A rows
-.global pently_skip_to_row
+.global pently_skip_to_row, _pently_skip_to_row
 
 ; Constant arrays ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
