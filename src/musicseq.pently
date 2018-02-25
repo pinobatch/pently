@@ -319,10 +319,10 @@ song argument
   mark descending chords
   pattern descendingchords on pulse2 with bf98_flute2
     relative
-    e''8 c a e c a e c a e c a
-    g'''' e c g e c g e c g e c
-    g'''' d b g d b g d b g d b
-    f#'''' d a f# d a f# d a f# d a
+    o4 e8 c a e c a e c a e c a
+    o4 g e c g e c g e c g e c
+    o4 g d b g d b g d b g d b
+    o4 f# d a f# d a f# d a f# d a
   play descendingchords
   
   at 113
@@ -492,8 +492,6 @@ song Isometry
   scale 16
   tempo 90
 
-  resume
-
   pattern triosti on triangle with isobeep
     c#'16
   
@@ -570,6 +568,7 @@ song Isometry
   play trifill
 
   at 9
+  resume
   play tinkle1
   play melmaj2
   play melmaj1

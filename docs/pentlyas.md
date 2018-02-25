@@ -114,9 +114,14 @@ pitch by specifying an octave mode inside the pattern:
   example, is `g a h c d e fis g`.  This means you don't need to
   indicate octaves after the first note unless you're leaping a fifth
   or more.  This behavior is familiar to LilyPond users.
-  
-In the `orelative` and `relative` modes, the "previous note" at the
-start of a pattern is `f`, the F below middle C.
+
+The reference pitch for `orelative` and `relative` modes at the start
+of a pattern is `f`, the F below middle C.
+
+The `o` command (`o0` through `o7`) changes the reference pitch to
+the given octave, where octaves are numbered as in NerdTracker II
+and Famitracker.  For example, `o1`, `o2`, and `o3` correspond to
+pitches `f,`, `f`, and `f'`.
 
 Sound effects
 =============

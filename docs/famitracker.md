@@ -45,7 +45,7 @@ converters may warn about their use:
 * Looping envelopes
 * Note release
 * Melodies played with duty 1 (93-step) noise
-* DPCM
+* DPCM (which ft2pently translates to drums in your drum kit)
 * Famicom expansion audio
 * Tremolo (`7xy`)
 * Volume slide (`Axy`)
@@ -59,8 +59,9 @@ converters may warn about their use:
 Nor are most features added in [0CC-FamiTracker] supported:
 
 * Grooves (speed sequences)
-* Detune settings
-* Arpeggio schemes other than `0 x y` and `0 0 x x y y`
+* Detune settings other than global tuning
+* Arpeggio schemes other than `| 0 x`, `| 0 0 x x`, `| 0 x y`, and
+  `| 0 0 x x y y`
 
 Features not in FamiTracker
 ---------------------------
@@ -129,7 +130,8 @@ data models differ so much that an automatic converter may not
 translate everything.
 
 * Fixed arpeggio envelopes  
-  Use drums instead.
+  Use drums instead.  Track in DPCM, then map pitches to your Pently
+  drum kit in the module comments.
 * Pitch slides and vibrato  
   FamiTracker traditionally measures pitch slide rate and vibrato
   depth in frequency or period units of the underlying chip, causing

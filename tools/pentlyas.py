@@ -148,8 +148,25 @@ arp_names
             raise ValueError("unknown notenames language %s; try english or deutsch"
                              % language)
 
-    def reset_octave(self, octave_mode='unchanged'):
-        self.last_octave = (3, 0)
+    def reset_octave(self, octave_mode="unchanged", octave=0):
+        """Change octave mode and last note.
+
+octave_mode -- the new octave mode, one of these:
+    "unchanged": Leave octave mode as it was
+    "absolute": Treat notes as relative to F below middle C
+    "orelative": Treat notes as relative to F nearest the last note
+    "relative": Treat notes as relative to the last note
+    "noise": Treat as noise period indices (0=lowest, 15=highest)
+    "drum": Treat as drum names
+    None: Wait for a drum or note, then go to "drum" or "absolute"
+
+    , which can be "absolute",
+    "relative", or "orelative", or a false value to leave it the same
+octave -- the number of commas (negative) or primes (positive) in
+    the new octave.  For example, octave 0 sets the last note to the
+    F below middle C, and octave 1 sets to the F above middle C.
+"""
+        self.last_octave = (3, int(octave))
         if octave_mode != 'unchanged':
             self.octave_mode = octave_mode
 
@@ -1125,6 +1142,16 @@ EN(-?(?:
             if self.pitchctx.octave_mode == 'drum':
                 raise ValueError("drum pattern's octave mode cannot be changed")
             self.pitchctx.octave_mode = word
+            return
+
+        if len(word) == 2 and word[0] == 'o' and word[1].isdigit():
+            if self.pitchctx.octave_mode == 'drum':
+                raise ValueError("drum pattern's octave cannot be changed")
+            elif self.pitchctx.octave_mode is None:
+                self.pitchctx.octave_mode = 'absolute'
+            target_octave = int(word[1])
+            print("Want to change to octave %d" % target_octave)
+            self.pitchctx.reset_octave(octave=target_octave - 2)
             return
 
         volmatch = volcodes.get(word)
