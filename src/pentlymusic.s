@@ -297,11 +297,9 @@ music_not_playing:
 
   lda conductorWaitRows
   beq doConductor
-  dec conductorWaitRows
-  jmp skipConductor
-
-doConductor:
-conbyte = pently_zptemp + 0
+    dec conductorWaitRows
+    jmp skipConductor
+  doConductor:
 
   ldy #0
   lda (conductorPos),y
@@ -309,7 +307,6 @@ conbyte = pently_zptemp + 0
   bne :+
     inc conductorPos+1
   :
-;  sta conbyte
   cmp #CON_SETTEMPO
   bcc @notTempoChange
   cmp #CON_SETBEAT
@@ -431,7 +428,6 @@ conductorPlayPattern:
 .endif
     sta noteLegato,x  ; start all patterns with legato off
   skipClearLegato:
-  sta noteRowsLeft,x
   lda (conductorPos),y
   sta musicPattern,x
   iny
@@ -477,6 +473,7 @@ skipConductor:
   .else
     rts
   .endif
+  ; If it's the attack track, it falls through
 
 processTrackPattern:
   lda noteRowsLeft,x
@@ -573,6 +570,7 @@ noSecondDrum:
 startPattern:
   lda #0
   sta graceTime,x
+  sta noteRowsLeft,x
   lda musicPattern,x
   cmp #255
   bcc @notSilentPattern
@@ -598,28 +596,30 @@ startPattern:
   rts
 
 ; Effect handlers
-
+; The 6502 adds 2 to PC in JSR and 1 in RTS, so push minus 1.
+; Each effect is called with carry clear and the effect number
+; times 2 in Y.
 .pushseg
 .segment PENTLY_RODATA
 patcmdhandlers:
-  .addr handle_instrument-1
-  .addr handle_arpeggio-1
-  .addr handle_legato-1
-  .addr handle_legato-1
-  .addr handle_transpose-1
-  .addr handle_grace-1
-  .addr handle_vibrato-1
-  .addr handle_ch_volume-1
+  .addr set_fx_instrument-1
+  .addr set_fx_arpeggio-1
+  .addr set_fx_legato-1
+  .addr set_fx_legato-1
+  .addr set_fx_transpose-1
+  .addr set_fx_grace-1
+  .addr set_fx_vibrato-1
+  .addr set_fx_ch_volume-1
 
-  .addr handle_portamento-1
-  .addr handle_portamento-1  ; Reserved for future use
-  .addr handle_fastarp-1
-  .addr handle_slowarp-1
+  .addr set_fx_portamento-1
+  .addr set_fx_portamento-1  ; Reserved for future use
+  .addr set_fx_fastarp-1
+  .addr set_fx_slowarp-1
 
 num_patcmdhandlers = (* - patcmdhandlers) / 2
 .popseg
 
-handle_instrument:
+set_fx_instrument:
   lda (musicPatternPos,x)
   sta noteInstrument,x
 nextPatternByte:
@@ -630,8 +630,8 @@ nextPatternByte:
   jmp anotherPatternByte
 
 .if ::PENTLY_USE_ARPEGGIO
-handle_arpeggio:
-  cpx #12
+set_fx_arpeggio:
+  cpx #DRUM_TRACK
   bcs :+
     lda (musicPatternPos,x)
     lsr a
@@ -644,16 +644,16 @@ handle_arpeggio:
     sta arpInterval2,x
   :
   jmp nextPatternByte
-handle_fastarp:
-  cpx #12
+set_fx_fastarp:
+  cpx #DRUM_TRACK
   bcs :+
     lda #%10111111
     and arpPhase,x
     sta arpPhase,x
   :
   jmp anotherPatternByte
-handle_slowarp:
-  cpx #12
+set_fx_slowarp:
+  cpx #DRUM_TRACK
   bcs :+
     lda #%01000000
     ora arpPhase,x
@@ -661,12 +661,12 @@ handle_slowarp:
   :
   jmp anotherPatternByte
 .else
-  handle_arpeggio = nextPatternByte
-  handle_fastarp = anotherPatternByte
-  handle_slowarp = anotherPatternByte
+  set_fx_arpeggio = nextPatternByte
+  set_fx_fastarp = anotherPatternByte
+  set_fx_slowarp = anotherPatternByte
 .endif
 
-handle_legato:
+set_fx_legato:
   cpx #12
   bcs :+
     tya
@@ -675,19 +675,19 @@ handle_legato:
   :
   jmp anotherPatternByte
 
-handle_grace:
+set_fx_grace:
   lda (musicPatternPos,x)
   sta graceTime,x
   jmp nextPatternByte
 
-handle_transpose:
+set_fx_transpose:
   lda patternTranspose,x
   adc (musicPatternPos,x)
   sta patternTranspose,x
   jmp nextPatternByte
 
 .if ::PENTLY_USE_VIBRATO
-handle_vibrato:
+set_fx_vibrato:
   cpx #12
   bcs :+
     lda (musicPatternPos,x)
@@ -696,11 +696,11 @@ handle_vibrato:
   :
   jmp nextPatternByte
 .else
-  handle_vibrato = nextPatternByte 
+  set_fx_vibrato = nextPatternByte
 .endif
 
 .if ::PENTLY_USE_PORTAMENTO
-handle_portamento:
+set_fx_portamento:
   cpx #12
   bcs :+
     lda (musicPatternPos,x)
@@ -708,16 +708,16 @@ handle_portamento:
   :
   jmp nextPatternByte
 .else
-  handle_portamento = nextPatternByte 
+  set_fx_portamento = nextPatternByte 
 .endif
 
 .if ::PENTLY_USE_CHANNEL_VOLUME
-handle_ch_volume:
+set_fx_ch_volume:
   lda (musicPatternPos,x)
   sta channelVolume,x
   jmp nextPatternByte
 .else
-  handle_ch_volume = nextPatternByte 
+  set_fx_ch_volume = nextPatternByte 
 .endif
 
 .endproc
