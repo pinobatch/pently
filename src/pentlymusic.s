@@ -677,6 +677,14 @@ set_fx_legato:
 
 set_fx_grace:
   lda (musicPatternPos,x)
+  ; Because grace note processing decrements before comparing to
+  ; zero, 1 is treated the same as 0.
+  ; 0: this row's pattern already read
+  ; 1: will read this row's pattern this frame
+  ; 2: will read this row's pattern next frame
+  ; 3: will read this row's pattern 2 frames from now
+  clc
+  adc #1
   sta graceTime,x
   jmp nextPatternByte
 

@@ -1303,9 +1303,10 @@ song attacktest
     eb2 r8 f4 r1 r2. c4 r8
     eb2 r8 f4 r4 EP16 ab1 r2 EP00 c4 r8
     eb2 r8 f4 r1 r2. c4 r8
-    # As of 2017-08-21, there's a bug requiring a note to play for at
-    # least 2 ticks (2g) before it's set as the base for portamento
-    eb2 r8 f4 r4 eb2g EP16 gb1 EP00 r2 c4 r8
+    # 2018-03-20: A bug that required staying on a note for at least
+    # 2 frames (2g) before it's picked up as the portamento base
+    # is now fixed.
+    eb2 r8 f4 r4 eb1g EP16 gb1 EP00 r2 c4 r8
   play bass
   attack on triangle
   pattern atk on attack with framepop
