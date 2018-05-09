@@ -2,7 +2,7 @@
 # Pently audio engine
 # Sample songs
 #
-# Copyright 2001-2017 Damian Yerrick
+# Copyright 2001-2018 Damian Yerrick
 # 
 # This software is provided 'as-is', without any express or implied
 # warranty.  In no event will the authors be held liable for any damages
@@ -24,41 +24,12 @@
 durations stick
 notenames english
 
-sfx kick on noise
-  volume 12 10 8 6 5 4 3 2 1 1
-  pitch 10 0
-
-sfx snare on noise
-  volume 12 10 8 6 5 4 3 2 1 1
-  pitch 4 10
-
-sfx hihat on noise
-  volume 4 2 2 1
-  pitch 12
-  timbre | 0 1
+include src/Pino_drumkit.inc
 
 sfx quiethat on noise
   volume 2 1
   pitch 12
   timbre | 0 1
-
-sfx openhat on noise
-  volume 6 5 4 4 3:3 2:3 1:5
-  pitch 12
-  timbre | 0 1
-
-sfx snarehat on noise
-  volume 12 10 8 6 3:3 2:3 1:5
-  pitch 4 10 10 12
-  timbre 0 0 | 0 1
-
-sfx trikick on triangle
-  volume 15 15 15 2 2
-  pitch e' c' a f# e
-
-sfx trisnare on triangle
-  volume 15 15 2 2
-  pitch bb' ab' g' f#'
 
 sfx tubfloorA on pulse
   volume 12 10 8 7 6 5 4 4 3 3 2 1
@@ -88,13 +59,6 @@ sfx longsnare on noise
     volume 12 11 10 9 8 7 6 4 3 3 2:3 1:4
     pitch 4 10
 
-drum kick kick
-drum snare snare
-drum clhat hihat
-drum ohat openhat
-drum tkick kick trikick
-drum tsnare snare trisnare
-drum tsohat snarehat trisnare
 drum tubkick kick tubfloorA
 drum arghatbuzz arghatbuzz
 drum quiethat quiethat

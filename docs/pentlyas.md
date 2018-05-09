@@ -61,6 +61,10 @@ line comments.  A comment cannot follow other things on the same line
 because a number sign outside a line comment means a note is sharp,
 such as `c#`.
 
+The **`include`** command pastes another text file into a score.
+You can use this to refer to a library of sound effects, drums,
+instruments, or chord definitions.
+
 Defining pitches
 ================
 Pently works by setting the period of a tone generator to periods

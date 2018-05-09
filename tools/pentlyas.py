@@ -536,8 +536,8 @@ class PentlyRenderable(object):
 
     nonalnumRE = re.compile("[^a-zA-Z0-9]")
 
-    def __init__(self, name=None, linenum=None, warn=None):
-        self.name, self.linenum = name, linenum
+    def __init__(self, name=None, orderkey=0, fileline=None, warn=None):
+        self.name, self.orderkey, self.fileline = name, orderkey, fileline
         self.warn = warn
         self.asmdataname = self.asmdata = None
         self.asmdataprefix = ''
@@ -563,19 +563,20 @@ class PentlyRenderable(object):
 
 class PentlyEnvelopeContainer(PentlyRenderable):
 
-    def __init__(self, name=None, linenum=None, warn=None):
-        super().__init__(name, linenum, warn=warn)
+    def __init__(self, name=None, orderkey=0, fileline=None, warn=None):
+        super().__init__(name, orderkey, fileline, warn=warn)
         self.timbre = self.volume = self.pitch = None
         self.pitch_looplen = self.timbre_looplen = 1
 
-    def set_volume(self, volumes, linenum=None):
+    def set_volume(self, volumes, fileline=None):
         if self.volume is not None:
-            raise ValueError("volume for %s was already set on line %d"
-                             % (self.name, self.volume_linenum))
+            file, line = self.volume_fileline
+            raise ValueError("volume for %s was already set at %s line %d"
+                             % (self.name, file, line))
         volumes = list(volumes)
         if not all(0 <= x <= 15 for x in volumes):
             raise ValueError("volume steps must be 0 to 15")
-        self.volume, self.volume_linenum = volumes, linenum
+        self.volume, self.volume_fileline = volumes, fileline
 
     @staticmethod
     def expand_runs(words):
@@ -608,18 +609,19 @@ class PentlyEnvelopeContainer(PentlyRenderable):
     def get_max_timbre(self):
         return 3
 
-    def set_timbre(self, timbrewords, linenum=None):
+    def set_timbre(self, timbrewords, fileline=None):
         if self.timbre is not None:
-            raise ValueError("timbre for %s %s was already set on line %d"
+            file, line = self.timbre_fileline
+            raise ValueError("timbre for %s %s was already set at %s line %d"
                              % (self.cur_obj[0], self.cur_obj[1].name,
-                                volumedthing['timbre_linenum']))
+                                file, line))
         timbres, looplen = self.pipesplit(timbrewords)
         timbres = [int(x) for x in timbres]
         maxduty = self.get_max_timbre()
         if not all(0 <= x <= maxduty for x in timbres):
             raise ValueError("timbre steps must be 0 to %d" % maxduty)
         self.timbre, self.timbre_looplen = timbres, looplen or 1
-        self.timbre_linenum = linenum
+        self.timbre_fileline = fileline
 
     def parse_pitchenv(self, pitchword):
         """Parse an element of a pitch envelope.
@@ -633,15 +635,16 @@ If not overridden, this abstract method raises NotImplementedError.
 """
         raise NotImplementedError
 
-    def set_pitch(self, pitchwords, linenum=None):
+    def set_pitch(self, pitchwords, fileline=None):
         if self.pitch is not None:
-            raise ValueError("pitch for %s %s was already set on line %d"
+            fileline = self.pitch_fileline
+            raise ValueError("pitch for %s %s was already set at %s line %d"
                              % (self.cur_obj[0], self.cur_obj[1].name,
-                                volumedthing['pitch_linenum']))
+                                file, line))
         pitches, looplen = self.pipesplit(pitchwords)
         pitches = [self.parse_pitchenv(pitch) for pitch in pitches]
         self.pitch, self.pitch_looplen = pitches, looplen or 1
-        self.pitch_linenum = linenum
+        self.pitch_fileline = fileline
 
     @staticmethod
     def expand_envelope_loop(envelope, looplen, length):
@@ -675,22 +678,23 @@ If not overridden, this abstract method raises NotImplementedError.
 
 class PentlyInstrument(PentlyEnvelopeContainer):
 
-    def __init__(self, name=None, linenum=None, warn=None):
+    def __init__(self, name=None, orderkey=0, fileline=None, warn=None):
         """Set up a new instrument.
 
-name, linenum -- used in duplicate error messages
+name, fileline -- used in duplicate error messages
 """
-        super().__init__(name, linenum, warn=warn)
+        super().__init__(name, orderkey, fileline, warn=warn)
         self.detached = self.decay = None
 
-    def set_decay(self, rate, linenum=None):
+    def set_decay(self, rate, fileline=None):
         if not 0 <= rate <= 127:
             raise ValueError("decay must be 1 to 127 units per 16 frames, not %d"
                              % rate)
         if self.decay is not None:
-            raise ValueError("decay for %s was already set on line %d"
-                             % (self.name, self.decay_linenum))
-        self.decay, self.decay_linenum = rate, linenum
+            file, line = self.decay_fileline
+            raise ValueError("decay for %s was already set at %s line %d"
+                             % (self.name, file, line))
+        self.decay, self.decay_fileline = rate, fileline
 
     def parse_pitchenv(self, pitch):
         """Parse an element of the pitch envelope relative to the base note.
@@ -746,30 +750,30 @@ This is equivalent to an "absolute" arpeggio envelope in FamiTracker.
 
 class PentlySfx(PentlyEnvelopeContainer):
 
-    def __init__(self, channel_type, pitchctx=None, name=None,
-                 linenum=None, warn=None):
+    def __init__(self, channel_type, pitchctx=None,
+                 name=None, orderkey=0, fileline=None, warn=None):
         """Set up a new sound effect.
 
 channel_type -- 0 for pulse, 2 for triangle, or 3 for noise
-name, linenum -- used in duplicate error messages
+name, fileline -- used in duplicate error messages
 
 """
-        super().__init__(name, linenum, warn=warn)
+        super().__init__(name, orderkey, fileline, warn=warn)
         self.rate, self.channel_type = None, channel_type
         self.pitchctx = PentlyPitchContext(pitchctx)
         octave_mode = 'noise' if channel_type == 3 else 'absolute'
         self.pitchctx.reset_octave(octave_mode=octave_mode)
 
-    def set_rate(self, rate, linenum=None):
+    def set_rate(self, rate, fileline=None):
         """Sets the playback rate of a sound effect."""
         if not 1 <= rate <= 16:
             raise ValueError("rate must be 1 to 16 frames per step, not %d"
                              % rate)
         if self.rate is not None:
-            raise ValueError("rate for %s was already set on line %d"
-                             % (self.cur_obj[1].name,
-                                rated_sfx['rate_linenum']))
-        self.rate, self.rate_linenum = rate, linenum
+            file, line = self.rate_fileline
+            raise ValueError("rate for %s was already set at %s line %d"
+                             % (self.cur_obj[1].name, file, line))
+        self.rate, self.rate_fileline = rate, fileline
 
     def get_max_timbre(self):
         return 1 if self.channel_type == 3 else 3
@@ -818,8 +822,8 @@ class PentlyDrum(PentlyRenderable):
 
     drumnameRE = re.compile('([a-zA-Z_][a-zA-Z0-9_]*[a-zA-Z_])$')
 
-    def __init__(self, sfxnames, name, linenum=None, warn=None):
-        super().__init__(name, linenum, warn=warn)
+    def __init__(self, sfxnames, name, orderkey=0, fileline=None, warn=None):
+        super().__init__(name, orderkey, fileline, warn=warn)
         if not self.drumnameRE.match(name):
             raise ValueError("drum names must begin and end with letter or '_'")
         self.sfxnames = sfxnames
@@ -835,12 +839,12 @@ class PentlyDrum(PentlyRenderable):
 class PentlySong(PentlyRenderable):
 
     def __init__(self, pitchctx=None, rhyctx=None,
-                 name=None, linenum=None, warn=None):
-        super().__init__(name, linenum, warn=warn)
+                 name=None, orderkey=0, fileline=None, warn=None):
+        super().__init__(name, orderkey, fileline, warn=warn)
         self.pitchctx = PentlyPitchContext(pitchctx)
         self.rhyctx = PentlyRhythmContext(rhyctx)
         self.rhyctx.tempo = 100.0
-        self.last_rowtempo = self.segno_linenum = self.last_beatlen = None
+        self.last_rowtempo = self.segno_fileline = self.last_beatlen = None
         self.conductor = []
         self.bytesize = 2
         self.rehearsal_marks = {}
@@ -943,16 +947,17 @@ class PentlySong(PentlyRenderable):
         self.conductor.extend(abstract_cmds)
         self.bytesize += 4 * len(abstract_cmds)
 
-    def add_segno(self, linenum):
-        if self.segno_linenum is not None:
-            raise ValueError("%s: loop point already set at line %d"
-                             % (self.name, self.segno_linenum))
+    def add_segno(self, fileline):
+        if self.segno_fileline is not None:
+            file, line = self.segno_fileline
+            raise ValueError("%s: loop point already set at %s line %d"
+                             % (self.name, file, line))
         self.conductor.append('segno')
         self.bytesize += 1
-        self.segno_linenum = linenum
-        self.rehearsal_marks['%'] = (self.total_rows, linenum)
+        self.segno_fileline = fileline
+        self.rehearsal_marks['%'] = (self.total_rows, fileline)
 
-    def add_mark(self, markname, linenum):
+    def add_mark(self, markname, fileline):
         if len(markname) > 24:
             raise ValueError("name of mark %s exceeds 24 characters"
                              % markname)
@@ -970,14 +975,15 @@ class PentlySong(PentlyRenderable):
             raise ValueError("mark names starting with % are reserved")
 
         try:
-            _, linenum = self.rehearsal_marks[markname]
+            _, fileline = self.rehearsal_marks[markname]
         except KeyError:
             pass
         else:
-            raise ValueError("%s: mark %s already set on line %d"
-                             % (self.name, markname, linenum))
+            file, line = fileline
+            raise ValueError("%s: mark %s already set at %s line %d"
+                             % (self.name, markname, file, line))
 
-        self.rehearsal_marks[markname] = (self.total_rows, linenum)
+        self.rehearsal_marks[markname] = (self.total_rows, fileline)
         self.last_mark_rows = self.total_rows
 
     def render(self, scopes):
@@ -1045,8 +1051,8 @@ class PentlyPattern(PentlyRenderable):
 
     def __init__(self, pitchctx=None, rhyctx=None,
                  instrument=None, track=None,
-                 name=None, linenum=None, warn=None):
-        super().__init__(name, linenum, warn=warn)
+                 name=None, orderkey=0, fileline=None, warn=None):
+        super().__init__(name, orderkey, fileline, warn=warn)
         self.pitchctx = PentlyPitchContext(pitchctx)
         self.rhyctx = PentlyRhythmContext(rhyctx)
         self.rhyctx.last_duration = None
@@ -1150,7 +1156,6 @@ EN(-?(?:
             elif self.pitchctx.octave_mode is None:
                 self.pitchctx.octave_mode = 'absolute'
             target_octave = int(word[1])
-            print("Want to change to octave %d" % target_octave)
             self.pitchctx.reset_octave(octave=target_octave - 2)
             return
 
@@ -1462,19 +1467,20 @@ class PentlyInputParser(object):
         self.instruments = {}
         self.patterns = {}
         self.songs = {}
-        self.resume_mute_linenum = self.resume_linenum = None
+        self.resume_mute_fileline = self.resume_fileline = None
         self.resume_row = self.resume_mute = 0
         self.cur_obj = self.cur_song = self.resume_song = None
-        self.linenum = 0
+        self.filelinestack = [[filename, 0]]
         self.rhyctx = PentlyRhythmContext()
         self.pitchctx = PentlyPitchContext()
-        self.unk_keywords = 0
+        self.unk_keywords = self.total_lines = 0
         self.warnings = []
         self.filename = filename or os.path.basename(sys.argv[0])
 
     def append(self, s):
         """Parse one line of code."""
-        self.linenum += 1
+        self.filelinestack[-1][1] += 1
+        self.total_lines += 1
         s = s.strip()
         if not s or s.startswith(('#', '//')):
             return
@@ -1486,14 +1492,18 @@ class PentlyInputParser(object):
             self.append(line)
 
     def warn(self, msg):
-        self.warnings.append((self.linenum, msg))
+        self.warnings.extend(
+            (tuple(row), "in included file")
+            for row in self.filelinestack[:-1]
+        )
+        self.warnings.append((tuple(self.filelinestack[-1]), msg))
 
     def print_warnings(self, file=None):
         if len(self.warnings) == 0: return
-        file = file or sys.stderr
-        file.write("".join(
-            "%s:%s: warning: %s\n" % (self.filename, linenum, msg)
-            for linenum, msg in self.warnings
+        outfp = file or sys.stderr
+        outfp.write("".join(
+            "%s:%s: warning: %s\n" % (file, line, msg)
+            for (file, line), msg in self.warnings
         ))
 
     def cur_obj_type(self):
@@ -1579,10 +1589,12 @@ Used to find the target of a time, scale, durations, or notenames command.
         if self.cur_song is not None:
             name = '::'.join((self.cur_song.name, name))
         if name in self.sfxs:
-            raise ValueError("sfx %s was already defined on line %d"
-                             % (name, self.sfxs[name].linenum))
+            file, line = self.sfxs[name].fileline
+            raise ValueError("sfx %s was already defined at %s line %d"
+                             % (name, file, line))
         inst = PentlySfx(channel, pitchctx=self.pitchctx,
-                         name=name, linenum=self.linenum, warn=self.warn)
+                         name=name, fileline=tuple(self.filelinestack[-1]),
+                         warn=self.warn)
         self.sfxs[name] = inst
         self.cur_obj = ('sfx', inst)
 
@@ -1593,9 +1605,11 @@ Used to find the target of a time, scale, durations, or notenames command.
         if self.cur_song is not None:
             name = '::'.join((self.cur_song.name, name))
         if name in self.instruments:
-            raise ValueError("instrument %s was already defined on line %d"
-                             % (name, self.instruments[name].linenum))
-        inst = PentlyInstrument(name=name, linenum=self.linenum,
+            file, line = self.instruments[name].fileline
+            raise ValueError("instrument %s was already defined at %s line %d"
+                             % (name, file, line))
+        inst = PentlyInstrument(name=name,
+                                fileline=tuple(self.filelinestack[-1]),
                                 warn=self.warn)
         self.instruments[name] = inst
         self.cur_obj = ('instrument', inst)
@@ -1605,7 +1619,7 @@ Used to find the target of a time, scale, durations, or notenames command.
         if len(words) != 2:
             raise ValueError("must have 2 words: rate FRAMESPERSTEP")
         rate = int(words[1])
-        self.cur_obj[1].set_rate(rate, linenum=self.linenum)
+        self.cur_obj[1].set_rate(rate, fileline=tuple(self.filelinestack[-1]))
 
     def add_volume(self, words):
         self.ensure_in_object('volume', ('sfx', 'instrument'))
@@ -1613,28 +1627,28 @@ Used to find the target of a time, scale, durations, or notenames command.
             raise ValueError("volume requires at least one step")
         obj = self.cur_obj[1]
         vols = [int(x) for x in obj.expand_runs(words[1:]) if x != '|']
-        obj.set_volume(vols, linenum=self.linenum)
+        obj.set_volume(vols, fileline=tuple(self.filelinestack[-1]))
 
     def add_decay(self, words):
         self.ensure_in_object('decay', 'instrument')
         if len(words) != 2:
             raise ValueError("must have 2 words: decay UNITSPER16FRAMES")
         obj = self.cur_obj[1]
-        obj.set_decay(int(words[1]), linenum=self.linenum)
+        obj.set_decay(int(words[1]), fileline=tuple(self.filelinestack[-1]))
 
     def add_timbre(self, words):
         self.ensure_in_object('timbre', ('sfx', 'instrument'))
         if len(words) < 2:
             raise ValueError("timbre requires at least one step")
         obj = self.cur_obj[1]
-        obj.set_timbre(words[1:], linenum=self.linenum)
+        obj.set_timbre(words[1:], fileline=tuple(self.filelinestack[-1]))
 
     def add_pitch(self, words):
         self.ensure_in_object('pitch', ('sfx', 'instrument'))
         if len(words) < 2:
             raise ValueError("pitch requires at least one step")
         obj = self.cur_obj[1]
-        obj.set_pitch(words[1:], linenum=self.linenum)
+        obj.set_pitch(words[1:], fileline=tuple(self.filelinestack[-1]))
 
     def add_detached(self, words):
         self.ensure_in_object('detached', 'instrument')
@@ -1650,10 +1664,13 @@ Used to find the target of a time, scale, durations, or notenames command.
         if self.cur_song is not None:
             drumname = '::'.join((self.cur_song.name, drumname))
         if drumname in self.drums:
-            raise ValueError("drum %s was already defined on line %d"
-                             % (drumname, self.drums[drumname].linenum))
+            file, line = self.drums[drumname].fileline
+            raise ValueError("drum %s was already defined at %s line %d"
+                             % (drumname, file, line))
         d = PentlyDrum(words[2:],
-                       name=drumname, linenum=self.linenum, warn=self.warn)
+                       name=drumname,
+                       fileline=tuple(self.filelinestack[-1]),
+                       warn=self.warn)
         self.drums[drumname] = d
 
     # Songs and patterns
@@ -1662,16 +1679,19 @@ Used to find the target of a time, scale, durations, or notenames command.
         if len(words) != 2:
             raise ValueError("must have 2 words: song SONGNAME")
         if self.cur_song:
-            raise ValueError("song %s began on line %d and was not ended with fine or dal segno"
-                             % (self.cur_song.name, self.cur_song.linenum))
+            fileline = self.cur_song, fileline
+            raise ValueError("song %s began at %s line %d and was not ended with fine or dal segno"
+                             % (self.cur_song.name, file, line))
         self.cur_obj = None
         songname = words[1]
         if songname in self.songs:
-            oldlinenum = self.songs[songname].linenum
-            raise ValueError("song %s was already defined on line %d"
-                             % (songname, oldlinenum))
+            file, line = self.songs[songname].fileline
+            raise ValueError("song %s was already defined at %s line %d"
+                             % (songname, file, line))
         song = PentlySong(pitchctx=self.pitchctx, rhyctx=self.rhyctx,
-                          name=songname, linenum=self.linenum, warn=self.warn)
+                          name=songname, orderkey=self.total_lines,
+                          fileline=tuple(self.filelinestack[-1]),
+                          warn=self.warn)
         self.cur_song = self.songs[songname] = song
 
     def end_song(self, words):
@@ -1684,9 +1704,10 @@ Used to find the target of a time, scale, durations, or notenames command.
         elif words in ('dal segno', 'dalsegno'):
             endcmd = 'dalSegno'
         elif words in ('da capo', 'dacapo'):
-            if song.segno_linenum is not None:
-                raise ValueError("%s: cannot loop to start because segno was set on line %d"
-                                 % (song.name, song.segno_linenum))
+            if song.segno_fileline is not None:
+                fileline = song.segno_fileline
+                raise ValueError("%s: cannot loop to start because segno was set at %s line %d"
+                                 % (song.name, file, line))
             endcmd = 'dalSegno'
         else:
             raise ValueError('song end must be "fine" or "dal segno" or "da capo", not '
@@ -1701,7 +1722,7 @@ Used to find the target of a time, scale, durations, or notenames command.
         song = self.cur_song
         if not song:
             raise ValueError("no song is open")
-        song.add_segno(self.linenum)
+        song.add_segno(fileline=tuple(self.filelinestack[-1]))
         self.cur_obj = None
 
     def add_mark(self, words):
@@ -1712,7 +1733,7 @@ Used to find the target of a time, scale, durations, or notenames command.
         if not song:
             raise ValueError("mark %s encountered outside song"
                              % markname)
-        song.add_mark(markname, self.linenum)
+        song.add_mark(markname, fileline=tuple(self.filelinestack[-1]))
 
     def add_time(self, words):
         if len(words) < 2:
@@ -1751,24 +1772,27 @@ Used to find the target of a time, scale, durations, or notenames command.
     def add_resume(self, words):
         if not self.cur_song:
             raise ValueError("resume must be used in a song")
-        if self.resume_linenum is not None:
-            raise ValueError("resume point already set on line %d"
-                             % self.resume_linenum)
-        self.resume_linenum = self.linenum
+        if self.resume_fileline is not None:
+            file, line = self.resume_fileline
+            raise ValueError("resume point already set at %s line %d"
+                             % (file, line))
+        self.resume_fileline = tuple(self.filelinestack[-1])
         self.resume_song = self.cur_song.name
         self.resume_rows = self.cur_song.total_rows
 
     def add_mute(self, words):
         is_solo = words[0] == 'solo'
-        if self.resume_mute_linenum is not None:
-            raise ValueError("resume muting already set on line %d"
-                             % self.resume_mute_linenum)
+        if self.resume_mute_fileline is not None:
+            file, line = self.resume_mute_fileline
+            raise ValueError("resume muting already set at %s line %d"
+                             % (file, line))
         trackbits = 0
         for track in self.cur_song.parse_trackset(words[1:]):
             trackbits |= 1 << track
         if is_solo:
-            trackbits = trackbits ^ 0x1F
+            trackbits = trackbits ^ (1 << 5) - 1
         self.resume_mute = trackbits
+        self.resume_mute_fileline = tuple(self.filelinestack[-1])
         self.warn("muting $%02x" % trackbits)
     
     def add_song_wait(self, words):
@@ -1842,8 +1866,9 @@ Used to find the target of a time, scale, durations, or notenames command.
             raise ValueError('syntax: pattern PATTERNNAME [on TRACK] [with INSTRUMENT]')
         patname = words[1]
         if patname in self.patterns:
-            raise ValueError("pattern %s was already defined on line %d"
-                             % (patname, self.patterns[patname].linenum))
+            file, line = self.patterns[patname].fileline
+            raise ValueError("pattern %s was already defined at %s line %d"
+                             % (patname, file, line))
         if self.cur_song is not None:
             patname = '::'.join((self.cur_song.name, patname))
             pitchrhy = self.cur_song
@@ -1860,7 +1885,9 @@ Used to find the target of a time, scale, durations, or notenames command.
 
         pat = PentlyPattern(pitchctx=pitchrhy.pitchctx, rhyctx=pitchrhy.rhyctx,
                             instrument=instrument, track=track,
-                            name=patname, linenum=self.linenum, warn=self.warn)
+                            name=patname,
+                            fileline=tuple(self.filelinestack[-1]),
+                            warn=self.warn)
         self.patterns[patname] = pat
         self.cur_obj = ('pattern', pat)
 
@@ -1870,6 +1897,22 @@ Used to find the target of a time, scale, durations, or notenames command.
         self.ensure_in_object('fallthrough', 'pattern')
         self.cur_obj[1].set_fallthrough(True)
         self.cur_obj = None
+
+    def add_include(self, words):
+        if len(self.filelinestack) >= 20:
+            self.warn("approaching limbo")
+            raise ValueError("include nested too deeply")
+        
+        # XXX: Impossible to include a file that includes multiple
+        # consecutive spaces or whitespace other than " " (U+0020)
+        path = " ".join(words[1:])
+        if not path:
+            raise ValueError('include requires a path')
+        with open(path, "r") as infp:
+            print("Would include the file whose contents are as follows")
+            self.filelinestack.append([path, 0])
+            self.extend(infp)
+            del self.filelinestack[-1]
 
     def add_definition(self, name, value):
         if name.startswith('EN'):
@@ -1912,6 +1955,7 @@ Used to find the target of a time, scale, durations, or notenames command.
         'tempo': add_tempo,
         'play': add_play,
         'stop': add_stop,
+        'include': add_include,
     }
 
     def dokeyword(self, words):
@@ -1932,9 +1976,15 @@ Used to find the target of a time, scale, durations, or notenames command.
             for word in words:
                 pat.add_pattern_note(word)
             return
-        if self.unk_keywords < 100:
-            self.warn("unknown keyword %s inside %s"
-                      % (repr(words), self.cur_obj or self.cur_song.name))
+        if self.unk_keywords < 10:
+            if self.cur_obj:
+                type_name = " ".join((self.cur_obj[0], self.cur_obj[1].name))
+            elif self.cur_song:
+                type_name = "song " + self.cur_song.name
+            else:
+                type_name = "top level"
+            self.warn("ignoring unknown keyword %s in %s"
+                      % (repr(words[0]), type_name))
         self.unk_keywords += 1
 
 # Finding pieces of data that can overlap each other ################
@@ -1976,7 +2026,7 @@ def subseq_pack(subseqs):
 
 def print_all_dicts(parser):
     print("\n;Parsed %d lines, with %d using a keyword not yet implemented"
-          % (parser.linenum, parser.unk_keywords))
+          % (parser.total_lines, parser.unk_keywords))
     dicts_to_print = [
         ('Sound effects', parser.sfxs),
         ('Instruments', parser.instruments),
@@ -2016,7 +2066,7 @@ byte: Reserved for future use
 n bytes: ASCII encoded rehearsal mark names, separated by $0A,
     terminated by $00
 """
-    songs = sorted(parser.songs.items(), key=lambda x: x[1].linenum)
+    songs = sorted(parser.songs.items(), key=lambda x: x[1].orderkey)
     lines = [
         "; Rehearsal mark data begin",
         ".exportzp pently_resume_song",
@@ -2118,7 +2168,7 @@ def render_file(parser, segment='RODATA'):
             songbytes[name] = songbytes.get(name, 0) + tng.bytesize
 
         fmtfunc = str if is_bytes else None
-        defs1 = sorted(things.values(), key=lambda x: x.linenum)
+        defs1 = sorted(things.values(), key=lambda x: x.orderkey)
         if exportable:
             all_exportzp.extend(thing.asmname for thing in defs1)
         all_export.append(deflabel)
@@ -2272,8 +2322,8 @@ def main(argv=None):
             if args.verbose:
                 import traceback
                 traceback.print_exc()
-            print("%s:%d: %s" % (display_filename, parser.linenum, e),
-                  file=sys.stderr)
+            file, line = tuple(parser.filelinestack[-1])
+            print("%s:%d: %s" % (file, line, e), file=sys.stderr)
             sys.exit(1)
         finally:
             if not is_stdin:
