@@ -21,7 +21,8 @@ For help setting these up, see the README file for
 
 ### Building
 
-Once you have the above installed, run `make`.
+Once you have the above installed, run `make` to build and play
+or `make pently.nes` to only build a ROM.
 Then edit the score and run `make` again to hear the changes.
 To use an entirely different score file, open `makefile` and change
 `scorename`.
