@@ -1594,6 +1594,7 @@ Used to find the target of a time, scale, durations, or notenames command.
                              % (name, file, line))
         inst = PentlySfx(channel, pitchctx=self.pitchctx,
                          name=name, fileline=tuple(self.filelinestack[-1]),
+                         orderkey=self.total_lines,
                          warn=self.warn)
         self.sfxs[name] = inst
         self.cur_obj = ('sfx', inst)
@@ -1610,6 +1611,7 @@ Used to find the target of a time, scale, durations, or notenames command.
                              % (name, file, line))
         inst = PentlyInstrument(name=name,
                                 fileline=tuple(self.filelinestack[-1]),
+                                orderkey=self.total_lines,
                                 warn=self.warn)
         self.instruments[name] = inst
         self.cur_obj = ('instrument', inst)
@@ -1668,7 +1670,7 @@ Used to find the target of a time, scale, durations, or notenames command.
             raise ValueError("drum %s was already defined at %s line %d"
                              % (drumname, file, line))
         d = PentlyDrum(words[2:],
-                       name=drumname,
+                       name=drumname, orderkey=self.total_lines,
                        fileline=tuple(self.filelinestack[-1]),
                        warn=self.warn)
         self.drums[drumname] = d
@@ -1885,7 +1887,7 @@ Used to find the target of a time, scale, durations, or notenames command.
 
         pat = PentlyPattern(pitchctx=pitchrhy.pitchctx, rhyctx=pitchrhy.rhyctx,
                             instrument=instrument, track=track,
-                            name=patname,
+                            name=patname, orderkey=self.total_lines,
                             fileline=tuple(self.filelinestack[-1]),
                             warn=self.warn)
         self.patterns[patname] = pat
@@ -1909,7 +1911,6 @@ Used to find the target of a time, scale, durations, or notenames command.
         if not path:
             raise ValueError('include requires a path')
         with open(path, "r") as infp:
-            print("Would include the file whose contents are as follows")
             self.filelinestack.append([path, 0])
             self.extend(infp)
             del self.filelinestack[-1]

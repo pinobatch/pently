@@ -1,3 +1,12 @@
+0.05wip10 (future)
+* pentlyas.py: o0 through o7 to set reference pitch
+  (requested by zzo38)
+* Grace note durations no longer reduced by 1 frame
+* Document how to skip autoplay
+* A score can include other files
+* pentlyas.py: order of objects in the output is explicit, the same
+  order in which they appear in the score (requested by NovaSquirrel)
+
 0.05wip9 (2018-02-21)
 * PENTLY_USE option to disable music engine entirely
 * PENTLY_USE option to disable 303 portamento
