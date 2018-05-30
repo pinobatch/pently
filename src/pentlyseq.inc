@@ -99,14 +99,14 @@ name = <(* - pently_instruments) / 5
 
 ; Song definition
 .macro songdef name, conductor_addr
-name = <(* - pently_songs) / 2
+name = (* - pently_songs) / 2
   .addr (conductor_addr)
   NUM_SONGS_SO_FAR .set name + 1
 .endmacro
 
 ; Pattern definition
 .macro patdef name, pattern_addr
-name = <(* - pently_patterns) / 2
+name = (* - pently_patterns) / 2
   .addr (pattern_addr)
 .endmacro
 
