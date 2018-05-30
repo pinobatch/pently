@@ -2112,6 +2112,9 @@ n bytes: ASCII encoded rehearsal mark names, separated by $0A,
     return lines
 
 def render_file(parser, segment='RODATA'):
+    if len(parser.songs) == 0:
+        raise IndexError("no songs defined")
+
     # each entry in this row is a tuple of the form
     # list, name of directory table, include asmnames in export,
     # include in byte subsequence packing
