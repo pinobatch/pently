@@ -296,6 +296,7 @@ notnoise:
   .if ::PENTLY_USE_TRIANGLE_DUTY_FIX
     cpx #8
     bne :+
+    sta $4444
     and #$0F
     beq :+
       ora #$80  ; for triangle keep bit 7 (linear counter load) on
@@ -328,9 +329,12 @@ notnoise:
     sta $4002,x
     lda periodTableHi,y
   .endif
+  cpx #8
+  beq always_write_high_period
   cmp ch_lastfreqhi,x
   beq no_change_to_hi_period
   sta ch_lastfreqhi,x
+always_write_high_period:
   sta $4003,x
 no_change_to_hi_period:
 
