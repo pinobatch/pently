@@ -4,22 +4,18 @@
 durations stick
 notenames english
 
-# TODO: Shared drum kit
-# TODO: CRoom sound effects
-# TODO: test Thwaite sound effects
-# TODO: Zap Ruder sound effects
-# TODO: RHDE sound effects
-# TODO: Zap Ruder instruments
+# Sound effects #####################################################
+
+# TODO: Axe instruments
 # TODO: RHDE instruments
-# TODO: Thwaite shared patterns
-# TODO: Zap Ruder songs
+# TODO: Axe songs
 # TODO: remaining RHDE songs
 
 # Thwaite sound effects
 sfx thwaite_mirv_split on pulse
   timbre 1
   volume 15 4 15 4 15 4 4 2 4 2 4 2 2 1 2 1 2 1
-  pitch a':6 d'':6 g'':6
+  pitch | a':2 d'':2 g'':2
 
 sfx thwaite_threat_1 on pulse
   timbre 1
@@ -30,20 +26,125 @@ sfx thwaite_threat_2 on pulse
   timbre 1
   rate 2
   volume 12:7 11 9 6
-  pitch c#' g' c#'' g':7
+  pitch c#' g' c#'' g'':7
 
+# also used in RHDE
 sfx thwaite_shoot on noise
   rate 5
   volume 10 8 7 6 4 3 2
   pitch 12 11 11 10 9 9 9
 
-sfx thwaite_boom1 on pulse
+sfx thwaite_boomp on pulse
   rate 2
+  volume 15 15 14 14 13 12 11 10 9 8 7 6 4 2 1
+  pitch eb c a, c a, g, g#, f#, d#, f, e, d, d#, c#, c,
 
-sfx thwaite_boom2 on pulse
+sfx thwaite_boomn on noise
   rate 4
+  volume 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 1
+  pitch 1 2 1 1 1 0 1 1 0 1 0 1 0 1 0 0
 
-# Drums
+# Used in falling blocks and RHDE for turn piece and in CRoom for
+# turn card.
+sfx croom_rotate on pulse
+  timbre 1
+  volume 15 4 15 4 15 4
+  pitch | a':2 d'':2 g'':2
+
+# Used in falling blocks for move piece sideways and in CRoom for
+# debug random movement
+sfx croom_shift on pulse
+  timbre 1
+  volume 15 4
+  pitch a'':2
+
+# Used in falling blocks for piece touching floor, in CRoom for
+# mismatch, and in RHDE for placement.  When a piece's lock delay
+# ends, use clhat.
+sfx croom_land on pulse
+  timbre 2
+  volume 15 13 11 9 7 5 3 1
+  pitch e c a, f#, e, d, c, b,,
+
+# Used in falling blocks for line clear, in CRoom for match, and in
+# RHDE for surrounding new area.
+sfx croom_line_clear on pulse
+  timbre 1:6 2:9
+  volume 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1
+  pitch | c'' d#'' f'' c'' d'' f''
+
+# Used in falling blocks for large line clear and in CRoom for
+# consecutive match.
+sfx croom_homer_clear on pulse
+  timbre 1:6 2:4 1:6 2:9
+  volume 15 14 13 12 11 10 9 8 7 6 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1
+  pitch c'' d#'' f'' c'' d'' f'' c'' d#'' f'' c'' | d#'' f#'' g#'' d#'' f'' g#''
+
+# This is used for attacks in 2-player falling blocks but not in
+# CRoom
+sfx croom_garbage on pulse
+  timbre 1
+  volume 15 13 11 9 7 5
+  pitch c# e g a# c#' e'
+
+# These two play when you run out of moves or when the opponent has
+# half the pairs.
+sfx croom_die1 on pulse
+  rate 4
+  volume 15 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 1
+  pitch e,
+
+sfx croom_die2 on noise
+  rate 4
+  volume 15 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 1
+  pitch 3 2 1
+
+# used when buying something or when a missile silo's cooldown ends
+sfx rhde_scanbeep on pulse
+  rate 3
+  timbre 2
+  volume 12 12 3 1
+  pitch d#''
+
+# used in Wrecking Ball Boy when climbing onto a crate or in RHDE
+# when counting down the last seconds of a phase
+sfx rhde_countdown on pulse
+  timbre 1
+  volume 7 9 11 13 15 15 15 15 11 11 9 7
+  pitch b d' e' f' f#' f#' g':4 f#' e'
+
+# used in falling blocks for moving a piece to the hold box or
+# changing options pages or in RHDE for changing shop/stock pages
+# or switching units in battle
+sfx rhde_hold_piece on noise
+  rate 2
+  volume 7 9 9 8 6
+  pitch 4 5 4 3 1
+
+# Used in RHDE when missile hits wall
+sfx rhde_explode on noise
+  rate 4
+  volume 15 13 11 9 7 5 3 2
+  pitch 2 2 2 1
+
+# used when an alert box disappears
+sfx rhde_start on pulse
+  timbre 2
+  volume 12 9 6 4 2 12 9 6 4 2 12 9 6 4 2 1
+  pitch b'':5 b''':5 f#'''
+
+# used when ball hits paddle
+sfx tennis_paddle on noise
+  timbre | 0 1
+  volume 6 4 2 1
+  pitch 8 9 10 9
+
+drum sfxtesta ohat
+drum sfxtestb tennis_paddle
+drum sfxtestc clhat
+
+# Drums and pitched instruments #####################################
+
 sfx kick on noise
   volume 9 9 4 2
   pitch 10 0
@@ -65,11 +166,29 @@ sfx clhat on noise
   volume 6 3 1
   pitch 12
 
+sfx ohat on noise
+  timbre | 0 1
+  volume 7 6 5 5 4 4 3 3 2 2 2 1 1
+  pitch 12
+
+sfx kickohat on noise
+  timbre 0 0 | 0 1
+  volume 10 8 6 5 4 4 3 3 2 2 2 1 1
+  pitch 10 0 0 12
+
+sfx snareohat on noise
+  timbre 0 0 | 0 1
+  volume 10 8 6 5 4 4 3 3 2 2 2 1 1
+  pitch 4 10 10 12
+
 drum kick kick tkick
 drum snare snare tsnare
 drum clhat clhat
+drum ohat ohat
+drum kickohat kickohat tkick
+drum snareohat snareohat tsnare
 
-# Thwaite instruments
+# CRoom/Thwaite instruments
 instrument v02
   timbre 2
   volume 8
@@ -109,6 +228,40 @@ instrument distanthorn
   timbre 1 0
   volume 3 5 6 6 5
 
+instrument distantguitdet
+  detached
+  timbre 2 1
+  pitch -2 -1 0
+  volume 3 4
+
+# RHDE instruments
+instrument strings
+  timbre 0
+  volume 7 11 12 7
+
+instrument rhdeban
+  timbre 0
+  volume 9
+  decay 8
+
+instrument bassassist
+  timbre 1
+  volume 7
+  decay 6
+
+instrument orchhit
+  volume 8:3 7:3 6:3 5:3 4:3 3:3 2:3 1:3 0
+  timbre 1
+  pitch | 12 0 -12
+
+instrument fanfarehorn
+  detached
+  volume 4 7 8 8 7 7 6
+  timbre 1 0
+  pitch -1 0
+
+# Songs: Concentration Room #########################################
+
 song croom_intro
   time 3/4
   tempo 110
@@ -129,10 +282,15 @@ song croom_intro
     d#'2. c# b1.
     d#2. c# f#, g#
   
+  pattern drumtest
+    r2. r2. r2.
+    sfxtesta4 sfxtestb sfxtestc
+
   at 1:1
   play chords1
   play chords2
   play bass
+#  play drumtest
   
   at 9:1
   da capo
@@ -413,11 +571,64 @@ song thwaite_town_tune
     d'4 f#' e' a2
   
   at 1:1
-    play town_tune
-    play town_tune on pulse1 down 9
+  play town_tune
+  play town_tune on pulse1 down 9
   
   at 2:2
-    fine
+  fine
+
+song tennis_win_point
+  time 4/4
+  tempo 150
+  scale 16
+
+  pattern orchhits on pulse2 with orchhit
+    relative
+    b'8. d e4 r4.
+    e8. f g4
+
+  pattern bass on triangle with v02detached
+    relative
+    b8. d e r16 e e e e e e
+    e8. f g r16
+
+  pattern drum
+    snare8. snare snare4 kick16 kick snare8 kick16 kick
+
+  at 1
+  play orchhits
+  play bass
+  play bass on pulse1 with distantguitdet down 5
+  play drum
+
+  at 2:3:2
+  fine
+
+song tennis_win_game
+  time 4/4
+  tempo 224
+  scale 16
+
+  pickup 0:4
+
+  pattern fanfare on pulse2 with fanfarehorn
+    relative
+    bb'8 bb eb4 r8 bb8 eb2
+
+  pattern fanfarebass on triangle with v02detached
+    relative
+    r4 eb'4 r8 bb8 eb2
+
+  pattern drum
+    clhat8 clhat snare4. clhat16 clhat snare2
+
+  play fanfare
+  play fanfarebass
+  play fanfarebass on pulse1 with fanfarehorn up 4
+  play drum
+
+  at 2
+  fine
 
 song rhde_battle
   time 12/8
