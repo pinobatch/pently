@@ -1681,7 +1681,7 @@ Used to find the target of a time, scale, durations, or notenames command.
         if len(words) != 2:
             raise ValueError("must have 2 words: song SONGNAME")
         if self.cur_song:
-            fileline = self.cur_song, fileline
+            file, line = self.cur_song.fileline
             raise ValueError("song %s began at %s line %d and was not ended with fine or dal segno"
                              % (self.cur_song.name, file, line))
         self.cur_obj = None
