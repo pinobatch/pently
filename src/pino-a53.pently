@@ -6,11 +6,6 @@ notenames english
 
 # Sound effects #####################################################
 
-# TODO: Axe instruments
-# TODO: RHDE instruments
-# TODO: Axe songs
-# TODO: remaining RHDE songs
-
 # Thwaite sound effects
 sfx thwaite_mirv_split on pulse
   timbre 1
@@ -191,11 +186,11 @@ drum snareohat snareohat tsnare
 # CRoom/Thwaite instruments
 instrument v02
   timbre 2
-  volume 8
+  volume 6
 
 instrument v02detached
   timbre 2
-  volume 8
+  volume 6
   detached
 
 instrument piano
@@ -235,9 +230,11 @@ instrument distantguitdet
   volume 3 4
 
 # RHDE instruments
-instrument strings
+instrument stringsdet
+  detached
   timbre 0
   volume 7 11 12 7
+  decay 3
 
 instrument rhdeban
   timbre 0
@@ -259,6 +256,43 @@ instrument fanfarehorn
   volume 4 7 8 8 7 7 6
   timbre 1 0
   pitch -1 0
+
+# Axe instruments must be kept together
+instrument axe_fg_1
+  timbre 2
+  volume 6
+  decay 10
+
+instrument axe_fg_2
+  timbre 1
+  volume 7
+  decay 10
+
+instrument axe_fg_3
+  timbre 0
+  volume 9
+  decay 10
+
+instrument axe_echo_1
+  timbre 2
+  volume 2
+  decay 3
+
+instrument axe_echo_2
+  timbre 1
+  volume 2
+  decay 3
+
+instrument axe_echo_3
+  timbre 1
+  volume 2
+  decay 3
+
+instrument axe_echo_tri
+  timbre 2
+  volume 2
+  decay 5
+
 
 # Songs: Concentration Room #########################################
 
@@ -630,6 +664,39 @@ song tennis_win_game
   at 2
   fine
 
+song axe_beat
+  time 4/4
+  tempo 128.75
+  scale 16
+
+  pattern sq1 on pulse1 with xylo_short
+    r8 c#,
+
+  pattern drum
+    kick8 ohat snare16 w1g clhat ohat8
+
+  # The tiestream keeps Pently from ending real-time-composed notes
+  # on a channel.
+  pattern tiestream on pulse2 with xylo_short
+    w1
+
+  at 1
+  play drum
+  play sq1
+  play tiestream
+
+  at 3
+  play sq1 up 3
+
+  at 5
+  play sq1 down 2
+
+  at 7
+  play sq1
+
+  at 9
+  da capo
+
 song rhde_battle
   time 12/8
   tempo 156
@@ -658,16 +725,161 @@ song rhde_battle
     a,4 r4. a8 b4 r4. b8 | a4 r4. a8 e'4 r8 a,4 r8
     d4 r4. d8 a4 r4. a8 | d4 r4. d8 a4 r8 d4 r8
     g,4 r4. g8 f4 r4. f8 | e4 e'8 c4 r8 d4 r8 g,4 r8
+
+  pattern melA with stringsdet on pulse2
+    relative
+    e'4 r8 g4. w4 c4. r8
+    e,4 r8 g,4 r8 c4 r8 a4 r8 |
+    b4 r8 g#'4. w4 d4. r8
+    d2. r |
+    f4 d8 c4 f4. r8 ab4 r8
+    c4 r8 c4 r8 ab4 r8 c4 c8 |
+    w4 r8 f,4 r8 d4 r8 c4 b8
+    w4. w4 r8 b2. |
+
+    e4 r8 g4. w4 c4. r8
+    e,4 r8 g,4 r8 c4 g8 a4 r8 |
+    b4 r8 g#'4. w4 d4. r8
+    d4. e,4 r8 g#4 f#8 e4 r8 |
+    f'4 d8 c4 f4. r8 ab4 r8
+    c4 r8 c4 r8 ab4 r8 c4 c8 |
+    w4 r8 c4 r8 g4 e8 f4 r8
+    e4 r8 g4 c8 e4 r2
+
+  pattern backingA on pulse1 with stringsdet
+    relative
+    c'4 r8 e4. w4 g4. r8
+    c,4 r2 r2. |
+    r4. d4. w4 e4. r8
+    g#,2. r |
+    c4 b8 a4 c4. r8 f4 r8
+    g#4 r8 g4 r8 f4 r8 g#4 g8 |
+    w4 r8 d4 r8 b4 r8 f'4 e8
+    w4. w4 r8 d2. |
+
+  pattern backingAend on pulse1 with stringsdet
+    relative
+    pickup 0:2
+    g'4 r8 e4 c8 d4 r8
+    c4 r8 e4 g8 c4 r2
   
+  pattern melB on pulse2 with stringsdet
+    relative
+    b'4 a8 g#4 b2 d4 r8
+    g#4 r8 f4 r8 e4 r8 d4 e8 |
+    w r c4. r8 b4 r8 d4 r8
+    e4 d8 c4 b8 c4 b8 a4 g8 |
+    f#4 r8 a4 r8 d4 r8 f#4 a8
+    w r c d4 a8 f#4 g8 a4 f#8 |
+    g4 a8 b4 g8 f4 g8 a4 f8
+    e2. d
+
+  pattern backingB on pulse1 with stringsdet
+    relative
+    g#'4 f#8 e4 g#2 b4 r8
+    e4 r8 d4 r8 c4 r8 b4 c8 |
+    w r a4. r8 g#4 r8 b4 r8
+    c4 b8 a4 g#8 a4 g8 e4 c8 |
+    d4 r8 e4 r8 f#4 r8 a4 d8
+    w r e f#4 d8 c4 d8 e4 c8 |
+    b4 c8 d4 b8 a4 b8 c4 a8
+    g2. r
+
   at 1:1
   play drums
   play bassA
+  play melA
+  play backingA
   
   at 14:4
   play bassAend
+
+  at 15:2
+  play backingAend
   
   at 17:1
   play bassB
+  play melB
+  play backingB
   
   at 33:1
   da capo
+
+song rhde_kalinka
+  time 4/4
+  tempo 140
+  scale 16
+
+  pattern intro on pulse2 with v02detached
+    eb'2 db'2 c'2. r4
+
+  pattern introdrum
+    r1 r2. snare4
+
+  pattern bassA on triangle with v02detached
+    c8 c' c bb c c' c c'
+    e e' e e' f f' ab ab'
+
+  pattern partA on pulse1 with rhdeban
+    g8 bb g bb ENM c'' EN0 g bb g
+    e e g bb f f ab c'
+
+  pattern drum
+    kick8 clhat snare clhat kick clhat16 clhat snare8 clhat
+    kick8 clhat snare clhat kick clhat snare16 clhat snareohat8
+
+  pattern drumfill
+    snareohat16 snare snare snare
+
+  pattern bassB on triangle with v02detached
+    f8 f' f f' f f' f eb'
+    c c' c c' db db' db db'
+
+  pattern chordsB on pulse1 with distantguitdet
+    EN055 c2 w4. bb,8
+    g2 ab
+
+  pattern ending_p1 on pulse1 with v02detached
+    relative
+    ENOF ab8 w1 bb c1
+
+  pattern ending_p2 on pulse2 with v02detached
+    relative
+    c'8 w1 f2 g ab1
+
+  pattern ending_tri on triangle with v02detached
+    relative
+    db'8 w1 eb ab,
+
+  at 1:1
+  play intro on triangle up 12
+  play intro on pulse1 down 5
+  play intro on pulse2 up 4
+  play introdrum
+
+  at 3:1
+  play bassA down 12
+  play bassA on pulse2 down 12 with bassassist
+  play partA
+  play drum
+
+  at 10:4
+  play drumfill
+  stop triangle pulse1 pulse2
+
+  at 11:1
+  play bassB down 12
+  play bassB on pulse2 down 12 with bassassist
+  play chordsB
+  play drum
+
+  at 14:4:2
+  play ending_p1
+  play ending_p2
+  play ending_tri
+
+  at 15:1
+  stop drum
+
+  at 18:1
+  fine
