@@ -2092,7 +2092,7 @@ n bytes: ASCII encoded rehearsal mark names, separated by $0A,
     lines = [
         "; Rehearsal mark data begin",
         ".exportzp pently_resume_song",
-        ".export pently_rehearsal_marks, pently_resume_rows",
+        ".export pently_rehearsal_marks, pently_resume_rows:absolute",
         "pently_rehearsal_marks:"
     ]
     rmidxnames = ["PRM_%s" % row[0] for row in songs]

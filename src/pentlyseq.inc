@@ -99,7 +99,8 @@ name = <(* - pently_instruments) / 5
 
 ; Song definition
 .macro songdef name, conductor_addr
-name = (* - pently_songs) / 2
+  .assert * - pently_songs < 128, error, "too many songs"
+name = <((* - pently_songs) / 2)
   .addr (conductor_addr)
   NUM_SONGS_SO_FAR .set name + 1
 .endmacro
