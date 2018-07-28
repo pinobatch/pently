@@ -2317,7 +2317,7 @@ def main(argv=None):
         try:
             parser.extend(infp)
             if parser.cur_song:
-                parser.warn("song %s was not ended" % sys.stderr)
+                parser.warn("song %s was not ended" % parser.cur_song.name)
             lines.append('; Music from ' + display_filename)
             lines.extend(render_file(parser, args.segment))
             if args.rehearse:
