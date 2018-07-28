@@ -112,7 +112,7 @@ $(objdir)/pentlymusic.o: $(objdir)/pentlybss.inc
 $(objdir)/main.o: tracknames.txt $(objdir)/bggfx.chr $(objdir)/spritegfx.chr
 
 # Build RAM map
-$(objdir)/pentlybss.inc: tools/mkrammap.py $(srcdir)/pentlyconfig.inc
+$(objdir)/pentlybss.inc: tools/pentlybss.py $(srcdir)/pentlyconfig.inc
 	$(PY) $^ pentlymusicbase -o $@
 
 # Translate music project

@@ -216,7 +216,7 @@ intended that such a build not include `pentlymusic.s` at all.
 
 Because fields associated with each channel are 4 bytes apart, the
 allocation methods inside ca65 itself aren't ideal.  The program
-`mkrammap.py` reads `pentlyconfig.inc`, decides which fields are
+`pentlybss.py` reads `pentlyconfig.inc`, decides which fields are
 necessary for the enabled features, and allocates them.
 
 [variable mix]: https://allthetropes.org/wiki/Variable_Mix

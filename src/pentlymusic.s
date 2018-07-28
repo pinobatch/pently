@@ -70,9 +70,6 @@ MAX_CHANNEL_VOLUME = 4
 ; 16  | Conductor track position            Tempo counter
 ; 20  | Play/Pause
 
-; pentlyBSS: Allocated by mkrammap.py
-; Noise envelope is NOT unused.  Conductor track cymbals use it.
-
 musicPatternPos = pently_zp_state + 2
 .if PENTLY_USE_ATTACK_PHASE
   noteAttackPos           = pently_zp_state + 16
@@ -94,12 +91,13 @@ musicPatternPos = pently_zp_state + 2
 conductorSegnoLo        = pentlyBSS + 16
 conductorSegnoHi        = pentlyBSS + 17
 
-; The rest is allocated by mkrammap.py
+; The rest is allocated by pentlybss.py
+; Noise envelope is NOT unused.  Conductor track cymbals use it.
 pentlymusicbase: .res pentlymusicbase_size
 
 ; Regardless of whether pentlyBSS puts arpIntervalA before
-; arpIntervalB or vice versa, arpInterval1 must come before
-; arpInterval2
+; arpIntervalB or vice versa, arpInterval1 must precede
+; arpInterval2 because of how they're indexed.
 .if PENTLY_USE_ARPEGGIO
   .if arpIntervalB - arpIntervalA > 0
     arpInterval1 = arpIntervalA
@@ -110,7 +108,7 @@ pentlymusicbase: .res pentlymusicbase_size
   .endif
 .endif
 
-; Visualize particular notes within Pen
+; Visualize particular notes within a playing score
 .if PENTLY_USE_ARPEGGIO || PENTLY_USE_ATTACK_TRACK
   pently_vis_arpphase = arpPhase
 .endif
