@@ -1001,16 +1001,22 @@ class PentlySong(PentlyRenderable):
                 patname = self.resolve_scope(patname, self.name, scopes.patterns)
                 pat = scopes.patterns[patname]
                 if track is None: track = pat.track
-                if track != 'drum' and pat.transpose is None:
-                    raise ValueError("%s: pitched track %s has only rests; use stopPat instead"
-                                     % (self.name, patname))
+                try:
+                    lowestnote = pat.transpose
+                except AttributeError:
+                    lowestnote = None
+                if track != 'drum' and lowestnote is None:
+                    lowestnote = 0
+                    self.warn("%s: pitched track %s has only rests"
+                              % (self.name, patname))
+
                 if track == 'drum':
                     if pat.track != 'drum':
                         raise ValueError('cannot play pitched pattern %s on drum track'
                                          % (patname,))
                     out.append("playPatNoise %s" % pat.asmname)
                     continue
-                if pat.track == 'drum':
+                if pat.track == 'drum' and lowestnote is not None:
                     raise ValueError('%s: cannot play drum pattern %s on pitched track'
                                      % (self.name, patname))
                 if isinstance(track, str):
@@ -1018,7 +1024,7 @@ class PentlySong(PentlyRenderable):
                 if track is None:
                     raise ValueError("%s: no track for pitched pattern %s"
                                      % (self.name, patname))
-                transpose += pat.transpose
+                transpose += lowestnote
                 if transpose < 0:
                     raise ValueError("%s: %s: trying to play %d semitones below lowest pitch"
                                      % (self.name, patname, -transpose))

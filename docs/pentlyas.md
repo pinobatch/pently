@@ -561,6 +561,13 @@ To play one pattern after the other, use an `at` command to wait for
 the pattern to end.  The pattern will loop until it is stopped or
 another pattern is played on the same track.
 
+Playing a pattern made of only rests and waits produces a warning on
+a pitched track or an error on a drum track.  In previous versions,
+it was an error on all tracks.  Since then, a use case for a pattern
+made of waits has arisen: improvisation by playing notes into the
+same track as a silent pattern, so that the built-in silent pattern
+(a looping whole rest) doesn't kill the note.
+
 To **stop the pattern** playing on a track, switch it to a built-in
 silent pattern using `stop pulse1`, `stop pulse2`, `stop triangle`,
 `stop drum`, or `stop attack`.  You can stop more than one track:
