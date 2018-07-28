@@ -1,0 +1,231 @@
+# The music of Concentration Room, Thwaite, Zap Ruder, and
+# RHDE: Furniture Fight
+
+durations stick
+notenames english
+
+# TODO: Shared drum kit
+# TODO: CRoom sound effects
+# TODO: Thwaite sound effects
+# TODO: Zap Ruder sound effects
+# TODO: RHDE sound effects
+# TODO: CRoom instruments
+# TODO: Thwaite instruments
+# TODO: Zap Ruder instruments
+# TODO: RHDE instruments
+# TODO: CRoom songs
+# TODO: Thwaite shared patterns
+# TODO: Thwaite songs
+# TODO: Zap Ruder songs
+# TODO: RHDE songs
+
+# Thwaite sound effects
+sfx thwaite_mirv_split on pulse
+  timbre 1
+  volume 15 4 15 4 15 4 4 2 4 2 4 2 2 1 2 1 2 1
+  pitch a':6 d'':6 g'':6
+
+sfx thwaite_threat_1 on pulse
+  timbre 1
+  volume 6 12:15 11 10 9 7 5
+  pitch e':3 a#':2 e'':2 a#'':14
+
+sfx thwaite_threat_2 on pulse
+  timbre 1
+  rate 2
+  volume 12:7 11 9 6
+  pitch c#' g' c#'' g':7
+
+sfx thwaite_shoot on noise
+  rate 5
+  volume 10 8 7 6 4 3 2
+  pitch 12 11 11 10 9 9 9
+
+sfx thwaite_boom1 on pulse
+  rate 2
+
+sfx thwaite_boom2 on pulse
+  rate 4
+
+# Drums
+sfx kick on noise
+  volume 9 9 4 2
+  pitch 10 0
+
+sfx snare on noise
+  volume 10 8 6 4 3 2 1
+  pitch 4 10
+
+sfx tkick on triangle
+  volume 15 15 15 2
+  pitch e' c' a f#
+
+sfx tsnare on triangle
+  volume 15 15
+  pitch b' a'
+
+sfx clhat on noise
+  timbre | 0 1
+  volume 6 3 1
+  pitch 12
+
+drum kick kick tkick
+drum snare snare tsnare
+drum clhat clhat
+
+# Thwaite instruments
+instrument v02
+  timbre 2
+  volume 8
+
+instrument piano
+  timbre 2 1
+  volume 7 7
+  decay 2
+
+instrument town_tune_bell
+  timbre 2
+  volume 6
+  decay 1
+
+instrument xylo_short
+  timbre 2
+  volume 7
+  decay 6
+
+instrument xylo_medium
+  timbre 2
+  volume 8
+  decay 4
+
+instrument xylo_long
+  timbre 2
+  volume 7
+  decay 2
+
+instrument distanthorn
+  timbre 1 0
+  volume 5 5
+
+# 02:00 theme
+# This is the famous first eight bars of the second movement of
+# Beethoven's "Pathetique" done in 9/8 like ACWW 2am.
+song thwaite_0200
+  time 9/8
+  scale 8
+  tempo 100
+  
+  pattern bass on triangle with v02
+    relative
+    a'1 r8 g1 r8
+    a1 r8 g1 r8
+    a1 r8 g1 r8
+    a1 r8 g1 r8
+    f#1 r8 b1 r8
+    e,1 r8 e1 r8
+    d'1 r8 d1 r8
+    c#1 r8 f#,1 r8
+    b1 r8 e,1 r8
+    a1 r8 a1 r8
+
+  pattern backing on pulse1 with piano
+    relative
+    r4. g#'2. r4. f#2.
+    r4. g#2. r4. f#2.
+    r4. g#2. r4. f#2.
+    r4. g#2. r4. f#2.
+    r4. a2. r4. b d#
+    r4. g#,2. r4. g#2.
+    r4. g#2. r4. g#2.
+    r4. a2. r4. e2.
+    r4. f#2. r4. d2.
+    r4. d2. r4. c#2.
+
+  pattern melody on pulse2 with piano
+    relative
+    r4. c#''2. r4. b2.
+    r4. c#2. r4. b2.
+    c#1 r8 b1 r8
+    e1 w8 r2. d4.
+    c#4. w4 e2 a4. b2.
+    e,1 w8 r2. f4.
+    f#1 r8 b,2. c#4 d8
+    e1 r8 a#,1 r8
+    d1 r8 c#4 b4. a g#8
+    b1 r8 a1 r8
+    
+  pattern drums
+    kick4. clhat4 clhat8 clhat4. snare clhat2.
+
+  at 1:1
+  play backing
+  play melody
+  play bass
+
+  at 5:1
+  play drums
+  
+  at 21:1
+  # let noise keep playing
+  da capo
+
+# 03:00 theme
+song thwaite_0300
+  time 12/8
+  tempo 100
+  scale 8
+
+  pattern drums
+    kick4. clhat4 kick8 snare4 clhat8 clhat4 clhat8
+    kick4 clhat8 clhat4 kick8 snare4. clhat
+
+  pattern bass1 on triangle with v02
+    e4 r8 e'4 e r8 e'4 r
+    r1.
+    a4 r8 a'4 a r8 a'4 r
+    r1.
+
+  pattern bass2 on triangle with v02
+    b4 r8 b'4 b r8 b'4 r
+    r1.
+    a4 r8 a'4 a r8 a'4 r
+    r1.
+  
+  pattern melA on pulse2 with xylo_long
+    relative
+    e''1. d c# c
+  
+  pattern backingA on pulse1 with xylo_long
+    relative
+    c#''1. b a g
+  
+  pattern melB on pulse2 with xylo_long
+    relative
+    r4. b' w4 d2   c#4. w4 a8 w2.
+    r4. a w4 c2   b4. w4 g8 w2.
+  
+  at 1:1
+  play drums
+  play bass1
+  stop pulse1 pulse2
+  
+  at 5:1
+  play backingA
+  play melA
+  
+  at 13:1
+  play bass2
+  play melB
+  play melB on pulse1 down 5
+
+  at 21:1
+  da capo
+
+# 04:00 theme
+#song thwaite_0400
+
+# This is melodies from the third movement of Beethoven's
+# "Pathetique" combined with rhythms from ACPG 5am.
+# This was one of the last things to fill 0.03's PRG ROM.
+#song thwaite_0500
+
