@@ -205,7 +205,9 @@ former plays only one sound effect, the latter two.
 
 Drum names must start and end with a letter or underscore (`_`) so
 as not to be confused with a note duration.  Drums must not have the
-same name as a pitch, which rules out things like `ass`.
+same name as a pitch, which rules out things like `ass`.  Nor can
+the last two characters be a digit and `g`, so as not to be confused
+with a grace note command.
 
 Instruments
 ===========

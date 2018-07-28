@@ -96,7 +96,8 @@ class PentlyPitchContext(object):
 
 Six octave modes are recognized at various places:
 
-'drum' -- any word that starts and ends with a letter a pitch
+'drum' -- any word of 2+ characters that starts and ends with a
+    letter and does not end with a digit and "g"
 'noise' -- 0 to 15 is a pitch; the result is subtracted from 15
     because NES APU treats 15 as the longest period and thus
     the lowest pitch
@@ -824,8 +825,11 @@ class PentlyDrum(PentlyRenderable):
 
     def __init__(self, sfxnames, name, orderkey=0, fileline=None, warn=None):
         super().__init__(name, orderkey, fileline, warn=warn)
+        is_grace_note = name[-1] == 'g' and name[-2].isdigit()
+        if is_grace_note:
+            raise ValueError("drum name must not end with grace note command")
         if not self.drumnameRE.match(name):
-            raise ValueError("drum names must begin and end with letter or '_'")
+            raise ValueError("drum name must begin and end with letter or '_'")
         self.sfxnames = sfxnames
 
     def render(self, scopes=None):
@@ -1111,10 +1115,21 @@ class PentlyPattern(PentlyRenderable):
 """, re.VERBOSE)
 
     def parse_drum_note(self, pitch):
+        trace = pitch == 'w1g'
+
+        # Don't have time right now to troubleshoot the RE to allow
+        # things like "e1f1g" being drum "e1f" with duration "1g".
+        # So hide grace note markup from the RE.
+        is_grace_note = pitch[-1] == 'g' and pitch[-2].isdigit()
+        if is_grace_note:
+            pitch = pitch[:-1]
+
         m = self.drumnoteRE.match(pitch)
         if not m:
             return None, None, None, None
         (notename, duration, duraugment) = m.groups()
+        if is_grace_note and duraugment == '':
+            duraugment = 'g'
         duration, duraugment = self.rhyctx.parse_duration(duration, duraugment)
         if notename == 'r':
             notename = 'w'
