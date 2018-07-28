@@ -329,10 +329,11 @@ different channels (except noise vs. non-noise).
 
 Pattern header
 --------------
-A **pattern** starts with `pattern some_name`.  Optionally a pattern
-can have a default instrument: `pattern some_name with flute`.  The
-compiler detects whether a pattern is a pitched pattern or a drum
-pattern by whether the first note looks like a pitch or a drum name.
+A **pattern** starts with `pattern some_name`.  The compiler detects
+whether a pattern is a pitched pattern or a drum pattern by whether
+the first note looks like a pitch or a drum name.  Optionally a
+pitched pattern can have a default instrument and/or a default track:
+`pattern some_name on pulse2 with flute`
 
 The `time` command sets the **time signature**, which controls
 the number of beats per measure and the duration of one beat
@@ -383,8 +384,8 @@ These commands can be used instead of a note:
   for subsequent notes, rests, and waits in a pattern that lack
   their own duration.
 * `|` performs a bar check.  If the musical time so far in this
-  pattern is not a multiple of a measure, it emits a warning.
-  A new pattern inherits the musical time from the song where
+  pattern is not a multiple of a measure, it emits a warning.  A new
+  pattern inherits starting time from the point in the song where
   it is defined, or it can be set with the `pickup` command.
 
 Note durations are fractions of a whole note, whose length depends
@@ -635,7 +636,8 @@ studied music theory and MIDI.
   generators, and a sampled audio playback unit.  Pently uses the
   CPU to send commands to the tone generators.
 * 2A07: Variant of 2A03 used in the PAL NES sold in Europe.
-* 6527P: Variant of 2A03 used in the Dendy famiclone sold in Russia.
+* 6527P: Variant of 2A03 used in PAL famiclones, such as Micro Genius
+  and Dendy.
 * Attack: The beginning of an envelope.  It consists of all volume
   envelope steps except the last.
 * Bar: The line in musical notation that separates one measure from

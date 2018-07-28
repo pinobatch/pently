@@ -507,7 +507,7 @@ License
 The Pently audio engine and its manual are distributed under the
 zlib License, a non-copyleft free software license:
 
-> Copyright 2010-2017 Damian Yerrick
+> Copyright 2010-2018 Damian Yerrick
 > 
 > This software is provided 'as-is', without any express or implied
 > warranty.  In no event will the authors be held liable for any damages

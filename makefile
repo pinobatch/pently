@@ -10,29 +10,32 @@
 #
 
 # These are used in the title of the NES program and the zip file.
-title = pently
-version = 0.05wip9
+title := pently
+version := 0.05wip9
 
-# Name of Pently score (minus .pently)
-scorename = musicseq
+# Name of Pently score for main targets "pently.nes" and "pently.nsf"
+# is src/$(scorename).pently, such as src/musicseq.pently.
+# To make a ROM or NSF based on a different score, such as
+# src/pino-a53.pently, use "make pino-a53.nsf".
+scorename := musicseq
 
 # Space-separated list of asm files that make up the ROM,
 # whether source code or generated
 objlist := main \
   pads ppuclear paldetect math bpmmath profiler vis \
-  pentlysound pentlymusic $(scorename)-rmarks
+  pentlysound pentlymusic
 objlistnsf := nsfshell \
-  pentlysound pentlymusic $(scorename)
+  pentlysound pentlymusic
 
 # List of documents included in zipfile
 docs_md := usage bytecode pentlyas famitracker
 
-AS65 = ca65
-LD65 = ld65
+AS65 := ca65
+LD65 := ld65
 CFLAGS65 := 
-objdir = obj/nes
-srcdir = src
-imgdir = tilesets
+objdir := obj/nes
+srcdir := src
+imgdir := tilesets
 
 #EMU := "/C/Program Files/Nintendulator/Nintendulator.exe"
 EMU := fceux --input1 GamePad.0
@@ -83,16 +86,24 @@ $(objdir)/index.txt: makefile
 
 # Rules for PRG ROM
 
-objlistntsc := $(foreach o,$(objlist),$(objdir)/$(o).o)
+objlisto := $(foreach o,$(objlist),$(objdir)/$(o).o)
 objlistnsf := $(foreach o,$(objlistnsf),$(objdir)/$(o).o)
 
 all: $(title).nes $(title).nsf
 
-map.txt $(title).nes: nrom128.cfg $(objlistntsc)
+# These two build the main binary target
+map.txt $(title).nes: nrom128.cfg $(objlisto) $(objdir)/$(scorename)-rmarks.o
 	$(LD65) -o $(title).nes -C $^ -m map.txt
 
-nsfmap.txt $(title).nsf: nsf.cfg $(objlistnsf)
+nsfmap.txt $(title).nsf: nsf.cfg $(objlistnsf) $(objdir)/$(scorename).o
 	$(LD65) -o $(title).nsf -C $^ -m nsfmap.txt
+
+# These two are for "make pino-a53.nsf" functionality
+%.nes: nrom128.cfg $(objlisto) $(objdir)/%.o
+	$(LD65) -o $@ -C $^
+
+%.nsf: nsf.cfg $(objlistnsf) $(objdir)/%.o
+	$(LD65) -o $@ -C $^
 
 $(objdir)/%.o: \
   $(srcdir)/%.s $(srcdir)/nes.inc $(srcdir)/shell.inc $(srcdir)/pently.inc

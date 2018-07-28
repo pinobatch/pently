@@ -14,7 +14,8 @@ Documentation can be found in `docs/` and example tracks can be found in `musics
 - GNU Make and Coreutils - on Windows, install MSYS through
   [mingw-get](http://www.mingw.org/wiki/Getting_Started)
 - For NES (not NSF) format: Pillow (Python imaging library)  
-  `pip install pillow`
+  UNIX: `python3 -m pip install pillow`  
+  Windows: `py -3 -m pip install pillow`
 
 For help setting these up, see the README file for
 [nrom-template](https://github.com/pinobatch/nrom-template).
@@ -25,7 +26,8 @@ Once you have the above installed, run `make` to build and play
 or `make pently.nes` to only build a ROM.
 Then edit the score and run `make` again to hear the changes.
 To use an entirely different score file, open `makefile` and change
-`scorename`.
+`scorename`, or use e.g. `make NTS.nsf` or `make NTS.nes` to use
+score file `src/NTS.pently`.
 
 ## License
 
