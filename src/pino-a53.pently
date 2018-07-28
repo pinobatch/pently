@@ -6,18 +6,14 @@ notenames english
 
 # TODO: Shared drum kit
 # TODO: CRoom sound effects
-# TODO: Thwaite sound effects
+# TODO: test Thwaite sound effects
 # TODO: Zap Ruder sound effects
 # TODO: RHDE sound effects
-# TODO: CRoom instruments
-# TODO: Thwaite instruments
 # TODO: Zap Ruder instruments
 # TODO: RHDE instruments
-# TODO: CRoom songs
 # TODO: Thwaite shared patterns
-# TODO: Thwaite songs
 # TODO: Zap Ruder songs
-# TODO: RHDE songs
+# TODO: remaining RHDE songs
 
 # Thwaite sound effects
 sfx thwaite_mirv_split on pulse
@@ -78,9 +74,14 @@ instrument v02
   timbre 2
   volume 8
 
+instrument v02detached
+  timbre 2
+  volume 8
+  detached
+
 instrument piano
   timbre 2 1
-  volume 7 7
+  volume 9 8 7
   decay 2
 
 instrument town_tune_bell
@@ -95,8 +96,9 @@ instrument xylo_short
 
 instrument xylo_medium
   timbre 2
-  volume 8
+  volume 8 8
   decay 4
+  pitch 17 0
 
 instrument xylo_long
   timbre 2
@@ -105,7 +107,55 @@ instrument xylo_long
 
 instrument distanthorn
   timbre 1 0
-  volume 5 5
+  volume 3 5 6 6 5
+
+song croom_intro
+  time 3/4
+  tempo 110
+  scale 8
+
+  pattern chords1 on pulse1 with piano
+    relative
+    r8 a# d#2 r8 g#, c#2
+    r8 f#, a#2 w2.
+
+  pattern chords2 on pulse2 with piano
+    relative
+    r4 f#'2 r4 e#2
+    r4 d#2 w2.
+    
+  pattern bass on triangle with v02
+    relative
+    d#'2. c# b1.
+    d#2. c# f#, g#
+  
+  at 1:1
+  play chords1
+  play chords2
+  play bass
+  
+  at 9:1
+  da capo
+
+song croom_cleared
+  time 6/8
+  tempo 120
+  scale 8
+  
+  pattern melody on pulse2 with piano
+    relative
+    e'8 f# e d c# b a c# e a4.
+  
+  pattern bass on pulse1 with piano
+    a,4 r8 e,4 r8 c#,4 r8 a,,4 r8
+  
+  at 1
+  play melody
+  play bass
+  play bass on triangle with v02 up 24
+  at 2:2:2
+  fine
+  
 
 # 02:00 theme
 # This is the famous first eight bars of the second movement of
@@ -222,10 +272,191 @@ song thwaite_0300
   da capo
 
 # 04:00 theme
-#song thwaite_0400
+song thwaite_0400
+  time 12/8
+  tempo 100
+  scale 8
+
+  pattern drum1
+    kick4. clhat2. clhat4 kick8
+
+  pattern drum2
+    snare4. clhat4 kick8
+    kick4. clhat2. clhat4 kick8
+    kick4. clhat
+  
+  pattern chords1 on pulse1 with xylo_short
+    relative
+    @xylo_short f'4 e2
+    d4. @distanthorn d8 r4 r2.
+    r2. @xylo_short e4 d2
+    c4. @distanthorn c8 r4 r2.
+    r2. @xylo_short d4 c2
+    bb4. @distanthorn bb8 r4 r2.
+    r2. @xylo_short bb4 a2
+    g4. @distanthorn d'8 r4 r2.
+    r2.
+  
+  pattern chords2 on pulse2 with xylo_short
+    relative
+    @xylo_short a'4. g
+    f @distanthorn f8 r4 r2.
+    r2. @xylo_short g4. f
+    e @distanthorn e8 r4 r2.
+    r2. @xylo_short f4. e
+    d @distanthorn d8 r4 r2.
+    r2. @xylo_short d4. c
+    b @distanthorn g'8 r4 r2.
+    r2.
+
+  at 1:1
+    play chords1
+    play chords2
+    
+  at 1:3
+  play drum1
+  
+  at 9:1
+  segno
+  play drum2
+  
+  at 17:1
+  dal segno
 
 # This is melodies from the third movement of Beethoven's
 # "Pathetique" combined with rhythms from ACPG 5am.
 # This was one of the last things to fill 0.03's PRG ROM.
-#song thwaite_0500
+song thwaite_0500
+  time 12/8
+  tempo 100
+  scale 8
+  
+  pattern backing on pulse1 with piano
+    relative
+    @piano r4 b8 e4 f#8 g#4 r8 a4 f# r8
+    @distanthorn b,8 e4 f#8 g#4 r8 a4 f# r
+    r4. r2. r1.
+    @piano r4 b,8 e4 f#8 g#4 r8 f#4 d r8
+    @distanthorn b8 e4 f#8 g#4 r8 f#4 d r
+    r4. r2. r1.
 
+  pattern melody on pulse2 with xylo_medium
+    relative
+    r8 c#'' d c# b c# d e4 e e4.  r2 r2. r1. r1.
+    e4 c#8 d4 e4. d8 c#4 f#4.     r2 r2. r1. r1.
+    c#4 a8 b4 c#4. b8 a4 d4.      r2 r2. r1. r1.
+    e,4. e e e4 a4.               r2 r2. r1. r1.
+
+  pattern bass on triangle with v02
+    relative
+    a4 r8 g4 f# r8 g4 r
+    r2. f#4 r8 f4 e r
+    r4. r2. r1.
+  
+  at 1:1
+  play backing
+  play backing on pulse2 up 5
+  stop triangle
+  play thwaite_0300::drums
+  
+  at 9:1
+  play melody
+  play bass
+  
+  at 25:1
+  dal segno
+
+song thwaite_1600
+  time 12/8
+  tempo 100
+  scale 8
+  
+  pattern drum
+    kick4. snare clhat4 kick8 snare4.
+  
+  pattern chords1 on pulse1 with xylo_short
+    relative
+    f'4. c f c4 f8
+    eb4. bb eb bb4 eb8
+    f4. d f d4 f8
+    g4. d g c,4 g'8
+
+  pattern chords2 on pulse2 with xylo_short
+    relative
+    a'2. a2.
+    a2. a2.
+    a2. a4. w4 a8
+    bb2. bb4. w4 bb8
+  
+  pattern bass on triangle with v02
+    relative
+    f'4 r2 r4 c r
+    eb4 r2 r4 bb r
+    d4 r2 r4 a r
+    g'4 r2 r4 c, r
+  
+  at 1:1
+  play chords1
+  play chords2
+  play bass
+  play drum
+
+  at 5:1
+  da capo
+
+song thwaite_town_tune
+  time 4/4
+  tempo 60
+  scale 4
+
+  pattern town_tune on pulse2 with town_tune_bell
+    d'4 f#' e' a2
+  
+  at 1:1
+    play town_tune
+    play town_tune on pulse1 down 9
+  
+  at 2:2
+    fine
+
+song rhde_battle
+  time 12/8
+  tempo 156
+  scale 8
+
+  pattern drums
+    kick4. clhat4 clhat8 kick4. clhat4 clhat8
+    kick4. clhat4 clhat8 kick4. kick
+  
+  pattern bassA with v02detached on triangle
+    relative
+    c'4 r4. c8 g4 r4. g8 | c4 r4. g8 c4 r8 d4 r8
+    e4 r4. e8 b4 r4. b8 | e4 r4. b8 e4 r8 g4 r8
+    f4 r4. f8 c4 r4. c8 | f4 r4. c8 f4 r8 g#4 r8
+    g4 r4. g8 d4 r4. d8 | g4 g8 f4 r8 e4 r8 d4 r8
+
+  pattern bassAend with v02detached on triangle
+    relative
+    pickup 1:4
+    g'4 r8
+    c,4 r4. c8 d4 r4. d8 | c4 r8 g4 r8 c4 r8 d4 r8
+
+  pattern bassB with v02detached on triangle
+    relative
+    e'4 r4. e8 b4 r4. b8 | e4 r4. e8 b4 r8 e4 r8
+    a,4 r4. a8 b4 r4. b8 | a4 r4. a8 e'4 r8 a,4 r8
+    d4 r4. d8 a4 r4. a8 | d4 r4. d8 a4 r8 d4 r8
+    g,4 r4. g8 f4 r4. f8 | e4 e'8 c4 r8 d4 r8 g,4 r8
+  
+  at 1:1
+  play drums
+  play bassA
+  
+  at 14:4
+  play bassAend
+  
+  at 17:1
+  play bassB
+  
+  at 33:1
+  da capo
