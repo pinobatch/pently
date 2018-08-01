@@ -185,7 +185,7 @@ pentlymusic_code_start = *
     sta musicPatternPos+1,x
     tya  ; Y is $FF from the clear everything loop
     sta musicPattern,x
-    .if ::PENTLY_USE_CHANNEL_VOLUME && (LAST_TRACK >= ATTACK_TRACK)
+    .if ::PENTLY_USE_CHANNEL_VOLUME && (::LAST_TRACK >= ::ATTACK_TRACK)
       cpx #ATTACK_TRACK
       bcs :+
         lda #MAX_CHANNEL_VOLUME
@@ -303,59 +303,111 @@ music_not_playing:
   jsr pently_row_callback
 .endif
 
+  ; If in middle of waitRows, don't process conductor
   lda conductorWaitRows
   beq doConductor
-    dec conductorWaitRows
-    jmp processPatterns
-  doConductor:
+  dec conductorWaitRows
+  jmp processPatterns
 
+doConductor:
   ldy #0
   lda (conductorPos),y
   inc conductorPos
   bne :+
     inc conductorPos+1
   :
-  cmp #CON_SETTEMPO
-  bcc @notTempoChange
-  cmp #CON_SETBEAT
-  bcc @isTempoChange
-    .if ::PENTLY_USE_BPMMATH
-      and #%00000111
-      tay
-      lda durations,y
-      sta pently_rows_per_beat
-      ldy #0
-      sty pently_row_beat_part
+  cmp #CON_WAITROWS
+  beq is_waitrows
+  bcs not_playpat
+    ; 00-07 pp tt ii: Play pattern pp on track A & $07,
+    ; transposed up tt semitones, with instrument ii
+    and #$07
+    asl a
+    asl a
+    tax
+
+    lda #0
+    cpx #ATTACK_TRACK
+    ; If attack track is enabled, don't enable legato on attack
+    ; track. Otherwise, don't start patterns on attack track at all
+    ; because another variable overlaps it.
+    .if ::PENTLY_USE_ATTACK_TRACK
+      bcs skipClearLegato
+    .else
+      bcs skip3conductor
+    .endif
+      sta noteLegato,x  ; start all patterns with legato off
+    skipClearLegato:
+
+    lda (conductorPos),y
+    sta musicPattern,x
+    iny
+    lda (conductorPos),y
+    sta patternTranspose,x
+    iny
+    lda (conductorPos),y
+    sta noteInstrument,x
+    jsr startPattern
+  skip3conductor:
+    lda #3
+    clc
+    adc conductorPos
+    sta conductorPos
+    bcc :+
+      inc conductorPos+1
+    :
+    jmp doConductor
+
+  is_waitrows:
+    ; 20 ww: Wait ww+1 rows
+    lda (conductorPos),y
+    sta conductorWaitRows
+  skipConductorByte:
+    inc conductorPos
+    bne :+
+      inc conductorPos+1
+    :
+    jmp processPatterns
+  not_playpat:
+  
+  ; Loop control block 21-23
+  cmp #CON_DALSEGNO
+  beq is_dalsegno
+  bcs not_loopcontrol
+  cmp #CON_SEGNO
+  bcs is_segno
+    ; 21: Fine (end playback; set playing and tempo to 0)
+    lda #0
+    sta pently_music_playing
+    sta music_tempoHi
+    sta music_tempoLo
+    .if ::PENTLY_USE_ROW_CALLBACK
+      clc
+      jmp pently_dalsegno_callback
+   .else
+      rts
+   .endif
+  is_segno:
+    lda conductorPos
+    sta conductorSegnoLo
+    lda conductorPos+1
+    sta conductorSegnoHi
+    jmp doConductor
+  is_dalsegno:
+    lda conductorSegnoLo
+    sta conductorPos
+    lda conductorSegnoHi
+    sta conductorPos+1
+    .if ::PENTLY_USE_ROW_CALLBACK
+      sec
+      jsr pently_dalsegno_callback
     .endif
     jmp doConductor
-  @isTempoChange:
-    and #%00000111
-    sta music_tempoHi
-  
-    lda (conductorPos),y
-    inc conductorPos
-    bne :+
-      inc conductorPos+1
-    :
-    sta music_tempoLo
-    jmp doConductor
-  @notTempoChange:
-  cmp #CON_WAITROWS
-  bcc conductorPlayPattern
-  bne @notWaitRows
-    lda (conductorPos),y
-    inc conductorPos
-    bne :+
-      inc conductorPos+1
-    :
-    sta conductorWaitRows
-    jmp processPatterns
-  @notWaitRows:
+  not_loopcontrol:
 
-  cmp #CON_ATTACK_SQ1
-  bcc @notAttackSet
   cmp #CON_NOTEON
-  bcs @handleNoteOn
+  bcs not_setattack
+    ; 24-26: Play attack track on channel A & $07
     .if ::PENTLY_USE_ATTACK_TRACK
       and #%00000011
       asl a
@@ -363,7 +415,11 @@ music_not_playing:
       sta attackChannel
     .endif
     jmp doConductor
-  @handleNoteOn:
+  not_setattack:
+
+  cmp #CON_SETTEMPO
+  bcs not_noteon
+    ; 28-2F nn ii: Play note nn with instrument ii on track A & $07
     and #%00000011
     asl a
     asl a
@@ -375,90 +431,42 @@ music_not_playing:
     :
     pha
     lda (conductorPos),y
+    tay
+    pla
+    jsr pently_play_note
     inc conductorPos
     bne :+
       inc conductorPos+1
     :
-    tay
-    pla
-    jsr pently_play_note
     jmp doConductor
-
-  @notAttackSet:
-
-  cmp #CON_FINE
-  bne @notFine
-    lda #0
-    sta pently_music_playing
-    sta music_tempoHi
-    sta music_tempoLo
-.if ::PENTLY_USE_ROW_CALLBACK
-    clc
-    jmp pently_dalsegno_callback
-.else
-    rts
-.endif
-  @notFine:
-
-  cmp #CON_SEGNO
-  bne @notSegno
-    lda conductorPos
-    sta conductorSegnoLo
-    lda conductorPos+1
-    sta conductorSegnoHi
-    jmp doConductor
-  @notSegno:
-
-  cmp #CON_DALSEGNO
-  bne @notDalSegno
-    lda conductorSegnoLo
-    sta conductorPos
-    lda conductorSegnoHi
-    sta conductorPos+1
-.if ::PENTLY_USE_ROW_CALLBACK
-    sec
-    jsr pently_dalsegno_callback
-.endif
-    jmp doConductor
-  @notDalSegno:
+  not_noteon:
   
-  jmp processPatterns
+  cmp #CON_SETBEAT
+  bcs not_tempo_change
+    ; 30-37 tt: Set tempo to (A & $07) * 256 + tt
+    and #%00000111
+    sta music_tempoHi
+    lda (conductorPos),y
+    sta music_tempoLo
+    inc conductorPos
+    bne :+
+      inc conductorPos+1
+    :
+    jmp doConductor
+  not_tempo_change:
+  
+  cmp #CON_SETBEAT+8
+  bcs not_set_beat
+    .if ::PENTLY_USE_BPMMATH
+      and #%00000111
+      tay
+      lda durations,y
+      sta pently_rows_per_beat
+      ldy #0
+      sty pently_row_beat_part
+    .endif
+  not_set_beat:
 
-conductorPlayPattern:
-  and #$07
-  asl a
-  asl a
-  tax
-
-  lda #0
-  cpx #ATTACK_TRACK
-  ; If attack track is enabled, don't enable legato on attack
-  ; track. Otherwise, don't start patterns on attack track at all
-  ; because the tempo up-counter overlaps it.
-.if ::PENTLY_USE_ATTACK_TRACK
-  bcs skipClearLegato
-.else
-  bcs skip3conductor
-.endif
-    sta noteLegato,x  ; start all patterns with legato off
-  skipClearLegato:
-  lda (conductorPos),y
-  sta musicPattern,x
-  iny
-  lda (conductorPos),y
-  sta patternTranspose,x
-  iny
-  lda (conductorPos),y
-  sta noteInstrument,x
-  jsr startPattern
-skip3conductor:
-  lda #3
-  clc
-  adc conductorPos
-  sta conductorPos
-  bcc :+
-    inc conductorPos+1
-  :
   jmp doConductor
 .endproc
 
