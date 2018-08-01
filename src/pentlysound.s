@@ -36,6 +36,11 @@
 
 SNDCHN = $4015
 
+PULSE1_CH = $00
+PULSE2_CH = $04
+TRIANGLE_CH = $08
+NOISE_CH = $0C
+
 .if PENTLY_USE_MUSIC = 0
   PENTLYZP_SIZE = 16
 .elseif PENTLY_USE_ATTACK_PHASE
@@ -161,7 +166,6 @@ sndrate   = pently_zptemp + 4
   sta sfx_datahi,x
   lda sndrate
   sta sfx_rate,x
-  lda #0
   sta sfx_ratecd,x
 ch_full:
   rts
@@ -199,10 +203,9 @@ tpitchadd = pently_zptemp + 4
   ; At this point, the music engine should have left duty and volume
   ; in tvol and pitch in tpitch.
   lda sfx_remainlen,x
-  ora sfx_ratecd,x
   bne ch_not_done
   
-  ; Only music is playing
+  ; Only music is playing on this channel, no sound effect
   .if ::PENTLY_USE_MUSIC
     lda tvol
     .if ::PENTLY_USE_VIS
@@ -212,7 +215,7 @@ tpitchadd = pently_zptemp + 4
   .endif
 
   ; Turn off the channel and force a reinit of the length counter.
-  cpx #8
+  cpx #TRIANGLE_CH
   beq not_triangle_kill
     lda #$30
   not_triangle_kill:
@@ -222,23 +225,28 @@ tpitchadd = pently_zptemp + 4
   rts
 ch_not_done:
 
-  ; playback rate divider
-  dec sfx_ratecd,x
-  bpl rate_divider_cancel
-  lda sfx_rate,x
-  sta sfx_ratecd,x
-
-  ; fetch the instruction
+  ; Get the sound effect word's address
   lda sfx_datalo+1,x
   sta srchi
   lda sfx_datalo,x
   sta srclo
-  clc
-  adc #2
-  sta sfx_datalo,x
-  bcc :+
-    inc sfx_datahi,x
-  :
+
+  ; Advance if playback rate divider says so
+  sta $4444
+  dec sfx_ratecd,x
+  bpl no_next_word
+    clc
+    adc #2
+    sta sfx_datalo,x
+    bcc :+
+      inc sfx_datahi,x
+    :
+    lda sfx_rate,x
+    sta sfx_ratecd,x
+    dec sfx_remainlen,x
+  no_next_word:
+
+  ; fetch the instruction
   ldy #0
   .if ::PENTLY_USE_MUSIC
     .if ::PENTLY_USE_MUSIC_IF_LOUDER
@@ -269,7 +277,7 @@ ch_not_done:
   lda (srclo),y
   sta tpitch
 music_was_louder:
-  dec sfx_remainlen,x
+
 
 update_channel_hw:
   ; XXX vis does not work with no-music
@@ -282,15 +290,14 @@ update_channel_hw:
     sta pently_vis_dutyvol,x
   .endif
   ora #$30
-  cpx #12
+  cpx #NOISE_CH
   bne notnoise
-  sta $400C
-  lda tpitch
-  sta $400E
-rate_divider_cancel:
-  rts
+    sta $400C
+    lda tpitch
+    sta $400E
+    rts
+  notnoise:
 
-notnoise:
   ; If triangle, keep linear counter load (bit 7) on while playing
   ; so that envelopes don't terminate prematurely
   .if ::PENTLY_USE_TRIANGLE_DUTY_FIX

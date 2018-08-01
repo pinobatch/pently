@@ -267,6 +267,8 @@ music_not_playing:
   rts
 .endproc
 
+; Conductor reading ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 .proc pently_next_row
   ; Subtract tempo
   .if ::PENTLY_USE_PAL_ADJUST
@@ -362,7 +364,6 @@ doConductor:
     ; 20 ww: Wait ww+1 rows
     lda (conductorPos),y
     sta conductorWaitRows
-  skipConductorByte:
     inc conductorPos
     bne :+
       inc conductorPos+1
@@ -444,6 +445,7 @@ doConductor:
     sta music_tempoHi
     lda (conductorPos),y
     sta music_tempoLo
+  skipConductorByte:
     inc conductorPos
     bne :+
       inc conductorPos+1
@@ -465,6 +467,8 @@ doConductor:
 
   jmp doConductor
 .endproc
+
+; Pattern reading ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 .proc processPatterns
   ldx #4 * (NUM_CHANNELS - 1)
@@ -493,6 +497,7 @@ skipNote:
   rts
 
 anotherPatternByte:
+  ; Read one pattern byte.  If it's a loop, restart the pattern.
   lda (musicPatternPos,x)
   cmp #PATEND
   bne notStartPatternOver
@@ -649,7 +654,7 @@ set_fx_slowarp:
 .endif
 
 set_fx_legato:
-  cpx #12
+  cpx #DRUM_TRACK
   bcs :+
     tya
     and #$02
@@ -678,7 +683,7 @@ set_fx_transpose:
 
 .if ::PENTLY_USE_VIBRATO
 set_fx_vibrato:
-  cpx #12
+  cpx #DRUM_TRACK
   bcs :+
     lda (musicPatternPos,x)
     and #$07
@@ -691,7 +696,7 @@ set_fx_vibrato:
 
 .if ::PENTLY_USE_PORTAMENTO
 set_fx_portamento:
-  cpx #12
+  cpx #DRUM_TRACK
   bcs :+
     lda (musicPatternPos,x)
     sta chPortamento,x
@@ -786,15 +791,18 @@ bottom:
 pently_skip_to_row = skip_to_row_top::bottom
 .endif
 
+; Playing notes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;;
 ; Plays note A on channel X (0, 4, 8, 12) with instrument Y.
-; Trashes 0-1 and preserves X.
+; Trashes ZP temp 0-1 and preserves X.
 .proc pently_play_note
 notenum       = pently_zptemp + 0
 instrument_id = pently_zptemp + 1
 
   sta notenum
   sty instrument_id
+  ; 5 bytes per instrument
   tya
   asl a
   asl a

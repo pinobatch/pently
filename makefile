@@ -58,7 +58,7 @@ run: $(title).nes
 debug: $(title).nes
 	$(DEBUGEMU) $<
 clean:
-	-rm $(objdir)/*.o $(objdir)/*.s $(objdir)/*.chr
+	-rm $(objdir)/*.o $(objdir)/*.s $(objdir)/*.chr $(objdir)/*.inc
 
 # Rule to create or update the distribution zipfile by adding all
 # files listed in zip.in.  Actually the zipfile depends on every
@@ -99,7 +99,7 @@ nsfmap.txt $(title).nsf: nsf.cfg $(objlistnsf) $(objdir)/$(scorename).o
 	$(LD65) -o $(title).nsf -C $^ -m nsfmap.txt
 
 # These two are for "make pino-a53.nsf" functionality
-%.nes: nrom128.cfg $(objlisto) $(objdir)/%.o
+%.nes: nrom128.cfg $(objlisto) $(objdir)/%-rmarks.o
 	$(LD65) -o $@ -C $^
 
 %.nsf: nsf.cfg $(objlistnsf) $(objdir)/%.o
