@@ -296,7 +296,6 @@ notnoise:
   .if ::PENTLY_USE_TRIANGLE_DUTY_FIX
     cpx #8
     bne :+
-    sta $4444
     and #$0F
     beq :+
       ora #$80  ; for triangle keep bit 7 (linear counter load) on

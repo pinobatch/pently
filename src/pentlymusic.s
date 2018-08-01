@@ -43,6 +43,9 @@ NUM_CHANNELS = 4
 DRUM_TRACK = 12
 ATTACK_TRACK = 16
 MAX_CHANNEL_VOLUME = 4
+DEFAULT_TEMPO = 300
+DEFAULT_ROWS_PER_BEAT = 4
+MAX_TEMPO_SCALE = 8
 
 .if PENTLY_USE_ATTACK_TRACK
   LAST_TRACK = ATTACK_TRACK
@@ -123,6 +126,8 @@ pentlymusic_rodata_start = *
 
 FRAMES_PER_MINUTE_PAL = 3000
 FRAMES_PER_MINUTE_NTSC = 3606
+FRAMES_PER_MINUTE_GB = 3584  ; not used in NES port
+FRAMES_PER_MINUTE_SGB = 3670  ; not used in NES port
 pently_fpmLo:
   .byt <FRAMES_PER_MINUTE_NTSC, <FRAMES_PER_MINUTE_PAL, <FRAMES_PER_MINUTE_PAL
 pently_fpmHi:
@@ -150,6 +155,7 @@ porta1x_rates_hi:
 pentlymusic_code_start = *
 
 .proc pently_start_music
+  ; Fetch initial conductor track position (limit 128 songs)
   asl a
   tax
   lda pently_songs,x
@@ -160,9 +166,6 @@ pentlymusic_code_start = *
   sta conductorSegnoHi
 
   ; Clear all music state except that shared with sound effects
-  ; and the initial loop point
-  PENTLYBSS_SFX_SIZE = 16
-  PENTLYBSS_NOCLEAR_FOOTER = 4
   ldy #pentlymusicbase_size - 1
   lda #0
   .if ::PENTLY_USE_ATTACK_TRACK
@@ -173,6 +176,7 @@ pentlymusic_code_start = *
     dey
     bpl :-
 
+  ; Init each track's volume and play silent pattern
   ldx #LAST_TRACK
   channelLoop:
     lda #<silentPattern
@@ -181,7 +185,7 @@ pentlymusic_code_start = *
     sta musicPatternPos+1,x
     tya  ; Y is $FF from the clear everything loop
     sta musicPattern,x
-    .if ::PENTLY_USE_CHANNEL_VOLUME
+    .if ::PENTLY_USE_CHANNEL_VOLUME && (LAST_TRACK >= ATTACK_TRACK)
       cpx #ATTACK_TRACK
       bcs :+
         lda #MAX_CHANNEL_VOLUME
@@ -194,35 +198,41 @@ pentlymusic_code_start = *
     dex
     bpl channelLoop
 
+  ; Set tempo upcounter and beat part to wrap around
+  ; the first time they are incremented
   lda #$FF
   sta pently_tempoCounterLo
   sta pently_tempoCounterHi
   .if ::PENTLY_USE_BPMMATH
     sta pently_row_beat_part
-    lda #4
+    lda #DEFAULT_ROWS_PER_BEAT
     sta pently_rows_per_beat
   .endif
-  lda #<300
+  lda #<DEFAULT_TEMPO
   sta music_tempoLo
-  lda #>300
+  lda #>DEFAULT_TEMPO
   sta music_tempoHi
+  ; Fall through
 .endproc
 .proc pently_resume_music
   lda #1
+have_music_playing:
   sta pently_music_playing
   rts
 .endproc
 
 .proc pently_stop_music
   lda #0
-  sta pently_music_playing
-  rts
+  beq pently_resume_music::have_music_playing
 .endproc
 
 .proc pently_update_music
   lda pently_music_playing
   beq music_not_playing
-  
+
+  ; This applies Bresenham's algorithm to tick generation: add
+  ; rows per minute every frame, then subtract frames per minute
+  ; when it overflows.  But
   .if ::PENTLY_USE_REHEARSAL
 scaled_tempoHi  = pently_zptemp + 0
 
@@ -230,8 +240,9 @@ scaled_tempoHi  = pently_zptemp + 0
     sta scaled_tempoHi
     lda music_tempoLo
     ldx pently_tempo_scale
+    clc  ; allow have_scaled_tempoLo to round
     beq have_scaled_tempoLo
-    cpx #10
+    cpx #MAX_TEMPO_SCALE
     bcs music_not_playing
     shiftLoop:
       lsr scaled_tempoHi
@@ -239,12 +250,11 @@ scaled_tempoHi  = pently_zptemp + 0
       dex
       bne shiftLoop
     have_scaled_tempoLo:
-    clc
     adc pently_tempoCounterLo
     sta pently_tempoCounterLo
     lda scaled_tempoHi
   .else
-  lda music_tempoLo
+    lda music_tempoLo
     clc
     adc pently_tempoCounterLo
     sta pently_tempoCounterLo
@@ -258,13 +268,13 @@ music_not_playing:
 .endproc
 
 .proc pently_next_row
-
   ; Subtract tempo
   .if ::PENTLY_USE_PAL_ADJUST
     ldy tvSystem
   .else
     ldy #0
   .endif
+  ; sec  ; carry was set by bcs in pently_update_music
   lda pently_tempoCounterLo
   sbc pently_fpmLo,y
   sta pently_tempoCounterLo
@@ -296,7 +306,7 @@ music_not_playing:
   lda conductorWaitRows
   beq doConductor
     dec conductorWaitRows
-    jmp skipConductor
+    jmp processPatterns
   doConductor:
 
   ldy #0
@@ -333,7 +343,13 @@ music_not_playing:
   cmp #CON_WAITROWS
   bcc conductorPlayPattern
   bne @notWaitRows
-    jmp conductorDoWaitRows
+    lda (conductorPos),y
+    inc conductorPos
+    bne :+
+      inc conductorPos+1
+    :
+    sta conductorWaitRows
+    jmp processPatterns
   @notWaitRows:
 
   cmp #CON_ATTACK_SQ1
@@ -406,7 +422,7 @@ music_not_playing:
     jmp doConductor
   @notDalSegno:
   
-  jmp skipConductor
+  jmp processPatterns
 
 conductorPlayPattern:
   and #$07
@@ -444,18 +460,9 @@ skip3conductor:
     inc conductorPos+1
   :
   jmp doConductor
+.endproc
 
-  ; this should be last so it can fall into skipConductor
-conductorDoWaitRows:
-  lda (conductorPos),y
-  inc conductorPos
-  bne :+
-    inc conductorPos+1
-  :
-  sta conductorWaitRows
-
-skipConductor:
-
+.proc processPatterns
   ldx #4 * (NUM_CHANNELS - 1)
   channelLoop:
     jsr processTrackPattern
@@ -465,15 +472,16 @@ skipConductor:
     dex
     bpl channelLoop
 
-  ; Process attack track last
+  ; Process attack track last so it can override a just played attack
   .if ::PENTLY_USE_ATTACK_TRACK
     ldx #ATTACK_TRACK
+    ;jmp processTrackPattern
+    ; (that's a fallthrough)
   .else
     rts
   .endif
-  ; If it's the attack track, it falls through
-
-processTrackPattern:
+.endproc
+.proc processTrackPattern
   lda noteRowsLeft,x
   beq anotherPatternByte
 skipNote:
@@ -564,34 +572,6 @@ isDrumNote:
 noSecondDrum:
   ldx #DRUM_TRACK
   jmp skipNote
-
-startPattern:
-  lda #0
-  sta graceTime,x
-  sta noteRowsLeft,x
-  lda musicPattern,x
-  cmp #255
-  bcc @notSilentPattern
-    lda #<silentPattern
-    sta musicPatternPos,x
-    lda #>silentPattern
-    sta musicPatternPos+1,x
-    rts
-  @notSilentPattern:
-  asl a
-  tay
-  bcc @isLoPattern
-    lda pently_patterns+256,y
-    sta musicPatternPos,x
-    lda pently_patterns+257,y
-    sta musicPatternPos+1,x
-    rts
-  @isLoPattern:
-  lda pently_patterns,y
-  sta musicPatternPos,x
-  lda pently_patterns+1,y
-  sta musicPatternPos+1,x
-  rts
 
 ; Effect handlers
 ; The 6502 adds 2 to PC in JSR and 1 in RTS, so push minus 1.
@@ -728,6 +708,35 @@ set_fx_ch_volume:
 
 .endproc
 
+.proc startPattern
+  lda #0
+  sta graceTime,x
+  sta noteRowsLeft,x
+  lda musicPattern,x
+  cmp #255
+  bcc @notSilentPattern
+    lda #<silentPattern
+    sta musicPatternPos,x
+    lda #>silentPattern
+    sta musicPatternPos+1,x
+    rts
+  @notSilentPattern:
+  asl a
+  tay
+  bcc @isLoPattern
+    lda pently_patterns+256,y
+    sta musicPatternPos,x
+    lda pently_patterns+257,y
+    sta musicPatternPos+1,x
+    rts
+  @isLoPattern:
+  lda pently_patterns,y
+  sta musicPatternPos,x
+  lda pently_patterns+1,y
+  sta musicPatternPos+1,x
+  rts
+.endproc
+
 .if PENTLY_USE_REHEARSAL
 ; Known bug: Tracks with GRACE effects may fall behind
 .proc skip_to_row_top
@@ -742,7 +751,7 @@ set_fx_ch_volume:
     beq noGraceThisCh
       lda #0
       sta graceTime,x
-      jsr pently_next_row::processTrackPattern
+      jsr processTrackPattern
       jmp graceloop
     noGraceThisCh:
     dex
@@ -894,7 +903,7 @@ out_pitchadd = pently_zptemp + 4
   beq nograce
   dec graceTime,x
   bne nograce
-    jsr pently_next_row::processTrackPattern
+    jsr processTrackPattern
   nograce:
   
 .if ::PENTLY_USE_PORTAMENTO
