@@ -434,11 +434,7 @@ doConductor:
     tay
     pla
     jsr pently_play_note
-    inc conductorPos
-    bne :+
-      inc conductorPos+1
-    :
-    jmp doConductor
+    jmp skipConductorByte
   not_noteon:
   
   cmp #CON_SETBEAT

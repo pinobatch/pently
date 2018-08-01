@@ -154,7 +154,9 @@ bcdTableHi:
 .proc run_profiler
   ; Wait for vblank time to end (scanline -1), when the sprite 0 and
   ; sprite overflow bits turn off
-  lda #$60
+  waits0on:
+    bit PPUSTATUS
+    bvc waits0on
   waits0end:
     bit PPUSTATUS
     bvs waits0end
