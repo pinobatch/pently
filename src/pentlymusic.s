@@ -1055,7 +1055,7 @@ silenced = sustain_phase::silenced
   sta out_pitch
 
   ; If attack is injected, just use that pitch and don't process
-  ; any other pitch effects (arpeggio, vibrato)
+  ; any other pitch effects (arpeggio, vibrato, portamento)
   .if ::PENTLY_USE_ATTACK_TRACK
     ldy arpPhase,x
     bpl :+
@@ -1063,74 +1063,65 @@ silenced = sustain_phase::silenced
     :
   .endif
 
-.if ::PENTLY_USE_ARPEGGIO || ::PENTLY_USE_ATTACK_TRACK
-
-.if ::PENTLY_USE_ARPEGGIO
-  stx xsave
+  .if ::PENTLY_USE_ARPEGGIO
+    stx xsave
   
-  ; 7: attack is injected
-  ; 6: slow
-  ; 2-1: phase
-  ; 0: phase low bit
-  lda #$3F
-  cmp arpPhase,x
-  lda #0
-  rol a  ; A = 0 for slow arp or 1 for fast arp
-  ora arpPhase,x
-  and #$07  ; A[2:1]: arp phase; A[0]: need to increase
-  tay
-  and #$06
-  beq bumpArpPhase
+    ; 7: attack is injected
+    ; 6: slow
+    ; 2-1: phase
+    ; 0: phase low bit
+    lda #$3F
+    cmp arpPhase,x
+    lda #0
+    rol a  ; A = 0 for slow arp or 1 for fast arp
+    ora arpPhase,x
+    and #$07  ; A[2:1]: arp phase; A[0]: need to increase
+    tay
+    and #$06
+    beq bumpArpPhase
 
-  ; So we're in a nonzero phase.  Load the interval.
-  and #$04  ; A=0 for phase 1, 4 for phase 2
-  beq :+
-    lda #arpInterval2-arpInterval1
-  :
-  adc xsave
-  tax
-  lda arpInterval1,x
+    ; So we're in a nonzero phase.  Load the interval.
+    and #$04  ; A=0 for phase 1, 4 for phase 2
+    beq :+
+      lda #arpInterval2-arpInterval1
+    :
+    adc xsave
+    tax
+    lda arpInterval1,x
 
-  ; If phase 2's interval is 0, cycle through two phases (2, 4)
-  ; or four (2-5) instead of three (0, 1, 2) or six (0-5).
-  bne bumpArpPhase
-  cpy #4
-  bcc bumpArpPhase
-  ldy #0
-bumpArpPhase:
-  iny
-  cpy #6
-  bcc noArpRestart
-  ldy #0
-noArpRestart:
+    ; If phase 2's interval is 0, cycle through two phases (2, 4)
+    ; or four (2-5) instead of three (0, 1, 2) or six (0-5).
+    bne bumpArpPhase
+    cpy #4
+    bcc bumpArpPhase
+      ldy #0
+    bumpArpPhase:
+    iny
+    cpy #6
+    bcc noArpRestart
+      ldy #0
+    noArpRestart:
 
-  ; At this point, A is the arpeggio interval and Y is the next phase
-  clc
-  adc out_pitch
-  sta out_pitch
-  ldx xsave
-  tya
+    ; At this point, A is the arpeggio interval and Y is the next phase
+    clc
+    adc out_pitch
+    sta out_pitch
+    ldx xsave
+    tya
 
-  ; Combine new arp phase and non-inject setting with old arp rate setting
-  eor arpPhase,x
-  and #%10000111
-  eor arpPhase,x
-.else
-  ; If arpeggio support is off, just clear the attack injection flag
-  lda #0
-.endif
-  sta arpPhase,x
-  .if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
-    jmp calc_vibrato
-  .else
-    rts
+    ; Combine new arp phase and lack of injection with old arp rate
+    eor arpPhase,x
+    and #%10000111
+    eor arpPhase,x
+    sta arpPhase,x
+  .elseif ::PENTLY_USE_ATTACK_TRACK
+    ; If arpeggio support is off, just clear the attack injection flag
+    lda #0
+    sta arpPhase,x
   .endif
-.endif
 
-storePitchNoArpeggio:
-  sta out_pitch
   .if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
-    ;jmp calc_vibrato
+    ;jmp add_vibrato
   .else
     rts
   .endif
@@ -1139,21 +1130,16 @@ storePitchNoArpeggio:
 .if ::PENTLY_USE_VIBRATO
 VIBRATO_PERIOD = 12
 
-.proc calc_vibrato
-  .if ::PENTLY_USE_PORTAMENTO && ::PENTLY_USE_ATTACK_TRACK
-    ; Don't apply portamento to injected attacks
-    lda arpPhase,x
-    bmi is_injected
-      lda chPitchLo,x
-      jmp not_injected
-    is_injected:
-    lda #0
-  .elseif ::PENTLY_USE_PORTAMENTO
+;;
+; Add the vibrato
+; Assumes NOT an injected attack.
+.proc add_vibrato
+  .if ::PENTLY_USE_PORTAMENTO
     lda chPitchLo,x
   .else
     lda #0
   .endif
-not_injected:
+
   sta out_pitchadd
   ora vibratoDepth,x  ; Skip calculation if depth is 0
   beq not_vibrato_rts
@@ -1172,10 +1158,6 @@ not_injected:
   sta vibratoPhase,x
   cpy #VIBRATO_PERIOD-1
   bcs not_vibrato
-  .if ::PENTLY_USE_ATTACK_TRACK
-    lda arpPhase,x      ; Suppress vibrato from injected attack
-    bmi not_vibrato     ; (even though we still clock it)
-  .endif
 
   lda vibratoPattern,y
   cmp #$80              ; carry set if decrease
@@ -1220,32 +1202,28 @@ not_vibrato:
 .else
 not_vibrato = not_vibrato_rts
 .endif
+.endproc
 
-; This simplified version of calc_vibrato is used if portamento but
+; This simplified version of add_vibrato is used if portamento but
 ; not vibrato is enabled
 .elseif ::PENTLY_USE_PORTAMENTO
-calc_vibrato:
-  .if ::PENTLY_USE_ATTACK_TRACK
-    lda arpPhase,x
-    bpl not_injected
-      lda #0
-      beq have_pitchadd
-    not_injected:
-  .endif
+
+.proc add_vibrato
   lda chPitchLo,x
-  beq have_pitchadd
   .if ::PENTLY_USE_VIS
     sta pently_vis_pitchlo,x
   .endif
-  jsr calc_frac_pitch
-  eor #$FF
-  clc
-  adc #1
-have_pitchadd:
+  beq have_pitchadd
+    jsr calc_frac_pitch
+    eor #$FF
+    clc
+    adc #1
+  have_pitchadd:
   sta out_pitchadd
   rts
-.endif
 .endproc
+
+.endif
 
 .if ::PENTLY_USE_CHANNEL_VOLUME
 ;;
