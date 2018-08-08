@@ -1095,12 +1095,6 @@ notSilenced:
   sbc pently_instruments+1,y
   bcc silenced
   sta noteEnvVol,x
-  tya
-  pha
-  lda chPitchHi,x
-  jsr storePitchWithArpeggio
-  pla
-  tay
 
   ; bit 7 of attribute 2: cut note when half a row remains
   lda pently_instruments+2,y
@@ -1131,7 +1125,9 @@ yesCutNote:
   lda #0
   sta noteEnvVol,x
 notCutNote:
-  rts
+
+  lda chPitchHi,x
+  jmp storePitchWithArpeggio
 
 .if ::PENTLY_USE_VIBRATO
 VIBRATO_PERIOD = 12
