@@ -943,28 +943,24 @@ out_pitchadd = pently_zptemp + 4
     sta out_volume
   .endif
 
+  ldy chPitchHi,x
   .if ::PENTLY_USE_PORTAMENTO
     ; Use portamento pitch if not injected
     cpx #DRUM_TRACK
     bcs attack_not_pitched_ch
       .if ::PENTLY_USE_ATTACK_TRACK
         lda arpPhase,x
-        asl a
-      .else
-        clc
+        bpl porta_not_injected
       .endif
-      lda chPitchHi,x
-      bcc porta_not_injected
     attack_not_pitched_ch:
   .endif
   .if ::PENTLY_USE_ATTACK_TRACK
-    lda attackPitch,x
-  .else
-    lda chPitchHi,x
+    ldy attackPitch,x
   .endif
 porta_not_injected:
-  ; X=instrument, A=pitch (before adding arp env)
-  tay
+
+  ; X=instrument, Y=pitch (before adding arp env)
+  ; Read saved duty/ctrl/volume byte from attack envelope
   lda out_volume
   and #$30
   cmp #$01
