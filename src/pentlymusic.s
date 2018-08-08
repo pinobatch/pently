@@ -890,6 +890,12 @@ skipAttackPart:
   rts
 .endproc
 
+
+xsave        = pently_zptemp + 0
+out_volume   = pently_zptemp + 2
+out_pitch    = pently_zptemp + 3
+out_pitchadd = pently_zptemp + 4
+
 ;;
 ; Calculates the pitch, detune amount, and volume for channel X.
 ; @return out_volume: value for $4000/$4004/$4008/$400C
@@ -897,11 +903,6 @@ skipAttackPart:
 ;   out_pitchadd: amount to add to semitone
 ;   X: preserved
 .proc pently_update_music_ch
-xsave        = pently_zptemp + 0
-unused       = pently_zptemp + 1
-out_volume   = pently_zptemp + 2
-out_pitch    = pently_zptemp + 3
-out_pitchadd = pently_zptemp + 4
 
   .if ::PENTLY_USE_VIS
     lda #0
@@ -926,10 +927,10 @@ out_pitchadd = pently_zptemp + 4
 .endif
 
 .if ::PENTLY_USE_ATTACK_PHASE
-
+  ; Handle attack phase of envelope
   lda attack_remainlen,x
   bne :+
-    jmp noAttack
+    jmp sustain_phase
   :
   dec attack_remainlen,x
   lda (noteAttackPos,x)
@@ -971,10 +972,13 @@ porta_not_injected:
   bne :+
     inc noteAttackPos+1,x
   :
+  jmp storePitch
 .else
-  jmp noAttack
+  jmp sustain_phase
 .endif
+.endproc
 
+.proc storePitch
   ; At this point, A is the note pitch with envelope modification.
   ; Arpeggio still needs to be applied, but not to injected attacks.
   ; Because bit 7 of arpPhase tells the rest of Pently (particularly
@@ -983,13 +987,18 @@ porta_not_injected:
   ; even if arpeggio is disabled at build time.
   ; But if both arpeggio and attack injection are disabled, treat
   ; "with arpeggio" and "no arpeggio" the same.
-.if ::PENTLY_USE_ATTACK_TRACK
-  ldy arpPhase,x
-  bmi storePitchNoArpeggio
-.endif
-.if ::PENTLY_USE_ARPEGGIO || ::PENTLY_USE_ATTACK_TRACK
-storePitchWithArpeggio:
   sta out_pitch
+
+  ; If attack is injected, just use that pitch and don't process
+  ; any other pitch effects (arpeggio, vibrato)
+  .if ::PENTLY_USE_ATTACK_TRACK
+    ldy arpPhase,x
+    bpl :+
+      rts
+    :
+  .endif
+
+.if ::PENTLY_USE_ARPEGGIO || ::PENTLY_USE_ATTACK_TRACK
 
 .if ::PENTLY_USE_ARPEGGIO
   stx xsave
@@ -1062,8 +1071,9 @@ storePitchNoArpeggio:
   .else
     rts
   .endif
+.endproc
 
-noAttack:
+.proc sustain_phase
   lda noteEnvVol,x
   lsr a
   lsr a
@@ -1127,12 +1137,14 @@ yesCutNote:
 notCutNote:
 
   lda chPitchHi,x
-  jmp storePitchWithArpeggio
+  jmp storePitch
+.endproc
+silenced = sustain_phase::silenced
 
 .if ::PENTLY_USE_VIBRATO
 VIBRATO_PERIOD = 12
 
-calc_vibrato:
+.proc calc_vibrato
   .if ::PENTLY_USE_PORTAMENTO && ::PENTLY_USE_ATTACK_TRACK
     ; Don't apply portamento to injected attacks
     lda arpPhase,x
@@ -1238,9 +1250,10 @@ have_pitchadd:
   sta out_pitchadd
   rts
 .endif
+.endproc
 
 .if ::PENTLY_USE_CHANNEL_VOLUME
-write_out_volume:
+.proc write_out_volume
   ldy channelVolume,x
   bne chvol_nonzero
   and #$F0
@@ -1270,9 +1283,8 @@ chvol_nonzero:
   eor out_volume
   sta out_volume
   rts
-.endif
-
 .endproc
+.endif
 
 .if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
 
