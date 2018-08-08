@@ -890,7 +890,8 @@ skipAttackPart:
   rts
 .endproc
 
-
+; The mixer (in pentlysound.s) expects output to be stored in
+; zero page temporaries 2, 3, and 4.
 xsave        = pently_zptemp + 0
 out_volume   = pently_zptemp + 2
 out_pitch    = pently_zptemp + 3
@@ -929,15 +930,13 @@ out_pitchadd = pently_zptemp + 4
 .if ::PENTLY_USE_ATTACK_PHASE
   ; Handle attack phase of envelope
   lda attack_remainlen,x
-  bne :+
-    jmp sustain_phase
-  :
+  beq sustain_phase
   dec attack_remainlen,x
   lda (noteAttackPos,x)
   inc noteAttackPos,x
   bne :+
-  inc noteAttackPos+1,x
-:
+    inc noteAttackPos+1,x
+  :
   .if ::PENTLY_USE_CHANNEL_VOLUME
     jsr write_out_volume
   .else
@@ -964,7 +963,7 @@ porta_not_injected:
   ; Read saved duty/ctrl/volume byte from attack envelope
   lda out_volume
   and #$30
-  cmp #$01
+  cmp #$01  ; C true: use 0 instead of an envelope byte for pitch
   tya
   bcs :+
   adc (noteAttackPos,x)
@@ -972,13 +971,79 @@ porta_not_injected:
   bne :+
     inc noteAttackPos+1,x
   :
-  jmp storePitch
+  jmp store_pitch
 .else
-  jmp sustain_phase
+  ;jmp sustain_phase
 .endif
 .endproc
 
-.proc storePitch
+.proc sustain_phase
+  lda noteEnvVol,x
+  lsr a
+  lsr a
+  lsr a
+  lsr a
+  beq silenced
+  .if ::PENTLY_USE_CHANNEL_VOLUME
+    jsr write_out_volume
+  .else
+    sta out_volume
+  .endif
+  lda noteInstrument,x
+  asl a
+  asl a
+  adc noteInstrument,x
+  tay
+  lda out_volume
+  eor pently_instruments,y
+  and #$0F
+  eor pently_instruments,y
+  sta out_volume
+  lda noteEnvVol,x
+  sec
+  sbc pently_instruments+1,y
+  bcc silenced
+  sta noteEnvVol,x
+
+  ; Detached (instrument attribute 2 bit 7):
+  ; Cut note when half a row remains
+  lda pently_instruments+2,y
+  bpl notCutNote
+  lda noteRowsLeft,x
+  bne notCutNote
+
+  clc
+  lda pently_tempoCounterLo
+  adc #<(FRAMES_PER_MINUTE_NTSC/2)
+  lda pently_tempoCounterHi
+  adc #>(FRAMES_PER_MINUTE_NTSC/2)
+  bcc notCutNote
+
+  ; Unless the next byte in the pattern is a tie or a legato enable,
+  ; cut the note
+  lda (musicPatternPos,x)
+  cmp #LEGATO_ON
+  beq notCutNote
+  cmp #LEGATO_OFF
+  beq silenced
+  and #$F8
+  cmp #N_TIE
+  beq notCutNote
+  lda noteLegato,x
+  bne notCutNote
+  silenced:
+    lda #0
+    sta noteEnvVol,x
+    sta out_volume
+    rts
+  notCutNote:
+
+  lda chPitchHi,x
+  ;jmp store_pitch
+.endproc
+silenced = sustain_phase::silenced
+
+.proc store_pitch
   ; At this point, A is the note pitch with envelope modification.
   ; Arpeggio still needs to be applied, but not to injected attacks.
   ; Because bit 7 of arpPhase tells the rest of Pently (particularly
@@ -1060,86 +1125,16 @@ noArpRestart:
   .else
     rts
   .endif
-.else
-storePitchWithArpeggio:
 .endif
 
 storePitchNoArpeggio:
   sta out_pitch
   .if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
-    jmp calc_vibrato
+    ;jmp calc_vibrato
   .else
     rts
   .endif
 .endproc
-
-.proc sustain_phase
-  lda noteEnvVol,x
-  lsr a
-  lsr a
-  lsr a
-  lsr a
-  bne notSilenced
-silenced:
-  lda #0
-  sta out_volume
-  rts
-notSilenced:
-  .if ::PENTLY_USE_CHANNEL_VOLUME
-    jsr write_out_volume
-  .else
-    sta out_volume
-  .endif
-  lda noteInstrument,x
-  asl a
-  asl a
-  adc noteInstrument,x
-  tay  
-  lda out_volume
-  eor pently_instruments,y
-  and #$0F
-  eor pently_instruments,y
-  sta out_volume
-  lda noteEnvVol,x
-  sec
-  sbc pently_instruments+1,y
-  bcc silenced
-  sta noteEnvVol,x
-
-  ; bit 7 of attribute 2: cut note when half a row remains
-  lda pently_instruments+2,y
-  bpl notCutNote
-  lda noteRowsLeft,x
-  bne notCutNote
-
-  clc
-  lda pently_tempoCounterLo
-  adc #<(FRAMES_PER_MINUTE_NTSC/2)
-  lda pently_tempoCounterHi
-  adc #>(FRAMES_PER_MINUTE_NTSC/2)
-  bcc notCutNote
-  
-  ; Unless the next byte in the pattern is a tie or a legato enable,
-  ; cut the note
-  lda (musicPatternPos,x)
-  cmp #LEGATO_ON
-  beq notCutNote
-  cmp #LEGATO_OFF
-  beq yesCutNote
-  and #$F8
-  cmp #N_TIE
-  beq notCutNote
-  lda noteLegato,x
-  bne notCutNote
-yesCutNote:
-  lda #0
-  sta noteEnvVol,x
-notCutNote:
-
-  lda chPitchHi,x
-  jmp storePitch
-.endproc
-silenced = sustain_phase::silenced
 
 .if ::PENTLY_USE_VIBRATO
 VIBRATO_PERIOD = 12
@@ -1253,6 +1248,11 @@ have_pitchadd:
 .endproc
 
 .if ::PENTLY_USE_CHANNEL_VOLUME
+;;
+; Stores the instrument duty and volume scaled by channel volume
+; to the output variable.
+; @param X channel number
+; @param A bits 7-6: duty; bits 0-3: volume
 .proc write_out_volume
   ldy channelVolume,x
   bne chvol_nonzero
