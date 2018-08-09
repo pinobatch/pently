@@ -971,7 +971,23 @@ porta_not_injected:
   bne :+
     inc noteAttackPos+1,x
   :
-  jmp store_pitch
+
+  ; At this point, A is the note pitch with envelope modification,
+  ; but not effect modification.  Arpeggio, vibrato, and portamento
+  ; need to be applied to the same-track note, not injected attacks.
+  sta out_pitch
+  .if ::PENTLY_USE_ATTACK_TRACK
+    ldy arpPhase,x
+    bpl not_injected
+      .if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
+        lda #0
+        sta out_pitchadd
+      .endif
+      rts
+    not_injected:
+  .endif
+
+  jmp add_pitch_effects
 .else
   ;jmp sustain_phase
 .endif
@@ -996,8 +1012,8 @@ porta_not_injected:
   tay
   lda out_volume
   eor pently_instruments,y
-  and #$0F
-  eor pently_instruments,y
+  and #$F0  ; keep instrument bits 7-4 and volume bits 3-0
+  eor out_volume
   sta out_volume
   lda noteEnvVol,x
   sec
@@ -1039,29 +1055,16 @@ porta_not_injected:
   notCutNote:
 
   lda chPitchHi,x
-  ;jmp store_pitch
+  sta out_pitch
+  jmp add_pitch_effects
 .endproc
 silenced = sustain_phase::silenced
 
-.proc store_pitch
-  ; At this point, A is the note pitch with envelope modification.
-  ; Arpeggio still needs to be applied, but not to injected attacks.
-  ; Because bit 7 of arpPhase tells the rest of Pently (particularly
-  ; legato and vibrato) whether an attack is injected,
-  ; storePitchWithArpeggio still clears this bit during sustain phase
-  ; even if arpeggio is disabled at build time.
-  ; But if both arpeggio and attack injection are disabled, treat
-  ; "with arpeggio" and "no arpeggio" the same.
-  sta out_pitch
-
-  ; If attack is injected, just use that pitch and don't process
-  ; any other pitch effects (arpeggio, vibrato, portamento)
-  .if ::PENTLY_USE_ATTACK_TRACK
-    ldy arpPhase,x
-    bpl :+
-      rts
-    :
-  .endif
+;;
+; Applies pitch effects (arpeggio, vibrato, and portamento)
+; to out_pitch and clears the attack injection flag.
+; @param X
+.proc add_pitch_effects
 
   .if ::PENTLY_USE_ARPEGGIO
     stx xsave
@@ -1234,31 +1237,32 @@ not_vibrato = not_vibrato_rts
 .proc write_out_volume
   ldy channelVolume,x
   bne chvol_nonzero
-  and #$F0
-chvol_unchanged:
-  sta out_volume
-  rts
-chvol_nonzero:
+    and #$F0
+    sta out_volume
+    rts
+  chvol_nonzero:
+
   cpy #MAX_CHANNEL_VOLUME
   bcs chvol_unchanged
-  pha
-  and #$0F
-  sta out_volume
-  lda #0
-  chvol_loop:
-    adc out_volume
-    dey
-    bne chvol_loop
-  lsr a
-  lsr a
-  adc #0
-  sta out_volume
+    pha
+    and #$0F
+    sta out_volume
+    lda #0
+    chvol_loop:
+      adc out_volume
+      dey
+      bne chvol_loop
+    lsr a
+    lsr a
+    adc #0
+    sta out_volume
 
-  ; combine with duty bits from out_volume
-  pla
-  eor out_volume
-  and #$F0
-  eor out_volume
+    ; combine with duty bits from out_volume
+    pla
+    eor out_volume
+    and #$F0
+    eor out_volume
+  chvol_unchanged:
   sta out_volume
   rts
 .endproc
@@ -1296,9 +1300,9 @@ loop:
   ; At the start of the loop, one bit of prodlo has already been
   ; shifted out into the carry.
   bcc noadd
-  clc
-  adc pitch_sub
-noadd:
+    clc
+    adc pitch_sub
+  noadd:
   ror a
   ror prodlo  ; pull another bit out for the next iteration
   dey         ; inc/dec don't modify carry; only shifts and adds do
