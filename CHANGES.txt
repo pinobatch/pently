@@ -1,15 +1,34 @@
 0.05wip10 (future)
-* pentlyas.py: o0 through o7 to set reference pitch
-  (requested by zzo38)
 * Grace note durations no longer reduced by 1 frame
-* Document how to skip the makefile's default autoplay
-* A score can include other files
-* pentlyas.py: order of objects in the output is explicit, the same
-  order in which they appear in the score (requested by NovaSquirrel)
-* pentlyseq.inc: don't truncate patdef at 7 bits (reported and fixed
-  by NovaSquirrel)
 * Always write period high byte for triangle, fixing problem with
   zero volume in instruments (reported by NovaSquirrel)
+* Suppress linker warnings for export/import address size mismatch
+* Overhaul names and scope of internal subroutines
+* Arrange conductor handlers in bytecode order
+* Fix dubious interaction between music and slow sound effects
+* Move sustain phase processing above pitch effects
+* Remove redundant checks for attack injection in pitch effects
+* C bindings for commonly used functions (requested by adrian09_01)
+* pentlyseq.inc: don't truncate patdef at 7 bits (reported and fixed
+  by NovaSquirrel)
+* pentlyas.py: a score can include other files
+* pentlyas.py: o0 through o7 to set reference pitch
+  (requested by zzo38)
+* pentlyas.py: order of objects in the output is explicit, the same
+  order in which they appear in the score (requested by NovaSquirrel)
+* pentlyas.py: fix warnings for missing "fine" or "dal segno"
+* pentlyas.py: allow grace notes in drum patterns
+* pentlyas.py: playing a pattern with only waits is nonfatal
+* mkrammap.py: rename to pentlybss.py to encourage remembering
+  to include it when vendoring Pently
+* Document how to skip the makefile's default autoplay
+* makefile: Allow building from an arbitrarily named score by
+  giving the name of the corresponding .nes or .nsf
+* Add pseudocode to aid in porting to non-6502 platforms
+* Add Travis CI build script
+* Sample songs: Include the soundtrack of all games by Damian Yerrick
+  that have appeared in Action 53.  These are Concentration Room,
+  Thwaite, Zap Ruder, and RHDE: Furniture Fight.
 
 0.05wip9 (2018-02-21)
 * PENTLY_USE option to disable music engine entirely
