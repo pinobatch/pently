@@ -72,24 +72,29 @@ pentlysound_code_start = *
 ; entering a long stretch of code where you don't call pently_update.
 ;
 .proc pently_init
+  ; Turn on all channels
   lda #$0F
   sta SNDCHN
-  lda #$30
-  sta $4000
-  sta $4004
-  sta $400C
-  sta ch_lastfreqhi+0
-  sta ch_lastfreqhi+8
-  sta ch_lastfreqhi+4
+  ; Disable pulse sweep
   lda #8
   sta $4001
   sta $4005
+  ; Invalidate last frequency high byte
+  lda #$30
+  sta ch_lastfreqhi+0
+  sta ch_lastfreqhi+4
+  ; Ignore length counters and use software volume
+  sta $4000
+  sta $4004
+  sta $400C
   lda #$80
   sta $4008
+  ; Clear high period, forcing a phase reset
   asl a
   sta $4003
   sta $4007
   sta $400F
+  ; Clear sound effects state
   sta sfx_remainlen+0
   sta sfx_remainlen+4
   sta sfx_remainlen+8
@@ -101,6 +106,7 @@ pentlysound_code_start = *
   .if ::PENTLY_USE_MUSIC
     sta pently_music_playing
   .endif
+  ; Set DAC value, which controls pulse vs. not-pulse balance
   lda #PENTLY_INITIAL_4011
   sta $4011
   rts
@@ -127,9 +133,6 @@ sndrate   = pently_zptemp + 4
   lda pently_sfx_table+1,x
   sta snddatahi
   lda pently_sfx_table+2,x
-  and #$0C
-  sta sndchno
-  lda pently_sfx_table+2,x
   lsr a
   lsr a
   lsr a
@@ -137,23 +140,23 @@ sndrate   = pently_zptemp + 4
   sta sndrate
   lda pently_sfx_table+3,x
   sta sndlen
+  lda pently_sfx_table+2,x
+  and #$0C
+  tax
 
   ; Split up square wave sounds between pulse 1 ($4000) and
   ; pulse 2 ($4004) depending on which has less data left to play
   .if ::PENTLY_USE_SQUARE_POOLING
-    lda sndchno
     bne not_ch0to4  ; if not ch 0, don't try moving it
       lda sfx_remainlen+4
       cmp sfx_remainlen
       bcs not_ch0to4
-      lda #4
-      sta sndchno
+      ldx #4
     not_ch0to4:
   .endif 
 
   ; Play only if this sound effect is no shorter than the existing
   ; effect on the same channel
-  ldx sndchno
   lda sndlen
   cmp sfx_remainlen,x
   bcc ch_full
@@ -200,8 +203,8 @@ tpitch    = pently_zptemp + 3
 tpitchadd = pently_zptemp + 4
 
 
-  ; At this point, the music engine should have left duty and volume
-  ; in tvol and pitch in tpitch.
+  ; At this point, pently_update_music_ch should have left
+  ; duty and volume in tvol and pitch in tpitch.
   lda sfx_remainlen,x
   bne ch_not_done
   
