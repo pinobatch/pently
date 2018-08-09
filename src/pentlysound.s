@@ -121,7 +121,6 @@ pentlysound_code_start = *
 .proc pently_start_sound
 snddatalo = pently_zptemp + 0
 snddatahi = pently_zptemp + 1
-sndchno   = pently_zptemp + 2
 sndlen    = pently_zptemp + 3
 sndrate   = pently_zptemp + 4
 
@@ -155,22 +154,21 @@ sndrate   = pently_zptemp + 4
     not_ch0to4:
   .endif 
 
-  ; Play only if this sound effect is no shorter than the existing
-  ; effect on the same channel
+  ; If this sound effect is no shorter than the existing effect
+  ; on the same channel, replace the current effect if any
   lda sndlen
   cmp sfx_remainlen,x
   bcc ch_full
+    sta sfx_remainlen,x
+    lda snddatalo
+    sta sfx_datalo,x
+    lda snddatahi
+    sta sfx_datahi,x
+    lda sndrate
+    sta sfx_rate,x
+    sta sfx_ratecd,x
+  ch_full:
 
-  ; Replace the current sound effect if any
-  sta sfx_remainlen,x
-  lda snddatalo
-  sta sfx_datalo,x
-  lda snddatahi
-  sta sfx_datahi,x
-  lda sndrate
-  sta sfx_rate,x
-  sta sfx_ratecd,x
-ch_full:
   rts
 .endproc
 
@@ -195,38 +193,38 @@ loop:
   rts
 .endproc
 
-.proc pently_update_one_ch
-srclo     = pently_zptemp + 0
-srchi     = pently_zptemp + 1
-tvol      = pently_zptemp + 2
-tpitch    = pently_zptemp + 3
-tpitchadd = pently_zptemp + 4
+out_volume   = pently_zptemp + 2
+out_pitch    = pently_zptemp + 3
+out_pitchadd = pently_zptemp + 4
 
+.proc pently_update_one_ch
+srclo        = pently_zptemp + 0
+srchi        = pently_zptemp + 1
 
   ; At this point, pently_update_music_ch should have left
-  ; duty and volume in tvol and pitch in tpitch.
+  ; duty and volume in out_volume and pitch in out_pitch.
   lda sfx_remainlen,x
   bne ch_not_done
   
-  ; Only music is playing on this channel, no sound effect
-  .if ::PENTLY_USE_MUSIC
-    lda tvol
-    .if ::PENTLY_USE_VIS
-      sta pently_vis_dutyvol,x
+    ; Only music is playing on this channel, no sound effect
+    .if ::PENTLY_USE_MUSIC
+      lda out_volume
+      .if ::PENTLY_USE_VIS
+        sta pently_vis_dutyvol,x
+      .endif
+      bne update_channel_hw
     .endif
-    bne update_channel_hw
-  .endif
 
-  ; Turn off the channel and force a reinit of the length counter.
-  cpx #TRIANGLE_CH
-  beq not_triangle_kill
-    lda #$30
-  not_triangle_kill:
-  sta $4000,x
-  lda #$FF
-  sta ch_lastfreqhi,x
-  rts
-ch_not_done:
+    ; Turn off the channel and force a reinit of the length counter.
+    cpx #TRIANGLE_CH
+    beq not_triangle_kill
+      lda #$30
+    not_triangle_kill:
+    sta $4000,x
+    lda #$FF
+    sta ch_lastfreqhi,x
+    rts
+  ch_not_done:
 
   ; Get the sound effect word's address
   lda sfx_datalo+1,x
@@ -235,7 +233,6 @@ ch_not_done:
   sta srclo
 
   ; Advance if playback rate divider says so
-  sta $4444
   dec sfx_ratecd,x
   bpl no_next_word
     clc
@@ -253,21 +250,21 @@ ch_not_done:
   ldy #0
   .if ::PENTLY_USE_MUSIC
     .if ::PENTLY_USE_MUSIC_IF_LOUDER
-      lda tvol
+      lda out_volume
       pha
       and #$0F
-      sta tvol
+      sta out_volume
       lda (srclo),y
       and #$0F
 
-      ; At this point: A = sfx volume; tvol = music volume
-      cmp tvol
+      ; At this point: A = sfx volume; out_volume = music volume
+      cmp out_volume
       pla
-      sta tvol
-      bcc music_was_louder
+      sta out_volume
+      bcc update_channel_hw
     .endif
     .if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
-      sty tpitchadd  ; sfx don't support fine pitch adjustment
+      sty out_pitchadd  ; sfx don't support fine pitch adjustment
       .if ::PENTLY_USE_VIS
         tya
         sta pently_vis_pitchlo,x
@@ -275,20 +272,20 @@ ch_not_done:
     .endif
   .endif
   lda (srclo),y
-  sta tvol
+  sta out_volume
   iny
   lda (srclo),y
-  sta tpitch
-music_was_louder:
+  sta out_pitch
+  ; jmp update_channel_hw
+.endproc
 
-
-update_channel_hw:
+.proc update_channel_hw
   ; XXX vis does not work with no-music
   .if ::PENTLY_USE_VIS
-    lda tpitch
+    lda out_pitch
     sta pently_vis_pitchhi,x
   .endif
-  lda tvol
+  lda out_volume
   .if ::PENTLY_USE_VIS
     sta pently_vis_dutyvol,x
   .endif
@@ -296,7 +293,7 @@ update_channel_hw:
   cpx #NOISE_CH
   bne notnoise
     sta $400C
-    lda tpitch
+    lda out_pitch
     sta $400E
     rts
   notnoise:
@@ -313,7 +310,7 @@ update_channel_hw:
   .endif
 
   sta $4000,x
-  ldy tpitch
+  ldy out_pitch
   .if ::PENTLY_USE_PAL_ADJUST
     ; Correct pitch for PAL NES only, not NTSC (0) or PAL famiclone (2)
     lda tvSystem
@@ -326,9 +323,9 @@ update_channel_hw:
   lda periodTableLo,y
   .if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
     clc
-    adc tpitchadd
+    adc out_pitchadd
     sta $4002,x
-    lda tpitchadd
+    lda out_pitchadd
     and #$80
     bpl :+
       lda #$FF

@@ -1,0 +1,518 @@
+Pently pseudocode in plain English
+
+Copyright 2018 Damian Yerrick
+
+This document describes the algorithms of the Pently audio driver
+as of 2018-08-09.  It is useful for porting Pently to another
+platform, particularly one built around something other than a 6502.
+
+# pentlysound.s #####################################################
+
+pently_init():
+  Turn on all channels
+  Set channels to ignore length counter and soft envelope
+  Invalidate pulse channels' last period high
+  Disable pulse sweep
+  Clear sound effects' remaining length
+  Clear sound effects' rate counter
+  If using music:
+    Turn off music
+  Set initial DAC value for pulse vs. not-pulse balance
+
+pently_start_sound(A=sound effect):
+  Set X to 4 * A
+  Set snddatalo to pently_sfx_table[X]
+  Set snddatahi to pently_sfx_table[X + 1]
+  Set sndrate to pently_sfx_table[X + 2] >> 4
+  Set sndlen to pently_sfx_table[X + 3]
+  Set sndchno (in X) to pently_sfx_table[X + 2] & 0x0C
+
+  If using square pooling and sndchno == pulse 1
+     and remaining length on pulse 1 is longer than on pulse 2:
+    Set sndchno to pulse 2
+
+  If sndlen >= remaining length on channel sndchno:
+    Set channel's sound effects data pointer, rate, and length
+
+pently_update():
+  If using music:
+    pently_update_music()
+  For each channel X:
+    If using music:
+      pently_update_music_ch()
+    pently_update_one_ch()
+
+pently_update_one_ch(X=channel):
+  # At this point, pently_update_music left duty, volume, and pitch
+  # in out_volume, out_pitch, and out_pitchadd
+  If sfx length on this channel is 0:
+    If using music:
+      If music volume > 0:
+        Go to update_channel_hw
+    Set channel kill value to 0x30 if triangle else 0
+    Write channel kill value to channel's attribute 0
+    Invalidate last period high to -1
+    Return
+
+  Set srclo to channel's sound effect pointer
+  Subtract 1 from rate counter
+  If rate counter has gone negative:
+    Set rate counter to sound effect rate
+    Add 2 to the channel's sound effect pointer
+    Subtract 1 from remaining length
+
+  If using music:
+    If using music if louder:
+      If (sound effect volume & 0x0F) >= (out_volume & 0x0F):
+        Go to update_channel_hw
+      If using vibrato or using portamento:
+        Set out_pitchadd to 0
+
+  Set out_volume to sound effect volume
+  Set out_pitch to sound effect pitch
+  Go to update_channel_hw
+
+update_channel_hw(X=channel):
+  Set A to out_volume | 0x30
+  If channel is noise:
+    Set noise duty and volume to A
+    Set noise pitch to out_pitch
+    Return
+
+  If channel is triangle:
+    Set A to out_volume & 0x0F
+    If A == 0:
+      Set A bit 7
+  Set channel duty and volume to A
+
+  Set Y to out_pitch
+  If using PAL adjustment and playing on PAL NES:
+    Add 1 to Y
+  If using portamento:
+    Set channel period low to low(periodTable[y] + out_pitchadd)
+    Set A to high(periodTable[y] + out_pitchadd)
+  Else:
+    Set channel period low to low(periodTable[y])
+    Set A to high(periodTable[y])
+  If channel is triangle or A != channel last period high:
+    If channel is not triangle:
+      Set last period high to A
+    Set channel period high to A
+
+# pentlymusic.s #####################################################
+
+NTSC: 3606 ticks/minute
+PAL: 3000 ticks/minute
+GB, GBA: 3584 ticks/minute
+SGB: 3670 ticks/minute
+
+Conductor codes in order:
+
+CON_PLAYPAT (2-0: track ID)
+CON_WAITROWS, CON_FINE, CON_SEGNO, CON_DALSEGNO
+CON_ATTACK_SQ1 (1-0: channel ID)
+CON_NOTEON (1-0: channel ID)
+CON_SETTEMPO (2-0: bits 10-8)
+CON_SETBEAT (2-0: duration code)
+
+pently_start_music(songid):
+  Set conductor pos and segno to pently_songs[i]
+  clear non-SFX music state
+  for each track:
+    play silent pattern
+    If using channel volume and channel uses channel volume:
+      set channel volume to maximum
+  Set the tempo upcounter to -1
+  If using BPM math:
+    Set the beat part to -1
+    Set rows per beat to 4
+  Set tempo to 300 rows per minute
+  Resume music
+
+pently_resume_music():
+  Set music playing to 1
+
+pently_stop_music():
+  Set music playing to 0
+
+pently_update_music():
+  If music playing is 0: Return
+  If using rehearsal:
+    If tempo scale >= 8: Return
+    Scaled tempo = tempo >> tempo scale
+    Add scaled tempo to tempo upcounter
+  Else:
+    Add tempo to tempo upcounter
+  If addition caused a carry:
+    pently_next_row()
+
+pently_next_row():
+  Subtract region's ticks/minute from tempo upcounter
+  If using rehearsal:
+    Add 1 to elapsed rows
+  If using BPM math:
+    Add 1 to beat part
+    If beat part >= rows per beat:
+      Set beat part to 0
+  If using row callback:
+    Call row callback
+  If conductor wait rows > 0:
+    Subtract 1 from conductor wait rows
+    process_patterns()
+    Return
+
+  # Conductor
+  while True:
+    Read 1 conductor byte into A
+
+    If A < CON_WAITROWS:
+      # Must be play pattern
+        Set track to A & 0x07
+        If using attack track or track is not attack track:
+          If track is not attack track:
+            Turn off legato
+          Read 1 byte into track's pattern
+          Read 1 byte into track's transpose
+          Read 1 byte into track's instrument
+          Call start pattern
+        Else:
+          Add 3 bytes to conductor pos
+      Continue
+    If A == CON_WAITROWS:
+      Read 1 conductor byte into conductor wait rows
+      Break
+    If A < CON_ATTACK_SQ1:
+      If A < CON_SEGNO:
+        # Must be CON_FINE
+        Set music playing to 0
+        Set tempo to 0
+        If using row callback:
+          Call dal segno callback with carry clear
+        Return
+      If A == SEGNO:
+        Set segno to conductor pos
+      Else:
+        # Must be CON_DALSEGNO
+        Set conductor pos to segno
+        If using row callback:
+          Call dal segno callback with carry set
+        Continue
+    If A < CON_NOTEON:
+      Set attack track to A & 0x03
+      Continue
+    If A < CON_SETTEMPO:
+      # Note on
+      Set X to A & 0x07
+      Read 1 conductor byte into A
+      Read 1 conductor byte into Y
+      pently_play_note(channel X, notenum A, instrument Y)
+      Continue
+    If A < CON_SETBEAT:
+      Set high byte of tempo to A & 0x07
+      Read 1 conductor byte into low byte of tempo
+      Continue
+    If A < CON_SETBEAT+8:
+      If using BPM math:
+        Set rows per beat to durations[A & 0x07]
+
+  process_patterns()
+
+process_patterns():
+  For each track mapped to an actual channel:
+    Process pattern on this track
+  If using attack track:
+    Process pattern on attack track
+
+process_track_pattern(X):
+  While note rows left == 0:
+    Peek a pattern byte into A
+    If A == PATEND:
+      Restart this track's pattern
+      Peek a pattern byte into A
+    Move to the next pattern byte
+    If A >= INSTRUMENT:
+      # C8+: Note, wait, or rest
+      Subtract INSTRUMENT from A
+      If A < len(pattern command handlers):
+        Set Y to A * 2
+        Call pattern command handlers[A]
+      Continue
+
+    # 00-D7: Note, wait, or rest
+    Set track's note rows left to durations[A & 0x07]
+    Set A to A >> 3
+    # 0-24: Note on; 25: wait; 26: rest
+    If A == 26 or this track is muted:
+      If current track is not attack:
+        Set attack remaining length to 0
+      Set decay volume to 0
+    Else if A < 25:
+      If current track is drum track:
+        Start primary drum A
+        If secondary drum A exists:
+          Start secondary drum A
+      Else:
+        Play note A + patternTranspose with instrument Y on track X
+
+  Subtract 1 from noteRowsLeft
+
+Pattern command handlers = [
+  Instrument, Arpeggio, Legato, Legato,
+  Transpose, Grace, Vibrato, Channel volume,
+  Portamento, Reserved, Fast arp, Slow arp
+]
+
+set_fx_instrument(X):
+  Read a pattern byte into noteInstrument
+
+set_fx_arpeggio(X):
+  Peek a pattern byte into A
+  Set arpeggio interval 1 to A>>4
+  Read a pattern byte into A
+  Set arpeggio interval 2 to A & 0x0F
+
+set_fx_fastarp(X):
+  If current track is before drum track:
+    Clear slow arp bit of arpPhase
+
+set_fx_slowarp(X):
+  If current track is before drum track:
+    Set slow arp bit of arpPhase
+
+set_fx_legato(X, Y):
+  If current track is before drum track:
+    Set legato to Y & $02
+
+set_fx_transpose(X):
+  Read a pattern byte into A
+  Set transpose to A + transpose
+
+set_fx_grace(X):
+  # Because grace note processing decrements before comparing to
+  # zero, 1 is treated the same as 0.
+  # 0: this row's pattern already read
+  # 1: will read this row's pattern this frame
+  # 2: will read this row's pattern next frame
+  # 3: will read this row's pattern 2 frames from now
+  Read a pattern byte into A
+  Set grace to A + 1
+
+set_fx_vibrato(X):
+  If current track is before drum track:
+    Read a pattern byte into A
+    Set vibrato depth to A & $07
+
+set_fx_portamento(X):
+  If current track is before drum track:
+    Read a pattern byte into channel portamento
+
+set_fx_ch_volume(X):
+  Read a pattern byte into channel volume
+
+start_pattern(X):
+  Set track grace time to 0
+  Set note rows left to 0
+  Set Y to the track's pattern
+  If track's pattern is less than 255:
+    Set the track's pattern position to the silent pattern
+  Else:
+    Set the track's pattern position to musicPatterns[Y]
+  
+pently_play_note(X=track, A=notenum, Y=instrument):
+  Set instrument offset to 5 * instrument
+  If current track is not the attack track:
+    # Set up instrument's sustain
+    If an attack is not injected:
+      Set the attack pitch to notenum
+    If using portamento and current track is not drum track:
+      Set the target pitch to notenum
+    Set the channel pitch to notenum
+    If note is legato: Return
+    Set the channel instrument to instrument
+    Set the channel volume to instrument volume * 16 + 12
+    If current track is not drum track:
+      If using arpeggio:
+        Clear all arpeggio phase bits except whether arp is fast
+      Else if using attack track:
+        Clear arpeggio phase
+      If using vibrato:
+        Set vibrato countdown to 23
+
+  If this instrument has an attack:
+    Save track number
+    If using attack track:
+      If current track is not the attack track:
+        Change tracks to the attack track
+        Set the inject bit of arpeggio phase
+      Set this track's attack pitch to notenum
+    Set the channel's attack data pointer and length from the instrument
+    Restore track number (if it's callee-saved on this platform)
+
+# 60% done documenting pentlymusic.s, at line 892 of 1472
+pently_update_music_ch:
+  If not playing:
+    Store 0 volume
+    Return
+  If in grace time:
+    Subtract 1 from grace time
+    If no longer in grace time:
+      Process track pattern
+  If using portamento and this track is before drum (that is, pitched):
+    Update portamento
+  If using attack phase and attack has remaining length:
+    Subtract 1 from attack length
+    Read a byte from attack data
+    Write the output volume
+    
+    # At line 945
+    If using portamento and this track is before drum
+       and an attack is not injected:
+      Set Y to channel pitch
+    Else if using attack track:
+      Set Y to attack pitch
+    Else:
+      Set Y to channel pitch
+
+    # Add instrument arpeggio value only if this frame has one
+    If (out_volume & 0x30) != 0:
+      Set out_pitch to Y
+    Else:
+      Set out_pitch to Y + a byte read from attack data
+    If using attack track and an attack is injected:
+      Set out_pitchadd to 0
+      Return
+
+  Else:
+    # Sustain phase
+    Set A to noteEnvVol >> 4
+    If A == 0:
+      Clear note and output volume
+      Return
+    Write the output volume
+    Set Y to noteInstrument
+    Update bits 7-4 of output volume from pently_instruments[Y].duty_volume
+    Set A to noteEnvVol - pently_instruments[Y].decay
+    If A < 0:
+      Clear note and output volume
+      Return
+    Set noteEnvVol to A
+
+    # Detached: Instrument option to  half row remains
+    If bit 7 of pently_instruments[Y].attack_len is true
+       and note rows left is zero
+       and tempo counter + half of NTSC frames per minute >= 65536:
+      Switch next byte of pattern:
+        Case Legato on:
+          Do nothing
+        Case Legato off: 
+          Clear volume
+        Case Tie:
+          Do nothing
+        Default:
+          If channel legato is on:
+            Clear volume
+
+    Set out_pitch to chPitchHi
+  Go to Add pitch effects
+
+Add pitch effects (A):
+
+  If using arpeggio:
+    Save X
+    Set cur_phase (in Y) to ((1 if arpPhase <= 0x3F else 0) | arpPhase) & 0x07
+    A = cur_phase & 0x06
+    If A > 0:
+      A = (cur_phase >= 4) ? arpInterval2 : arpInterval1
+    # If arpInterval2 is 0, cycle through 2 phases instead of 3
+    If A == 0 and cur_phase >= 4:
+      cur_phase = 0
+    Add 1 to cur_phase
+    If cur_phase >= 6:
+      cur_phase = 0
+    Add A to out_pitch
+    Restore X
+    Replace bits 7 and 2-0 of arpPhase with bits from cur_phase
+  Else if using attack track:
+    Set arpPhase to 0
+  If using vibrato or using portamento:
+    Add vibrato
+
+Add vibrato:
+  Set out_pitchadd to chPitchLo if using portamento else 0
+  If out_pitchadd == 0 and vibrato depth == 0:
+    Return
+  If not using portamento or vibrato depth > 0:
+    # Clock vibrato
+    If vibrato phase == 0:
+      Set vibrato phase to vibrato period
+    Subtract 1 from vibrato phase
+    If vibrato phase is at least vibrato period:
+      Load vibrato pattern at this phase and save bit 7
+      Set A to bits 3-0 of vibrato pattern
+      Shift A left by vibrato depth
+      If saved bit 7 is true:
+        Negate A
+        Subtract 1 from out_pitch
+    Else if using portamento:
+      Write vibrato amplitude as 0
+    Else:
+      Return
+    If using portamento:
+      Add channel pitch low to out_pitch:A
+    Calculate fractional pitch
+    Store it as period to add
+  Else:  # Must be only portamento
+    Load channel pitch low
+    Calculate fractional pitch
+    Store it as period to add
+
+Write volume:
+  If channel volume is 0:
+    Set out_volume to A & 0xF0
+    Return
+  If channel volume < 4:
+    Save A (because it has the duty bits)
+    Set A to (A & 0x0F) * channel volume
+    Set out_volume to (A + 2) >> 2
+    Restore A
+    Combine bits 7-4 of A with bits 3-0 of out_volume
+  Set out_volume to A
+
+Calculate fractional pitch:
+  Set pitch_sub to A
+  Set A to the next note's period minus this note's period
+  Set product to A * pitch_sub
+  Return (product + 128) >> 8 in A
+
+Update portamento:
+  If portamento setting == 0:
+    Set channel pitch low to 0
+    Set channel pitch high to note pitch
+    Return
+
+  Switch (portamento setting >> 4):
+    Case whole semitone:
+      Set portamento rate to portamento setting << 8
+      Break
+    Case fractional semitone:
+      Set portamento rate to portamento_rates[portamento setting & 0x0F]
+      Break
+    Case TB-303:
+      If using TB-303 portamento:
+        Set portamento rate to abs(channel pitch - note pitch)
+        Shift portamento rate by (portamento setting & 0x0F) + 1
+        If last produced a carry:
+          # Rounding
+          Add 1 to portamento rate
+        If portamento rate is zero:
+          Set portamento rate to 1
+      Break
+
+  If channel pitch >= note pitch:
+    Subtract portamento rate to channel pitch
+    If channel pitch < note pitch:
+      Set channel pitch to note pitch
+  Else:
+    Add portamento rate to channel pitch
+    If channel pitch >= note pitch:
+      Set channel pitch to note pitch
