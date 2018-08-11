@@ -1,27 +1,32 @@
 0.05wip10 (future)
 * Grace note durations no longer reduced by 1 frame
 * Always write period high byte for triangle, fixing problem with
-  zero volume in instruments (reported by NovaSquirrel)
+  zero volume in instruments (#32, reported by NovaSquirrel)
 * Suppress linker warnings for export/import address size mismatch
 * Overhaul names and scope of internal subroutines
-* Arrange conductor handlers in bytecode order
-* Fix dubious interaction between music and slow sound effects
+* Rearrange conductor processing based on bytecode order
 * Move sustain phase processing above pitch effects
 * Remove redundant checks for attack injection in pitch effects
+* Fix misbehavior when music and a slowed-down sound effect are
+  played at once
 * C bindings for commonly used functions (requested by adrian09_01)
 * pentlyseq.inc: don't truncate patdef at 7 bits (reported and fixed
   by NovaSquirrel)
-* pentlyas.py: a score can include other files
+* pentlyas.py: a score can include other files, such as an instrument
+  set (#29)
 * pentlyas.py: o0 through o7 to set reference pitch
   (requested by zzo38)
+* pentlyas.py: allow grace notes in drum patterns
+* pentlyas.py: playing a pattern with only rests or waits is nonfatal
+* pentlyas.py: fix warnings for missing "fine" or "dal segno"
 * pentlyas.py: order of objects in the output is explicit, the same
   order in which they appear in the score (requested by NovaSquirrel)
-* pentlyas.py: fix warnings for missing "fine" or "dal segno"
-* pentlyas.py: allow grace notes in drum patterns
-* pentlyas.py: playing a pattern with only waits is nonfatal
+* pentlyas.py: error if no songs are defined (reported by
+  NovaSquirrel)
 * mkrammap.py: rename to pentlybss.py to encourage remembering
   to include it when vendoring Pently
-* Document how to skip the makefile's default autoplay
+* Profiler: don't overreport CPU use if the shell has a lag frame
+* Document how to skip the makefile's default autoplay (#30)
 * makefile: Allow building from an arbitrarily named score by
   giving the name of the corresponding .nes or .nsf
 * Add pseudocode to aid in porting to non-6502 platforms
@@ -38,7 +43,7 @@
   since slow arps)
 * Cancel grace note when pattern begins
 * Add rehearsal transport control to skip to a row or slow down or
-  pause playback
+  pause playback (#27)
 * Add variable mix to mute tracks
 * Store current pitch and volume for use by visualizer
 * pentlyas.py: add warning infrastructure
@@ -46,7 +51,7 @@
 * pentlyas.py: p (pause) is synonym for r (rest)
 * pentlyas.py: q repeats last chord, as in LilyPond
 * pentlyas.py: bar check in pattern to warn if not on a measure
-  boundary
+  boundary (#26)
 * pentlyas.py: pickup works in patterns as well
 * pentlyas.py: unreachable A in tunings below A=437 is nonfatal
 * pentlyas.py: mmloctaves off, which future chord syntax will require
@@ -55,7 +60,7 @@
 * NES shell: add per-song screen with visualizer, rehearsal mark
   navigation, track muting, tempo, and pause-and-step
 * Script to estimate pitch of 93-step noise
-* docs: Recalculate PENTLY_USE savings
+* Docs: Recalculate PENTLY_USE savings
 * Import Sound Effects Editor as of 2014-09-10
 
 0.05wip8 (2017-12)
