@@ -185,9 +185,11 @@ pentlymusic_code_start = *
     sta musicPatternPos+1,x
     tya  ; Y is $FF from the clear everything loop
     sta musicPattern,x
-    .if ::PENTLY_USE_CHANNEL_VOLUME && (::LAST_TRACK >= ::ATTACK_TRACK)
-      cpx #ATTACK_TRACK
-      bcs :+
+    .if ::PENTLY_USE_CHANNEL_VOLUME
+      .if ::PENTLY_USE_ATTACK_TRACK
+        cpx #ATTACK_TRACK
+        bcs :+
+      .endif
         lda #MAX_CHANNEL_VOLUME
         sta channelVolume,x
       :
@@ -913,6 +915,7 @@ out_pitchadd = pently_zptemp + 4
   bne :+
     jmp silenced
   :
+
   lda graceTime,x
   beq nograce
   dec graceTime,x
@@ -1235,6 +1238,7 @@ not_vibrato = not_vibrato_rts
 ; @param X channel number
 ; @param A bits 7-6: duty; bits 0-3: volume
 .proc write_out_volume
+
   ldy channelVolume,x
   bne chvol_nonzero
     and #$F0
@@ -1244,6 +1248,7 @@ not_vibrato = not_vibrato_rts
 
   cpy #MAX_CHANNEL_VOLUME
   bcs chvol_unchanged
+
     pha
     and #$0F
     sta out_volume

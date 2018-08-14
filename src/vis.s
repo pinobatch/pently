@@ -636,23 +636,29 @@ semitone_xhi = $0D
   sty oam_used
 
   ; Calculate palette based on attack injection
+.if ::PENTLY_USE_ATTACK_TRACK
   ldx #$20
   lda pently_vis_arpphase+0
   bmi pulse1_injected
+.endif
     ldx #$26
   pulse1_injected:
   stx vis_pulse1_color
 
+.if ::PENTLY_USE_ATTACK_TRACK
   ldx #$20
   lda pently_vis_arpphase+4
   bmi pulse2_injected
+.endif
     ldx #$2A
   pulse2_injected:
   stx vis_pulse2_color
 
+.if ::PENTLY_USE_ATTACK_TRACK
   ldx #$20
   lda pently_vis_arpphase+CH_TRI
   bmi tri_injected
+.endif
     ldx #$12
   tri_injected:
   stx vis_tri_color

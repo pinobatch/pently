@@ -159,12 +159,9 @@ instrument arg2bass
   decay 20
 
 instrument toot0
-  volume 4 7 8 8 7 5 3 2 1 1 0 
+  volume 4 7 8 8 7 5 3 2
   timbre 2
-
-instrument toot1
-  volume 4 7 8 8 7 5 0 
-  timbre 2
+  decay 8
 
 instrument stringlead
   volume 4 7 8 8 7 7 5 4 4 3 
@@ -175,12 +172,14 @@ instrument isopiano
     decay 2
     timbre 2 1
 
+; Don't decay-optimize this; it's used only by attack track
 instrument isotinkle
     volume 9 5 0
     timbre 2 1
 
 instrument isobeep
-    volume 8 8 8 8 8 8 8 0
+    volume 8
+    decay 18
     timbre 2
 
 instrument isobeepsq
@@ -665,12 +664,12 @@ song sticks
   play introbass
   play introdrum
 
-  pattern bassstart with toot1 on triangle
+  pattern bassstart with isobeep on triangle
     relative
     w4 g''2 g w8 f2 f4. w2.
   pattern bass with toot0 on triangle
     relative
-    @toot0 c4 @toot1 g'''2 g w8 f2 f4. w2.
+    @toot0 c4 @isobeep g'''2 g w8 f2 f4. w2.
   pattern chords1start with toot0 on pulse1
     relative
     w4 @toot0 c''2 bb w8 a2 a4. w2.
@@ -688,7 +687,7 @@ song sticks
 
   pattern v_iv_bass with toot0 on triangle
     relative
-    @toot0 g4 @toot1 g''2 g w8 bb2
+    @toot0 g4 @isobeep g''2 g w8 bb2
     bb w8 g2
     f w8 f2 f4.
     w2. @toot0 f,,
