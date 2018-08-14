@@ -31,8 +31,8 @@ objlistnsf := nsfshell \
 docs_md := usage bytecode pentlyas famitracker
 
 AS65 := ca65
+ASFLAGS65 :=
 LD65 := ld65
-CFLAGS65 := 
 objdir := obj/nes
 srcdir := src
 imgdir := tilesets
@@ -107,10 +107,10 @@ nsfmap.txt $(title).nsf: nsf.cfg $(objlistnsf) $(objdir)/$(scorename).o
 
 $(objdir)/%.o: \
   $(srcdir)/%.s $(srcdir)/nes.inc $(srcdir)/shell.inc $(srcdir)/pently.inc
-	$(AS65) $(CFLAGS65) $< -o $@
+	$(AS65) $(ASFLAGS65) $< -o $@
 
 $(objdir)/%.o: $(objdir)/%.s
-	$(AS65) $(CFLAGS65) $< -o $@
+	$(AS65) $(ASFLAGS65) $< -o $@
 
 # Files that depend on additional headers
 $(objdir)/musicseq.o $(objdir)/pentlymusic.o: $(srcdir)/pentlyseq.inc

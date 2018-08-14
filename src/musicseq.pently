@@ -172,7 +172,7 @@ instrument isopiano
     decay 2
     timbre 2 1
 
-; Don't decay-optimize this; it's used only by attack track
+# Don't decay-optimize this; it's used only by attack track
 instrument isotinkle
     volume 9 5 0
     timbre 2 1
