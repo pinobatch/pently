@@ -97,7 +97,9 @@ muterow = 56
   jsr load_song_title
 
   lda #0
-  sta vis_start_held
+  .if ::PENTLY_USE_REHEARSAL
+    sta vis_start_held
+  .endif
   sta vis_A_gesture_time
   sta vis_cursor_x
   lda #DIRTY_MUTE

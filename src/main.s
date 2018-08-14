@@ -198,14 +198,15 @@ forever:
     bpl :-
 
   ; Write beat marker
+  .if ::PENTLY_USE_BPMMATH
   lda #$23
   sta PPUADDR
   lda #$22
   sta PPUADDR
   lda pently_row_beat_part
   beq :+
-  lda #'.'^':'
-:
+    lda #'.'^':'
+  :
   eor #':'
   sta PPUDATA
   lda pently_row_beat_part
@@ -218,6 +219,7 @@ forever:
   and #$0F
   ora #'0'
   sta PPUDATA
+  .endif
   
   ; Turn the display on
   ldy #0
