@@ -1,5 +1,7 @@
 # The music of Concentration Room, Thwaite, Zap Ruder, and
 # RHDE: Furniture Fight
+# Uses arpeggio and attack phase
+# Does not use vibrato, portamento, attack track, or channel volume
 
 durations stick
 notenames english
@@ -134,9 +136,9 @@ sfx tennis_paddle on noise
   volume 6 4 2 1
   pitch 8 9 10 9
 
-drum sfxtesta ohat
-drum sfxtestb tennis_paddle
-drum sfxtestc clhat
+#drum sfxtesta ohat
+#drum sfxtestb tennis_paddle
+#drum sfxtestc clhat
 
 # Drums and pitched instruments #####################################
 
@@ -316,9 +318,9 @@ song croom_intro
     d#'2. c# b1.
     d#2. c# f#, g#
   
-  pattern drumtest
-    r2. r2. r2.
-    sfxtesta4 sfxtestb sfxtestc
+#  pattern drumtest
+#    r2. r2. r2.
+#    sfxtesta4 sfxtestb sfxtestc
 
   at 1:1
   play chords1
