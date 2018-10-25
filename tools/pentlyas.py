@@ -2285,7 +2285,7 @@ def parse_argv(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("infilename", nargs='?',
                         help='Pently-MML file to process or - for standard input; omit for period table only')
-    parser.add_argument("-o", metavar='OUTFILENAME',
+    parser.add_argument("-o", "--output", metavar='OUTFILENAME',
                         help='write output to a file instead of standard output')
     parser.add_argument("--periods", type=int, default=0,
                         metavar='LENGTH',
@@ -2293,7 +2293,7 @@ def parse_argv(argv):
     parser.add_argument("--period-region", default='ntsc',
                         choices=sorted(region_period_numerator.keys()),
                         help='make period table for this region (default: ntsc)')
-    parser.add_argument("--period-tuning", type=float, default=440.0,
+    parser.add_argument("-A", "--period-tuning", type=float, default=440.0,
                         metavar='FREQ',
                         help='frequency in Hz of A above middle C (default: 440)')
     parser.add_argument("--segment", default='RODATA',
@@ -2373,8 +2373,8 @@ def main(argv=None):
         lines.append('periodTableHi:')
         lines.extend(wrapdata((str(x >> 8) for x in periods), '.byt '))
 
-    is_stdout = not args.o or args.o == '-'
-    outfp = sys.stdout if is_stdout else open(args.o, 'w')
+    is_stdout = not args.output or args.output == '-'
+    outfp = sys.stdout if is_stdout else open(args.output, 'w')
     lines.append('')
     try:
         outfp.write('\n'.join(lines))

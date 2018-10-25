@@ -12,8 +12,8 @@ it in Finder or File Explorer won't do anything useful.
 Usage:
 
     pentlyas.py [-h] [-o OUTFILENAME] [--periods LENGTH]
-                [--period-region {dendy,ntsc,pal}]
-                [--period-tuning FREQ] [--segment SEGMENT]
+                [--period-region {dendy,ntsc,pal}] [-A FREQ]
+                [--segment SEGMENT] [--rehearse] [-v] [-W {error}]
                 [infilename]
 
 Arguments:
@@ -21,7 +21,9 @@ Arguments:
 * `infilename`  
   Score file to process or `-` for standard input; omit for period
   table only.
-* `-o OUTFILENAME`  
+* `-h`, `--help`  
+  Show this help message and exit.
+* `-o OUTFILENAME`, `--output OUTFILENAME`  
   Write assembly output to this file.  The default is `-`, for
   standard output.
 * `--periods NUMSEMITONES`  
@@ -29,13 +31,22 @@ Arguments:
   `NUMSEMITONES` is usually 64 to 80.
 * `--period-region {dendy,ntsc,pal}`  
   Make period table for this region (default: `ntsc`).
-* `--period-tuning FREQ`  
+* `-A FREQ`, `--period-tuning FREQ`  
   Set the frequency of the A above middle C (`a'`) in the period
-  table.  Common concert pitch is 440 Hz; some orchestras (and
-  NSD.lib) use 442 Hz.
+  table.  The default is "concert pitch" or 440.0 Hz; some orchestras
+  (and NSD.lib) use 442 Hz.  If less than 437.0 on `ntsc`, 433.0 on
+  `dendy`, or 405.9 on `pal`, the lowest possible notes may sound
+  out of tune.
 * `--segment SEGMENT`  
-  Places output in this ca65 `.segment`.  Useful if you are stashing
+  Place output in this ca65 `.segment`.  Useful if you are stashing
   Pently in its own bank of PRG ROM.
+* `--rehearse`  
+  Include rehearsal mark data in output.
+* `-v`, `--verbose`  
+  Print tracebacks and other verbose diagnostics on standard error.
+* `-W {error}`, `--warn {error}`  
+  Enable warning options.  Currently the only valid warning option
+  is `-Werror`, which treats warnings as errors.
 
 Overall structure
 =================
@@ -391,8 +402,8 @@ These commands can be used instead of a note:
 Note durations are fractions of a whole note, whose length depends
 on the `scale`.  Recognized note durations include `1`, `2`, `4`,
 `8`, `16`, and `32`, so long as it isn't shorter than one row.
-Durations may be augmented by 50% or 75% by adding `.` or `..`
-after the number.
+For example, `e4` is half as long as `e2`.  Durations may be
+augmented by 50% or 75% by adding `.` or `..` after the number.
 
 Duration is optional for each note, repeated chord, rest, or wait.
 The `durations` command controls how missing durations are assigned.
@@ -423,6 +434,8 @@ followed by a right parenthesis `)` represents the end of such a
 slurred group.  This is useful for tying notes together or producing
 legato (HOPO).  Slurring into a note with the same pitch is the same
 as a wait: `eb2~ eb8`, `eb2( eb8)`, and `eb2 w8` mean the same.
+
+Notes are separated by at least one space.
 
 A simple pattern might look like this:
 
@@ -493,8 +506,8 @@ Drums and other sound effects are unaffected.
 
 Songs
 =====
-Like patterns, songs also have `time` and `scale`.  They are used to
-interpret the `tempo` and `at` commands.
+Like patterns, songs also have `time` and `scale`.  They are used
+to interpret the `tempo` and `at` commands.
 
 The `song` command begins and names a song.  Song names are exported
 with the `PS_` suffix, such as `PS_twinkle`.  Use these values with
@@ -598,7 +611,8 @@ Rehearsal
 ---------
 The following commands primarily control playback in the NES ROM
 player (`pently.nes`).  They make the edit-build-listen cycle more
-convenient, but they're not that useful in games or NSF output.
+convenient, but they're not quite as useful in games or NSF output.
+Thus they are included in output only if `--rehearse` is specified.
 
 To add a **rehearsal mark** for navigation within a song, use the
 `mark` command after an `at`.  Each song can have up to 16 marks,
@@ -607,8 +621,6 @@ Each mark has a name of 1 to 25 ASCII (basic Latin) characters:
 
     at 65
     mark cadenza
-
-Two control
 
 The **`resume`** command starts playback in `pently.nes` from a
 specific point in one of the songs in a score.  The **`mute`**
