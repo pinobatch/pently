@@ -1,4 +1,4 @@
-0.05wip10 (future)
+0.05wip10 (2018-10-28)
 * Grace note durations no longer reduced by 1 frame
 * Always write period high byte for triangle, fixing problem with
   zero volume in instruments (#32, reported by NovaSquirrel)
@@ -23,6 +23,7 @@
   order in which they appear in the score (requested by NovaSquirrel)
 * pentlyas.py: error if no songs are defined (reported by
   NovaSquirrel)
+* pentlyas.py: -A means --period-tuning; --output means -o
 * mkrammap.py: rename to pentlybss.py to encourage remembering
   to include it when vendoring Pently
 * Profiler: don't overreport CPU use if the shell has a lag frame
