@@ -313,13 +313,14 @@ the pattern up a perfect fourth.  `TRANSPOSE,<-12` moves down an
 octave, with the `-` denoting negative and the `<` working around
 ca65's lack of support for signed bytes.
 
-The grace command shortens the next two rows to one row's length.
+The `GRACE` command shortens the next two rows to one row's length.
 The next byte specifies the length in frames of the first note in
-the pair.  Like the `EDx` command in MOD/XM or the `SDx` command in
-S3M/IT, it's designed for making an [acciaccatura] (grace note) or a
-set of triplets (3 notes in the time of 4).  For example, to play a
-short C note for 4 frames followed by a B flat that is as long as a
-quarter note minus 4 frames, do `GRACE,4,N_CH,N_BB|D_Q4`.
+the pair.  Like the `EDx` command in MOD/XM, `SDx` in S3M/IT, or
+`G0x` in FamiTracker, it's designed for making an [acciaccatura]
+(grace note) or a set of triplets (3 notes in the time of 4).
+For example, to play a short C note for 4 frames followed by a
+B flat that is as long as a quarter note minus 4 frames, do this:
+`GRACE,4,N_CH,N_BB|D_Q4`.
 
 The bend command controls pitch bend, also called portamento or pitch
 slide.  In `BEND,$xy`, `x` chooses the rate scale, and `y` chooses

@@ -40,6 +40,8 @@ PULSE1_CH = $00
 PULSE2_CH = $04
 TRIANGLE_CH = $08
 NOISE_CH = $0C
+SFX_CHANNEL_BITS = $0C
+ATTACK_TRACK = $10
 
 .if PENTLY_USE_MUSIC = 0
   PENTLYZP_SIZE = 16
@@ -140,7 +142,7 @@ sndrate   = pently_zptemp + 4
   lda pently_sfx_table+3,x
   sta sndlen
   lda pently_sfx_table+2,x
-  and #$0C
+  and #SFX_CHANNEL_BITS
   tax
 
   ; Split up square wave sounds between pulse 1 ($4000) and
@@ -179,7 +181,7 @@ sndrate   = pently_zptemp + 4
   .if ::PENTLY_USE_MUSIC
     jsr pently_update_music
   .endif
-  ldx #12
+  ldx #NOISE_CH
 loop:
   .if ::PENTLY_USE_MUSIC
     jsr pently_update_music_ch
@@ -190,7 +192,12 @@ loop:
   dex
   dex
   bpl loop
-  rts
+  .if ::PENTLY_USE_ATTACK_TRACK
+    ldx #ATTACK_TRACK
+    jmp pently_update_music_ch
+  .else
+    rts
+  .endif
 .endproc
 
 out_volume   = pently_zptemp + 2

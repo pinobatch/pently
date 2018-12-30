@@ -553,7 +553,8 @@ on an attack track must have an attack phase.  (This means its
 to sustain, not attack.)  To select a channel for the attack track,
 use `attack on pulse1`, `attack on pulse2`, or `attack on triangle`.
 (There is no channel called `titan`.)  It's not recommended to use
-attack on the same channel as the sound effects that make up drums.
+attack on the same channel as the sound effects that make up drums
+unless all the drums have a cutout for the attack.
 
 To **play a pattern,** use `play pattern_name`.  Pitched patterns
 default to the `pulse2` track; to specify another track, add

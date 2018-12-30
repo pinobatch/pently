@@ -907,10 +907,6 @@ out_pitchadd = pently_zptemp + 4
 ;   X: preserved
 .proc pently_update_music_ch
 
-  .if ::PENTLY_USE_VIS
-    lda #0
-    sta pently_vis_pitchlo,x
-  .endif
   lda pently_music_playing
   bne :+
     jmp silenced
@@ -922,7 +918,17 @@ out_pitchadd = pently_zptemp + 4
   bne nograce
     jsr processTrackPattern
   nograce:
+
+.if ::PENTLY_USE_ATTACK_TRACK
+  cpx #ATTACK_TRACK
+  bcs pently_play_note::skipAttackPart
+.endif
   
+.if ::PENTLY_USE_VIS
+  lda #0
+  sta pently_vis_pitchlo,x
+.endif
+
 .if ::PENTLY_USE_PORTAMENTO
   cpx #DRUM_TRACK
   bcs no_pitch_no_porta
