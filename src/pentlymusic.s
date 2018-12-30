@@ -710,8 +710,16 @@ set_fx_portamento:
 
 .if ::PENTLY_USE_CHANNEL_VOLUME
 set_fx_ch_volume:
-  lda (musicPatternPos,x)
-  sta channelVolume,x
+  .if ::PENTLY_USE_ATTACK_TRACK
+    ; Channel volume has no effect on attack track, yet it should be
+    ; explicitly ignored so that if attack and pulse share a pattern,
+    ; it doesn't clobber some other variable.
+    cpx #ATTACK_TRACK
+    bcs :+
+  .endif
+    lda (musicPatternPos,x)
+    sta channelVolume,x
+  :
   jmp nextPatternByte
 .else
   set_fx_ch_volume = nextPatternByte 
