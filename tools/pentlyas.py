@@ -990,6 +990,11 @@ class PentlySong(PentlyRenderable):
         self.rehearsal_marks[markname] = (self.total_rows, fileline)
         self.last_mark_rows = self.total_rows
 
+    def get_unclosed_msg(self):
+        file, line = self.fileline
+        return ("song %s began at %s line %d and was not ended with fine or dal segno"
+                % (self.name, file, line))
+
     def render(self, scopes):
         out = []
         for row in self.conductor:
@@ -1702,9 +1707,8 @@ Used to find the target of a time, scale, durations, or notenames command.
         if len(words) != 2:
             raise ValueError("must have 2 words: song SONGNAME")
         if self.cur_song:
-            file, line = self.cur_song.fileline
-            raise ValueError("song %s began at %s line %d and was not ended with fine or dal segno"
-                             % (self.cur_song.name, file, line))
+            raise ValueError(self.cur_song.get_unclosed_msg())
+        
         self.cur_obj = None
         songname = words[1]
         if songname in self.songs:
@@ -2338,7 +2342,7 @@ def main(argv=None):
         try:
             parser.extend(infp)
             if parser.cur_song:
-                parser.warn("song %s was not ended" % parser.cur_song.name)
+                parser.warn(parser.cur_song.get_unclosed_msg())
             lines.append('; Music from ' + display_filename)
             lines.extend(render_file(parser, args.segment))
             if args.rehearse:
