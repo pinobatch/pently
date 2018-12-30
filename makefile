@@ -11,7 +11,7 @@
 
 # These are used in the title of the NES program and the zip file.
 title := pently
-version := 0.05wip9
+version := 0.05wip10
 
 # Name of Pently score for main targets "pently.nes" and "pently.nsf"
 # is src/$(scorename).pently, such as src/musicseq.pently.

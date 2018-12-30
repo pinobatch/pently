@@ -1,3 +1,8 @@
+0.05wip11 (future)
+* Attack track allows grace notes (#35, reported by retrodpc)
+* Channel volume in attack track is ignored rather than clobbering
+  another variable (#35, reported by retrodpc)
+
 0.05wip10 (2018-10-28)
 * Grace note durations no longer reduced by 1 frame
 * Always write period high byte for triangle, fixing problem with
