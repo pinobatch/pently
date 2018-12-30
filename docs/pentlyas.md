@@ -417,13 +417,13 @@ The `durations` command controls how missing durations are assigned.
 Unless otherwise specified, the first notes in a pattern last one
 beat as defined by `time`.
 
-A note's duration can be set in frames (1/60 second) instead of
-rows using the `g` (grace note) command, with the following note
-taking the remainder of the row.  For example, `d4g e4 d2` produces
-a short D, an E taking the remainder of the quarter note, followed
-by a D half note.  Grace note durations never stick.  Be aware that
-grace notes longer than one row have poorly specified effects,
-particularly with the 20 percent longer frames of PAL.
+The `g` (grace note) command sets a note's duration in frames
+(1/60 second) instead of rows, with the following note taking
+the remainder of the row.  For example, `d4g e4 d2` produces a short
+D (lasting four frames), an E taking the remainder of the quarter
+note, followed by a D half note.  Grace note durations never stick.
+Be aware that grace notes longer than one row have poorly specified
+effects, particularly with the 20 percent longer frames of PAL.
 
 Chord is described below in the "Pattern effects" section.
 
