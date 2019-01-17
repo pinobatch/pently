@@ -218,14 +218,16 @@ pentlymusic_code_start = *
 .endproc
 .proc pently_resume_music
   lda #1
-have_music_playing:
+  ; Fall through
+.endproc
+.proc pently_set_music_playing
   sta pently_music_playing
   rts
 .endproc
 
 .proc pently_stop_music
   lda #0
-  beq pently_resume_music::have_music_playing
+  beq pently_set_music_playing
 .endproc
 
 .proc pently_update_music
@@ -786,7 +788,9 @@ set_fx_ch_volume:
   pla
   tax
   pla
-bottom:
+  ; fall through
+.endproc
+.proc pently_skip_to_row
   cpx pently_rowshi
   bne skip_to_row_top
   cmp pently_rowslo
@@ -798,7 +802,6 @@ bottom:
   sta noteEnvVol+DRUM_TRACK
   rts
 .endproc
-pently_skip_to_row = skip_to_row_top::bottom
 .endif
 
 ; Playing notes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -897,6 +900,9 @@ instrument_id = pently_zptemp + 1
 .endif
 
 skipAttackPart:
+  ; Fall through
+.endproc
+.proc pently_play_note_rts
   rts
 .endproc
 
@@ -917,7 +923,7 @@ out_pitchadd = pently_zptemp + 4
 
   lda pently_music_playing
   bne :+
-    jmp silenced
+    jmp set_ch_silent
   :
 
   lda graceTime,x
@@ -929,7 +935,7 @@ out_pitchadd = pently_zptemp + 4
 
 .if ::PENTLY_USE_ATTACK_TRACK
   cpx #ATTACK_TRACK
-  bcs pently_play_note::skipAttackPart
+  bcs pently_play_note_rts
 .endif
   
 .if ::PENTLY_USE_VIS
@@ -1016,7 +1022,7 @@ porta_not_injected:
   lsr a
   lsr a
   lsr a
-  beq silenced
+  beq set_ch_silent
   .if ::PENTLY_USE_CHANNEL_VOLUME
     jsr write_out_volume
   .else
@@ -1035,7 +1041,7 @@ porta_not_injected:
   lda noteEnvVol,x
   sec
   sbc pently_instruments+1,y
-  bcc silenced
+  bcc set_ch_silent
   sta noteEnvVol,x
 
   ; Detached (instrument attribute 2 bit 7):
@@ -1058,24 +1064,25 @@ porta_not_injected:
   cmp #LEGATO_ON
   beq notCutNote
   cmp #LEGATO_OFF
-  beq silenced
+  beq set_ch_silent
   and #$F8
   cmp #N_TIE
   beq notCutNote
   lda noteLegato,x
-  bne notCutNote
-  silenced:
-    lda #0
-    sta noteEnvVol,x
-    sta out_volume
-    rts
+  beq set_ch_silent
   notCutNote:
 
   lda chPitchHi,x
   sta out_pitch
   jmp add_pitch_effects
 .endproc
-silenced = sustain_phase::silenced
+
+.proc set_ch_silent
+  lda #0
+  sta noteEnvVol,x
+  sta out_volume
+  rts
+.endproc
 
 ;;
 ; Applies pitch effects (arpeggio, vibrato, and portamento)
