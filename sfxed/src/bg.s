@@ -463,7 +463,7 @@ loop:
 .endproc
 
 .proc prepare_rate_line
-xpos = $0A
+xpos = $0E
 snd_num = $0D
 
   jsr clearLineImg
