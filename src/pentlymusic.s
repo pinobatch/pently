@@ -53,6 +53,8 @@ MAX_TEMPO_SCALE = 8
   LAST_TRACK = DRUM_TRACK
 .endif
 
+PENTLY_USE_TEMPO_ROUNDING = PENTLY_USE_TEMPO_ROUNDING_SEGNO || (PENTLY_USE_TEMPO_ROUNDING_PLAY_CH > 0) || PENTLY_USE_TEMPO_ROUNDING_BEAT
+
 ; pently_zp_state (PENTLY_USE_ATTACK_PHASE = 1)
 ;       +0                +1                +2                +3
 ;  0  | Sq1 sound effect data ptr           Sq1 music pattern data ptr
@@ -300,6 +302,9 @@ music_not_playing:
     iny
     cpy pently_rows_per_beat
     bcc :+
+      .if ::PENTLY_USE_TEMPO_ROUNDING_BEAT
+        jsr round_to_beat
+      .endif
       ldy #0
     :
     sty pently_row_beat_part
@@ -331,6 +336,14 @@ doConductor:
     asl a
     asl a
     tax
+    .if ::PENTLY_USE_TEMPO_ROUNDING_PLAY_CH >= 0
+      cpx #PENTLY_USE_TEMPO_ROUNDING_PLAY_CH
+      bne not_round_ch
+        jsr round_to_beat
+        ldx #PENTLY_USE_TEMPO_ROUNDING_PLAY_CH
+        ldy #0
+      not_round_ch:
+    .endif
 
     lda #0
     cpx #ATTACK_TRACK
@@ -397,7 +410,7 @@ doConductor:
     sta conductorSegnoLo
     lda conductorPos+1
     sta conductorSegnoHi
-    jmp doConductor
+    jmp segno_round
   is_dalsegno:
     lda conductorSegnoLo
     sta conductorPos
@@ -407,6 +420,13 @@ doConductor:
       sec
       jsr pently_dalsegno_callback
     .endif
+    .if ::PENTLY_USE_TEMPO_ROUNDING_SEGNO
+    segno_round:
+      jsr round_to_beat
+    .else
+      segno_round = doConductor
+    .endif
+
     jmp doConductor
   not_loopcontrol:
 
@@ -1466,6 +1486,55 @@ is_decrease:
   bcc at_target
 .endproc
 
+.endif
+
+.if PENTLY_USE_TEMPO_ROUNDING
+;;
+; Rounds accumulated musical time within this row to either
+; zero or a full row.
+.proc round_to_beat
+  ; Calculate half a tick's worth of musical time
+  lda music_tempoHi
+  sta $4444
+  lsr a
+  tax
+  lda music_tempoLo
+  ror a
+  ; XXAA = half tick length
+
+  ; Musical time till next row = -tempoCounter
+  ; Calculate tempoCounter + halfTick
+  sbc pently_tempoCounterLo
+  tay
+  txa
+  sbc pently_tempoCounterHi
+  pha
+  ; Stack[1]:Y = Remaining musical time in row half a tick ago
+
+  ; If this is greater than FPM, it's greater than one row
+  ; and we should round DOWN.
+  ; Otherwise, round UP.
+  ldx tvSystem
+  tya
+  cmp pently_fpmLo,x
+  pla
+  sbc pently_fpmHi,x
+  ; C set to round DOWN; C clear to round UP
+
+  ldy #0
+  tya
+  bcs :+
+    lda music_tempoLo
+    ldy music_tempoHi
+    sec
+  :
+  sbc pently_fpmLo,x
+  sta pently_tempoCounterLo
+  tya
+  sbc pently_fpmHi,x
+  sta pently_tempoCounterHi
+  rts
+.endproc
 .endif
 
 

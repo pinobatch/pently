@@ -30,6 +30,16 @@ PENTLY_USE_ROW_CALLBACK = 0
 PENTLY_USE_VIS = 1
 PENTLY_USE_REHEARSAL = 1
 
+; Ensure more even tempo by rounding to the nearest beat
+; after certain musical events
+; Nonzero to round at loop point
+PENTLY_USE_TEMPO_ROUNDING_SEGNO = 0
+; Negative to disable, or 0, 4, 8, 12, 16 to round when a pattern is
+; started on pulse 1, pulse 2, triangle, noise, or dpcm
+PENTLY_USE_TEMPO_ROUNDING_PLAY_CH = -1
+; Nonzero to round at each beat
+PENTLY_USE_TEMPO_ROUNDING_BEAT = 0
+
 ; Should sound effects be selectable in the NSF?
 PENTLY_USE_NSF_SOUND_FX = 0
 

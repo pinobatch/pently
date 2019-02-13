@@ -4,6 +4,8 @@
 *.chr
 /pently.nes
 /pently.nsf
+/pino-a53.nes
+/pino-a53.nsf
 /obj/nes/*.s
 /obj/nes/pentlybss.inc
 /zip.in

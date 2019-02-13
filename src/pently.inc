@@ -112,6 +112,20 @@ PENTLY_USE_ATTACK_TRACK = PENTLY_USE_ATTACK_PHASE
 PENTLY_USE_BPMMATH = 1
 .endif
 
+.ifndef PENTLY_USE_TEMPO_ROUNDING_SEGNO
+PENTLY_USE_TEMPO_ROUNDING_SEGNO = 0
+.endif
+
+.ifndef PENTLY_USE_TEMPO_ROUNDING_PLAY_CH
+PENTLY_USE_TEMPO_ROUNDING_PLAY_CH = -1
+.endif
+
+.ifndef PENTLY_USE_TEMPO_ROUNDING_BEAT
+PENTLY_USE_TEMPO_ROUNDING_BEAT = 0
+.endif
+
+.assert (!PENTLY_USE_TEMPO_ROUNDING_BEAT) || PENTLY_USE_BPMMATH, error, "cannot use tempo rounding by beat without BPM math"
+
 ; Methods ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;

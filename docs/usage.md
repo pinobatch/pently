@@ -162,6 +162,13 @@ the triangle and noise channels.  Values range from 0 to 127, with
 0 making triangle and noise the loudest.  Programs using the DMC
 alongside Pently may want to set this to 64 or thereabouts.
 
+Three options enable workarounds for issues caused by fractional
+tempo by realigning the start of a tick and a row under certain
+conditions.  `PENTLY_USE_TEMPO_ROUNDING_SEGNO` realigns at the loop
+point, `PENTLY_USE_TEMPO_ROUNDING_PLAY_CH` realigns when a pattern is
+played on one channel, and `PENTLY_USE_TEMPO_ROUNDING_BEAT` realigns
+at the start of every beat.  (The last of these relies on BPM math.)
+
 In addition, `pently_zptemp` needs to point at a 5-byte area of
 zero page used as scratch space.  Set it in one of two ways:
 
@@ -209,6 +216,8 @@ Other features that save substantial ROM bytes:
   60 ROM bytes, 4 RAM bytes
 * `PENTLY_USE_BPMMATH`  
   30 ROM bytes, 2 RAM bytes
+* `PENTLY_USE_TEMPO_ROUNDING_*`  
+  56 ROM bytes
 
 `PENTLY_USE_MUSIC = 0` builds only the sound effects portion with
 no music support, such as for a tool to edit sound effects.  It is
@@ -380,6 +389,20 @@ fast and high to play them, and how much of the song to repeat when
 reaching the end.  This is the rough equivalent of an "order table"
 in a tracker, also incorporating some functions of the "conductor
 track" in a MIDI sequencer.
+
+Pently measures tempo in rows per minute, not ticks per row as is
+done in some other drivers.  Because ticks per row are rarely a whole
+number, Pently uses an algorithm similar to Bresenham line drawing to
+determine when to start the next row.  Every tick, it adds the tempo
+to a counter modulo the number of ticks per minute, and a new row
+begins when this counter wraps around.
+
+However, this makes rows slightly uneven in length.  Repeated notes
+on detached instruments make this difference particularly audible if
+ticks per row are close to an odd number.  In addition, some NSF
+players can detect a repeating song by comparing RAM contents to
+earlier ticks, but variations in fractions of a tick can confuse loop
+detection.  Configuration can enable one of three workarounds.
 
 ### Patterns
 
