@@ -24,10 +24,7 @@ scorename := musicseq
 objlist := main \
   pads ppuclear paldetect math bpmmath profiler vis \
   pentlysound pentlymusic
-objlistnsf := nsfshell \
-  pentlysound pentlymusic
-objlistnsfe := nsfeshell \
-  pentlysound pentlymusic
+objlistnsf := pentlysound pentlymusic
 
 # List of documents included in zipfile
 docs_md := usage bytecode pentlyas famitracker
@@ -91,25 +88,24 @@ $(objdir)/index.txt: makefile
 
 objlisto := $(foreach o,$(objlist),$(objdir)/$(o).o)
 objlistnsf := $(foreach o,$(objlistnsf),$(objdir)/$(o).o)
-objlistnsfe := $(foreach o,$(objlistnsfe),$(objdir)/$(o).o)
 
 all: $(title).nes $(title).nsf $(title).nsfe
 
 # These two build the main binary target
-map.txt $(title).nes: nrom128.cfg $(objlisto) $(objdir)/$(scorename)-rmarks.o
+map.txt $(title).nes: nrom128.cfg $(objlisto) $(objdir)/tracknames-$(scorename).o $(objdir)/$(scorename)-rmarks.o
 	$(LD65) -o $(title).nes -C $^ -m map.txt
 
-nsfmap.txt $(title).nsf: nsf.cfg $(objlistnsf) $(objdir)/$(scorename).o
+nsfmap.txt $(title).nsf: nsf.cfg $(objdir)/nsfshell-$(scorename).o $(objlistnsf) $(objdir)/$(scorename).o
 	$(LD65) -o $(title).nsf -C $^ -m nsfmap.txt
 
 nsfemap.txt $(title).nsfe: nsfe.cfg $(objlistnsfe) $(objdir)/$(scorename).o
 	$(LD65) -o $(title).nsfe -C $^ -m nsfemap.txt
 
 # These two are for "make pino-a53.nsf" functionality
-%.nes: nrom128.cfg $(objlisto) $(objdir)/%-rmarks.o
+%.nes: nrom128.cfg $(objlisto) $(objdir)/tracknames-%.o $(objdir)/%-rmarks.o
 	$(LD65) -o $@ -C $^
 
-%.nsf: nsf.cfg $(objlistnsf) $(objdir)/%.o
+%.nsf: nsf.cfg $(objdir)/nsfshell-%.o $(objlistnsf) $(objdir)/%.o
 	$(LD65) -o $@ -C $^
 
 %.nsfe: nsfe.cfg $(objlistnsfe) $(objdir)/%.o
@@ -125,13 +121,16 @@ $(objdir)/%.o: $(objdir)/%.s
 # Files that depend on additional headers
 $(objdir)/musicseq.o $(objdir)/pentlymusic.o: $(srcdir)/pentlyseq.inc
 $(objdir)/pentlysound.o $(objdir)/pentlymusic.o \
-$(objdir)/bpmmath.o $(objdir)/nsfshell.o $(objdir)/nsfeshell.o \
-$(objdir)/vis.o $(objdir)/main.o: \
+$(objdir)/bpmmath.o $(objdir)/vis.o $(objdir)/main.o \
+$(objdir)/nsfeshell.o: \
   $(srcdir)/pentlyconfig.inc
+$(objdir)/nsfshell-%.o: $(srcdir)/pentlyconfig.inc
+
 $(objdir)/pentlymusic.o: $(objdir)/pentlybss.inc
 
 # Files that depend on .incbin'd files
-$(objdir)/main.o: tracknames.txt $(objdir)/bggfx.chr $(objdir)/spritegfx.chr
+$(objdir)/main.o: \
+  $(srcdir)/pentlyconfig.inc $(objdir)/bggfx.chr $(objdir)/spritegfx.chr
 
 # Build RAM map
 $(objdir)/pentlybss.inc: tools/pentlybss.py $(srcdir)/pentlyconfig.inc
@@ -139,9 +138,17 @@ $(objdir)/pentlybss.inc: tools/pentlybss.py $(srcdir)/pentlyconfig.inc
 
 # Translate music project
 $(objdir)/%.s: tools/pentlyas.py src/%.pently
-	$(PY) $^ -o $@ --periods 76
+	$(PY) $^ -o $@ --write-inc $(@:.s=-titles.inc) --periods 76
+$(objdir)/%-titles.inc: $(objdir)/%.s
+	touch $@
+$(objdir)/nsfshell-%.s: $(objdir)/%-titles.inc $(srcdir)/nsfshell.s
+	cat $^ > $@
+
 $(objdir)/%-rmarks.s: tools/pentlyas.py src/%.pently
-	$(PY) $^ -o $@ --periods 76 --rehearse
+	$(PY) $^ -o $@ --write-inc $(@:-rmarks.s=-titles.inc) --periods 76 --rehearse
+$(objdir)/tracknames-%.s: $(objdir)/%-titles.inc $(srcdir)/tracknames.s
+	cat $^ > $@
+
 
 # Rules for CHR ROM
 

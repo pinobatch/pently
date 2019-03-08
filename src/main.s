@@ -504,10 +504,6 @@ xpos = 3
 .endproc
 
 .segment "RODATA"
-tracknames_txt:
-  .incbin "tracknames.txt"
-  .byt 0
-
 bytes_txt:
   .byt "ROM:"
   .byt '0'|<((PENTLY_SIZE / 1000) .MOD 10)

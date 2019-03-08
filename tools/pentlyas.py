@@ -2296,6 +2296,7 @@ def render_file(parser, segment='RODATA'):
         for (k, v) in sorted(songbytes.items())
         if k
     )
+
     lines.append('')
     return lines
 
@@ -2393,6 +2394,7 @@ def render_include_file(parser):
     )
     lines.append(".endmacro")
 
+    lines.append('')
     return lines
 
 # Period table generation ###########################################

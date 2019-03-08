@@ -3,6 +3,10 @@
 # Uses arpeggio and attack phase
 # Does not use vibrato, portamento, attack track, or channel volume
 
+title Pin Eight NES OST
+author DJ Tepples
+copyright 2009-2015 Damian Yerrick
+
 durations stick
 notenames english
 
@@ -299,6 +303,7 @@ instrument axe_echo_tri
 # Songs: Concentration Room #########################################
 
 song croom_intro
+  title CRoom intro
   time 3/4
   tempo 110
   scale 8
@@ -332,6 +337,7 @@ song croom_intro
   da capo
 
 song croom_cleared
+  title CRoom stage clear
   time 6/8
   tempo 120
   scale 8
@@ -347,7 +353,7 @@ song croom_cleared
   play melody
   play bass
   play bass on triangle with v02 up 24
-  at 2:2:2
+  at 3
   fine
   
 
@@ -355,6 +361,8 @@ song croom_cleared
 # This is the famous first eight bars of the second movement of
 # Beethoven's "Pathetique" done in 9/8 like ACWW 2am.
 song thwaite_0200
+  title Thwaite 02:00
+  author L. van Beethoven, arr. D. Yerrick
   time 9/8
   scale 8
   tempo 100
@@ -415,6 +423,7 @@ song thwaite_0200
 
 # 03:00 theme
 song thwaite_0300
+  title Thwaite 03:00
   time 12/8
   tempo 100
   scale 8
@@ -467,6 +476,7 @@ song thwaite_0300
 
 # 04:00 theme
 song thwaite_0400
+  title Thwaite 04:00
   time 12/8
   tempo 100
   scale 8
@@ -521,6 +531,8 @@ song thwaite_0400
 # "Pathetique" combined with rhythms from ACPG 5am.
 # This was one of the last things to fill 0.03's PRG ROM.
 song thwaite_0500
+  title Thwaite 05:00
+  author L. van Beethoven, arr. D. Yerrick
   time 12/8
   tempo 100
   scale 8
@@ -561,6 +573,7 @@ song thwaite_0500
   dal segno
 
 song thwaite_1600
+  title Thwaite 16:00
   time 12/8
   tempo 100
   scale 8
@@ -599,6 +612,8 @@ song thwaite_1600
   da capo
 
 song thwaite_town_tune
+  title Thwaite town tune (clear)
+  author Joseph Jowett
   time 4/4
   tempo 60
   scale 4
@@ -614,6 +629,7 @@ song thwaite_town_tune
   fine
 
 song tennis_win_point
+  title Tennis win point
   time 4/4
   tempo 150
   scale 16
@@ -641,6 +657,7 @@ song tennis_win_point
   fine
 
 song tennis_win_game
+  title Tennis win game
   time 4/4
   tempo 224
   scale 16
@@ -667,6 +684,7 @@ song tennis_win_game
   fine
 
 song axe_beat
+  title Axe beat
   time 4/4
   tempo 128.75
   scale 16
@@ -700,6 +718,8 @@ song axe_beat
   da capo
 
 song rhde_battle
+  title RHDE battle
+  author The Eighth Bit
   time 12/8
   tempo 156
   scale 8
@@ -808,6 +828,8 @@ song rhde_battle
   da capo
 
 song rhde_kalinka
+  title RHDE Kalinka
+  author I. Larionov, arr. D. Yerrick
   time 4/4
   tempo 140
   scale 16
