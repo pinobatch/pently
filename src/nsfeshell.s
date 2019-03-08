@@ -70,13 +70,13 @@ auth_start:
 auth_end:
 
   ; tlbl, taut: NUL-terminated song titles and authors
-  dword tlbl_end-tlbl_start
+  .dword tlbl_end-tlbl_start
   .byt "tlbl"
 tlbl_start:
   PENTLY_WRITE_SONG_TITLES $00
 tlbl_end:
 
-  dword taut_end-taut_start
+  .dword taut_end-taut_start
   .byt "taut"
 taut_start:
   PENTLY_WRITE_SONG_AUTHORS $00
