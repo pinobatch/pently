@@ -21,6 +21,10 @@
 # 3. This notice may not be removed or altered from any source distribution.
 #
 
+title Pently demo
+author DJ Tepples
+copyright 2019 Damian Yerrick
+
 durations stick
 notenames english
 
@@ -199,6 +203,7 @@ instrument isobeepsq
 # documentary
 
 song argument
+  title Argument?
   time 3/4
   scale 8
   tempo 180
@@ -624,7 +629,7 @@ song Isometry
 # from picking up sticks video
 # By Damian Yerrick
 
-song sticks
+song Sticks
   time 12/8
   scale 16
   tempo 100
@@ -737,6 +742,8 @@ song sticks
 # Pre-1800
 
 song twinkle
+  title The Naive Confidence
+  author traditional; arr. D. Yerrick
   time 6/8
   scale 8
 
@@ -783,6 +790,8 @@ song twinkle
 # By Johann Pachelbel, pre-1800
 
 song canon
+  title Canon in D
+  author J. Pachelbel; arr. D. Yerrick
   time 4/4
   scale 32
   tempo 56.25
@@ -906,6 +915,7 @@ song canon
 # By Damian Yerrick, 2015
 
 song bf98
+  title Happy Flappy Crappy
   time 9/8
   scale 8
   tempo 133.3
@@ -1067,6 +1077,7 @@ song bf98
 # (chord names, single-note, top interval relative, inversion)
 # by Damian Yerrick, 2017
 song arp_waltz
+  title Arpeggio Waltz
   time 3/4	
   scale 4
   tempo 180
@@ -1135,6 +1146,7 @@ song arp_waltz
 # By Damian Yerrick, 2015
 
 song allfeatures
+  title Individual features
   time 12/8
   scale 16
   tempo 120
@@ -1178,7 +1190,7 @@ song allfeatures
 # by Damian Yerrick, 2015
 # If anything, inspired by "Little Brown Jug"
 
-song stairs
+song Stairs
   time 12/8
   scale 8
   tempo 100
@@ -1247,6 +1259,7 @@ song stairs
 # for NES, but Greg Caldwell of Retrotainment Games said "It's
 # different enough" in a Skype conversation on June 19, 2016
 song attacktest
+  title Attack injection (no pulse!)
   time 12/4
   scale 8
   tempo 85.9

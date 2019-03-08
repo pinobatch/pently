@@ -4,7 +4,7 @@
 # Pently audio engine
 # Music assembler
 #
-# Copyright 2015-2017 Damian Yerrick
+# Copyright 2015-2019 Damian Yerrick
 # 
 # This software is provided 'as-is', without any express or implied
 # warranty.  In no event will the authors be held liable for any damages
@@ -853,6 +853,7 @@ class PentlySong(PentlyRenderable):
         self.bytesize = 2
         self.rehearsal_marks = {}
         self.total_rows = self.last_mark_rows = 0
+        self.title = self.author = ""
 
     def wait_rows(self, rows_to_wait):
         """Updates the tempo and beat duration if needed, then waits some rows."""
@@ -1502,6 +1503,7 @@ class PentlyInputParser(object):
         self.unk_keywords = self.total_lines = 0
         self.warnings = []
         self.filename = filename or os.path.basename(sys.argv[0])
+        self.title = self.author = self.copyright = "<?>"
 
     def append(self, s):
         """Parse one line of code."""
@@ -1566,6 +1568,29 @@ Used to find the target of a time, scale, durations, or notenames command.
                 else self.cur_song
                 if self.cur_song is not None
                 else self)
+
+    def add_title(self, words):
+        self.cur_obj = None
+        title = " ".join(words[1:])
+        if self.cur_song:
+            self.cur_song.title = title
+        else:
+            self.title = title
+
+    def add_author(self, words):
+        self.cur_obj = None
+        title = " ".join(words[1:])
+        if self.cur_song:
+            self.cur_song.author = title
+        else:
+            self.author = title
+
+    def add_copyright(self, words):
+        self.cur_obj = None
+        title = " ".join(words[1:])
+        if self.cur_song:
+            raise ValueError("copyright must be at top level, not song")
+        self.copyright = title
 
     def add_notenames(self, words):
         if len(words) != 2:
@@ -1719,6 +1744,7 @@ Used to find the target of a time, scale, durations, or notenames command.
                           name=songname, orderkey=self.total_lines,
                           fileline=tuple(self.filelinestack[-1]),
                           warn=self.warn)
+        song.title = songname  # default songname
         self.cur_song = self.songs[songname] = song
 
     def end_song(self, words):
@@ -1951,6 +1977,9 @@ Used to find the target of a time, scale, durations, or notenames command.
         'notenames': add_notenames,
         'durations': add_durations,
         'mmloctaves': add_mmloctaves,
+        'title': add_title,
+        'author': add_author,
+        'copyright': add_copyright,
         'sfx': add_sfx,
         'volume': add_volume,
         'rate': add_rate,
@@ -2175,6 +2204,10 @@ def render_file(parser, segment='RODATA'):
     }
 
     lines = [
+        '; title: ' + parser.title,
+        '; author: ' + parser.author,
+        '; copyright: ' + parser.copyright,
+        ';',
         '.include "../../src/pentlyseq.inc"',
         '.segment "%s"' % segment,
         'NUM_SONGS=%d' % len(parser.songs),
@@ -2266,6 +2299,102 @@ def render_file(parser, segment='RODATA'):
     lines.append('')
     return lines
 
+def ca65_escape_bytes(blo):
+    """Encode an iterable of ints in 0-255, mostly ASCII, for ca65 .byte statement"""
+    runs = []
+    for c in blo:
+        if 32 <= c <= 126 and c != 34:
+            if runs and isinstance(runs[-1], bytearray):
+                runs[-1].append(c)
+            else:
+                runs.append(bytearray([c]))
+        else:
+            runs.append(c)
+    return ','.join('"%s"' % r.decode('ascii')
+                    if isinstance(r, bytearray)
+                    else '%d' % r
+                    for r in runs)
+
+def bytes_strcpy(b, length):
+    """Crop or NUL-pad to exactly length bytes"""
+    b = b[:32]
+    return bytes(b) + bytes(32 - len(b))
+
+def render_include_file(parser):
+    title_utf8 = parser.title.encode("utf-8")
+    author_utf8 = parser.author.encode("utf-8")
+    copyright_utf8 = parser.copyright.encode("utf-8")
+
+    lines = [
+        '; title: ' + parser.title,
+        '; author: ' + parser.author,
+        '; copyright: ' + parser.copyright,
+        ';',
+        'NUM_SONGS=%d' % len(parser.songs),
+        'NUM_SOUNDS=%d' % len(parser.sfxs),
+        "",
+        ".macro PENTLY_WRITE_NSFE_TITLE",
+        "  .byte "+ca65_escape_bytes(title_utf8),
+        ".endmacro",
+        ".macro PENTLY_WRITE_NSFE_AUTHOR",
+        "  .byte "+ca65_escape_bytes(author_utf8),
+        ".endmacro",
+        ".macro PENTLY_WRITE_NSFE_COPYRIGHT",
+        "  .byte "+ca65_escape_bytes(copyright_utf8),
+        ".endmacro",
+        ".macro PENTLY_WRITE_NSF_TITLE",
+        "  .byte "+ca65_escape_bytes(bytes_strcpy(title_utf8, 32)),
+        ".endmacro",
+        ".macro PENTLY_WRITE_NSF_AUTHOR",
+        "  .byte "+ca65_escape_bytes(bytes_strcpy(author_utf8, 32)),
+        ".endmacro",
+        ".macro PENTLY_WRITE_NSF_COPYRIGHT",
+        "  .byte "+ca65_escape_bytes(bytes_strcpy(copyright_utf8, 32)),
+        ".endmacro",
+        "",
+    ]
+
+    # Assembly names of everything
+    parts_to_print = [parser.sfxs, parser.instruments, parser.songs]
+    parts_to_print = [
+        sorted(objs.values(), key=lambda x: x.orderkey)
+        for objs in parts_to_print
+    ]
+    songs = parts_to_print[2]
+    for objs in parts_to_print:
+        lines.extend(
+            "%s = %i" % (obj.asmname, i) for i, obj in enumerate(objs)
+        )
+
+    # Macros to write song names
+    lines.append(".macro PENTLY_WRITE_SONG_TITLES terminator")
+    lines.extend(
+        "PSTITLE_%d: .byte %s, terminator"
+        % (i, ca65_escape_bytes(song.title.encode("utf-8")))
+        for i, song in enumerate(songs)
+    )
+    lines.append(".endmacro")
+    lines.append(".macro PENTLY_WRITE_SONG_TITLE_PTRS")
+    lines.extend(
+        "  .addr PSTITLE_%d" % i for i in range(len(songs))
+    )
+    lines.append(".endmacro")
+
+    lines.append(".macro PENTLY_WRITE_SONG_AUTHORS terminator")
+    lines.extend(
+        "PSAUTHOR_%d: .byte %s, terminator"
+        % (i, ca65_escape_bytes((song.author or parser.author).encode("utf-8")))
+        for i, song in enumerate(songs)
+    )
+    lines.append(".endmacro")
+    lines.append(".macro PENTLY_WRITE_SONG_AUTHOR_PTRS")
+    lines.extend(
+        "  .addr PSAUTHOR_%d" % i for i in range(len(songs))
+    )
+    lines.append(".endmacro")
+
+    return lines
+
 # Period table generation ###########################################
 
 region_period_numerator = {
@@ -2291,6 +2420,8 @@ def parse_argv(argv):
                         help='Pently-MML file to process or - for standard input; omit for period table only')
     parser.add_argument("-o", "--output", metavar='OUTFILENAME',
                         help='write output to a file instead of standard output')
+    parser.add_argument("--write-inc", metavar='INCFILENAME',
+                        help='write metadata as include file')
     parser.add_argument("--periods", type=int, default=0,
                         metavar='LENGTH',
                         help='include a period table in the output; LENGTH is usually 64 to 80')
@@ -2312,6 +2443,8 @@ def parse_argv(argv):
     args.warn = set(args.warn or [])
     if not args.infilename and not args.periods:
         parser.error('at least one of infilename and --periods is required')
+    if args.write_inc and not args.infilename:
+        parser.error("cannot write include file without infilename")
     if args.periods < 0:
         parser.error('NUMSEMITONES cannot be negative')
     if args.periods > 88:
@@ -2385,6 +2518,10 @@ def main(argv=None):
     finally:
         if not is_stdout:
             outfp.close()
+    if args.write_inc:
+        lines = render_include_file(parser)
+        with open(args.write_inc, "w") as outfp:
+            outfp.write("\n".join(lines))
 
 if __name__=='__main__':
 ##    main(["pentlyas", "../src/musicseq.pently"])
