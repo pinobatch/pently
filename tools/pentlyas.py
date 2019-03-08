@@ -997,7 +997,9 @@ class PentlySong(PentlyRenderable):
                 % (self.name, file, line))
 
     def render(self, scopes):
-        out = []
+        out = ['; title: '+self.title]
+        if self.author:
+            out.append('; author: '+self.author)
         for row in self.conductor:
             if isinstance(row, str):
                 out.append(row)
@@ -1979,6 +1981,7 @@ Used to find the target of a time, scale, durations, or notenames command.
         'mmloctaves': add_mmloctaves,
         'title': add_title,
         'author': add_author,
+        'artist': add_author,
         'copyright': add_copyright,
         'sfx': add_sfx,
         'volume': add_volume,

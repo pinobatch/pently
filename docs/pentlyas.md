@@ -16,16 +16,22 @@ Usage:
                 [--segment SEGMENT] [--rehearse] [-v] [-W {error}]
                 [infilename]
 
-Arguments:
+Positional arguments:
 
 * `infilename`  
   Score file to process or `-` for standard input; omit for period
   table only.
+
+Optional arguments:
+
 * `-h`, `--help`  
   Show this help message and exit.
 * `-o OUTFILENAME`, `--output OUTFILENAME`  
   Write assembly output to this file.  The default is `-`, for
   standard output.
+* `--write-inc INCFILENAME`
+  Write title and author metadata as an include file, made mostly of
+  macros.
 * `--periods NUMSEMITONES`  
   Include an equal-temperament period table in the output;
   `NUMSEMITONES` is usually 64 to 80.
@@ -75,6 +81,11 @@ such as `c#`.
 The **`include`** command pastes another text file into a score.
 You can use this to refer to a library of sound effects, drums,
 instruments, or chord definitions.
+
+The **`title`, `author`, and `copyright`** commands define the
+corresponding field of the NSF or NSFe file.  Traditionally, the
+`copyright` field contains the year followed by the publisher.
+You can use `artist` as a synonym for `author`.
 
 Defining pitches
 ================
@@ -512,6 +523,11 @@ to interpret the `tempo` and `at` commands.
 The `song` command begins and names a song.  Song names are exported
 with the `PS_` suffix, such as `PS_twinkle`.  Use these values with
 `pently_start_music`.
+
+The **`title` and `author`** commands can be used within a song.
+NSFe files reflect each song's title and author, and the NES file
+displays a list of titles.  If a title is not specified, the song's
+object name is used.
 
 Patterns may be defined inside or outside a song.  A pattern defined
 inside a song inherits the song's `time` and `scale`.  If a pattern

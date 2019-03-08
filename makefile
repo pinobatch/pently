@@ -98,7 +98,7 @@ map.txt $(title).nes: nrom128.cfg $(objlisto) $(objdir)/tracknames-$(scorename).
 nsfmap.txt $(title).nsf: nsf.cfg $(objdir)/nsfshell-$(scorename).o $(objlistnsf) $(objdir)/$(scorename).o
 	$(LD65) -o $(title).nsf -C $^ -m nsfmap.txt
 
-nsfemap.txt $(title).nsfe: nsfe.cfg $(objlistnsfe) $(objdir)/$(scorename).o
+nsfemap.txt $(title).nsfe: nsfe.cfg $(objdir)/nsfeshell-$(scorename).o $(objlistnsf) $(objdir)/$(scorename).o
 	$(LD65) -o $(title).nsfe -C $^ -m nsfemap.txt
 
 # These two are for "make pino-a53.nsf" functionality
@@ -108,7 +108,7 @@ nsfemap.txt $(title).nsfe: nsfe.cfg $(objlistnsfe) $(objdir)/$(scorename).o
 %.nsf: nsf.cfg $(objdir)/nsfshell-%.o $(objlistnsf) $(objdir)/%.o
 	$(LD65) -o $@ -C $^
 
-%.nsfe: nsfe.cfg $(objlistnsfe) $(objdir)/%.o
+%.nsfe: nsfe.cfg $(objdir)/nsfeshell-%.o $(objlistnsf) $(objdir)/%.o
 	$(LD65) -o $@ -C $^
 
 $(objdir)/%.o: \
@@ -142,6 +142,8 @@ $(objdir)/%.s: tools/pentlyas.py src/%.pently
 $(objdir)/%-titles.inc: $(objdir)/%.s
 	touch $@
 $(objdir)/nsfshell-%.s: $(objdir)/%-titles.inc $(srcdir)/nsfshell.s
+	cat $^ > $@
+$(objdir)/nsfeshell-%.s: $(objdir)/%-titles.inc $(srcdir)/nsfeshell.s
 	cat $^ > $@
 
 $(objdir)/%-rmarks.s: tools/pentlyas.py src/%.pently
