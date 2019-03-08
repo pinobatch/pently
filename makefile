@@ -26,6 +26,8 @@ objlist := main \
   pentlysound pentlymusic
 objlistnsf := nsfshell \
   pentlysound pentlymusic
+objlistnsfe := nsfeshell \
+  pentlysound pentlymusic
 
 # List of documents included in zipfile
 docs_md := usage bytecode pentlyas famitracker
@@ -79,6 +81,7 @@ zip.in:
 	git ls-files | grep -e "^[^.]" > $@
 	echo pently.nes >> $@
 	echo pently.nsf >> $@
+	echo pently.nsfe >> $@
 	echo zip.in >> $@
 
 $(objdir)/index.txt: makefile
@@ -88,8 +91,9 @@ $(objdir)/index.txt: makefile
 
 objlisto := $(foreach o,$(objlist),$(objdir)/$(o).o)
 objlistnsf := $(foreach o,$(objlistnsf),$(objdir)/$(o).o)
+objlistnsfe := $(foreach o,$(objlistnsfe),$(objdir)/$(o).o)
 
-all: $(title).nes $(title).nsf
+all: $(title).nes $(title).nsf $(title).nsfe
 
 # These two build the main binary target
 map.txt $(title).nes: nrom128.cfg $(objlisto) $(objdir)/$(scorename)-rmarks.o
@@ -98,11 +102,17 @@ map.txt $(title).nes: nrom128.cfg $(objlisto) $(objdir)/$(scorename)-rmarks.o
 nsfmap.txt $(title).nsf: nsf.cfg $(objlistnsf) $(objdir)/$(scorename).o
 	$(LD65) -o $(title).nsf -C $^ -m nsfmap.txt
 
+nsfemap.txt $(title).nsfe: nsfe.cfg $(objlistnsfe) $(objdir)/$(scorename).o
+	$(LD65) -o $(title).nsfe -C $^ -m nsfemap.txt
+
 # These two are for "make pino-a53.nsf" functionality
 %.nes: nrom128.cfg $(objlisto) $(objdir)/%-rmarks.o
 	$(LD65) -o $@ -C $^
 
 %.nsf: nsf.cfg $(objlistnsf) $(objdir)/%.o
+	$(LD65) -o $@ -C $^
+
+%.nsfe: nsfe.cfg $(objlistnsfe) $(objdir)/%.o
 	$(LD65) -o $@ -C $^
 
 $(objdir)/%.o: \
@@ -115,7 +125,8 @@ $(objdir)/%.o: $(objdir)/%.s
 # Files that depend on additional headers
 $(objdir)/musicseq.o $(objdir)/pentlymusic.o: $(srcdir)/pentlyseq.inc
 $(objdir)/pentlysound.o $(objdir)/pentlymusic.o \
-$(objdir)/bpmmath.o $(objdir)/nsfshell.o $(objdir)/vis.o $(objdir)/main.o: \
+$(objdir)/bpmmath.o $(objdir)/nsfshell.o $(objdir)/nsfeshell.o \
+$(objdir)/vis.o $(objdir)/main.o: \
   $(srcdir)/pentlyconfig.inc
 $(objdir)/pentlymusic.o: $(objdir)/pentlybss.inc
 

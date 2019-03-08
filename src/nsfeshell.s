@@ -22,39 +22,80 @@
 ;
 
 .import pently_init, pently_start_sound, pently_start_music, pently_update
-.import __ROM7_START__
+.import __ROM7_START__, __ROM7_LAST__
 .importzp NUM_SONGS, NUM_SOUNDS
 .exportzp psg_sfx_state, tvSystem
 
 .include "pentlyconfig.inc"
 
-.segment "NSFHDR"
-  .byt "NESM", $1A, $01  ; signature
-  .if PENTLY_USE_NSF_SOUND_FX
-    .byt NUM_SONGS+NUM_SOUNDS
-  .else
-    .byt NUM_SONGS
-  .endif
-  .byt 1  ; first song to play
+.segment "NSFEHEADER"
+  .byt "NSFE"  ; signature
+
+  ; INFO chunk: load, init, and run addresses
+  .dword INFO_end-INFO_start
+  .byt "INFO"
+INFO_start:
   .addr __ROM7_START__  ; load address (should match link script)
   .addr init_sound_and_music
   .addr pently_update
-names_start:
-  .byt "Pently demo"
-  .res names_start+32-*, $00
-  .byt "DJ Tepples"
-  .res names_start+64-*, $00
-  .byt "2017 Damian Yerrick"
-  .res names_start+96-*, $00
-  .word 16640  ; NTSC frame length (canonically 16666)
-  .byt $00,$00,$00,$00,$00,$00,$00,$00  ; bankswitching disabled
-  .word 19998  ; PAL frame length  (canonically 20000)
   .if PENTLY_USE_PAL_ADJUST
     .byt $02  ; NTSC/PAL dual compatible; NTSC preferred
   .else
     .byt $00  ; NTSC only
   .endif
-  .byt $00  ; Famicom mapper sound not used
+  .byt $00 ; no Famicom expansion sound
+
+  .if PENTLY_USE_NSF_SOUND_FX
+    .byt NUM_SONGS+NUM_SOUNDS
+  .else
+    .byt NUM_SONGS
+  .endif
+  .byt 0  ; first song to play
+INFO_end:
+
+  ; auth chunk contains up to four UTF8-encoded, NUL-terminated
+  ; strings in this order: title, artist, year and publisher, ripper
+  .dword auth_end-auth_start
+  .byt "auth"
+auth_start:
+  .byt "Pently demo"
+  .byt $00
+  .byt "DJ Tepples"
+  .byt $00
+  .byt "2017 Damian Yerrick"
+  .byt $00
+auth_end:
+
+  ; Mark sound effects as such so that a player can construct "all
+  ; songs" and "all sound effects" playlists
+  ; TODO once pentlyas gains nsfshelldata output, as the length of
+  ; this chunk depends on the score, which is currently .import'd
+  ; as opposed to being a constant
+  .if 0  ; PENTLY_USE_NSF_SOUND_FX
+    .dword NUM_SOUNDS
+    .byt "psfx"
+    .repeat NUM_SOUNDS, I
+      .byte NUM_SONGS + I
+    .endrepeat
+  .endif
+
+  ; Show off Dendy compatibility if enabled
+  .if PENTLY_USE_PAL_ADJUST
+    .dword 2
+    .byt "regn"
+    .byt $07, $00
+  .endif
+
+  ; this chunk MUST occur after INFO, but due to the structure of the
+  ; link script, it must occur last in the NSFEHEADER
+  .dword __ROM7_LAST__-__ROM7_START__
+  .byt "DATA"
+
+.segment "NSFEFOOTER"
+  .dword 0
+  .byt "NEND"
+
+; All the actual code matches the NSF shell
 
 .segment "ZEROPAGE"
 psg_sfx_state: .res 36
@@ -62,7 +103,7 @@ tvSystem: .res 1
 
 .segment "CODE"
 .proc init_sound_and_music
-  stx tvSystem
+   stx tvSystem
   pha
   jsr pently_init
   pla
