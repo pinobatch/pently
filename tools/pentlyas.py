@@ -2393,6 +2393,7 @@ def render_include_file(parser):
         sorted(objs.values(), key=lambda x: x.orderkey)
         for objs in parts_to_print
     ]
+    sfxs = parts_to_print[0]
     songs = parts_to_print[2]
     for objs in parts_to_print:
         lines.extend(
@@ -2410,6 +2411,19 @@ def render_include_file(parser):
     lines.append(".macro PENTLY_WRITE_SONG_TITLE_PTRS")
     lines.extend(
         "  .addr PSTITLE_%d" % i for i in range(len(songs))
+    )
+    lines.append(".endmacro")
+
+    lines.append(".macro PENTLY_WRITE_SFX_TITLES terminator")
+    lines.extend(
+        "PETITLE_%d: .byte %s, terminator"
+        % (i, ca65_escape_bytes(sfx.name.encode("utf-8")))
+        for i, sfx in enumerate(sfxs)
+    )
+    lines.append(".endmacro")
+    lines.append(".macro PENTLY_WRITE_SFX_TITLE_PTRS")
+    lines.extend(
+        "  .addr PETITLE_%d" % i for i in range(len(sfxs))
     )
     lines.append(".endmacro")
 
@@ -2438,6 +2452,17 @@ def render_include_file(parser):
         "  .dword $FFFFFFFF" if song.looping else "  .dword 0"
         for song in songs
     )
+    lines.append(".endmacro")
+
+    lines.append(".macro PENTLY_WRITE_NSFE_SFX_DURATIONS")
+    lines.extend(
+        "  .dword %d" % ((sfx.rate or 1) * len(sfx.volume) * 20)
+        for sfx in sfxs
+    )
+    lines.append(".endmacro")
+
+    lines.append(".macro PENTLY_WRITE_NSFE_SFX_FADES")
+    lines.extend("  .dword 0" for sfx in sfxs)
     lines.append(".endmacro")
 
     lines.append('')

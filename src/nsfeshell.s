@@ -74,6 +74,9 @@ auth_end:
   .byt "tlbl"
 tlbl_start:
   PENTLY_WRITE_SONG_TITLES $00
+  .if PENTLY_USE_NSF_SOUND_FX
+    PENTLY_WRITE_SFX_TITLES $00
+  .endif
 tlbl_end:
 
   .dword taut_end-taut_start
@@ -88,6 +91,9 @@ taut_end:
   .byt "time"
 time_start:
   PENTLY_WRITE_NSFE_DURATIONS
+  .if PENTLY_USE_NSF_SOUND_FX
+    PENTLY_WRITE_NSFE_SFX_DURATIONS
+  .endif
 time_end:
 
   ; fade: 4-byte durations in milliseconds of fade after end of song.
@@ -97,6 +103,9 @@ time_end:
   .byt "fade"
 fade_start:
   PENTLY_WRITE_NSFE_FADES
+  .if PENTLY_USE_NSF_SOUND_FX
+    PENTLY_WRITE_NSFE_SFX_FADES
+  .endif
 fade_end:
 
   ; Mark sound effects as such so that a player can construct "all

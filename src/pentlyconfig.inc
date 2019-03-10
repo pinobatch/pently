@@ -41,7 +41,7 @@ PENTLY_USE_TEMPO_ROUNDING_PLAY_CH = -1
 PENTLY_USE_TEMPO_ROUNDING_BEAT = 0
 
 ; Should sound effects be selectable in the NSF?
-PENTLY_USE_NSF_SOUND_FX = 0
+PENTLY_USE_NSF_SOUND_FX = 1
 
 ; 0-127; higher means quieter tri/noise
 PENTLY_INITIAL_4011 = 64
