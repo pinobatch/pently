@@ -1262,7 +1262,8 @@ song attacktest
   title Attack injection (no pulse!)
   time 12/4
   scale 8
-  tempo 85.9
+  #tempo 85.9
+  tempo 4.=171.8
   # This is technically in New Jack Swing time, where the second 
   # division is compound instead of the first, but there's no
   # classical time sig for NJS.  So instead, we choose a time

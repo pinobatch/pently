@@ -389,7 +389,8 @@ class PentlyRhythmContext(object):
             self.cur_measure = other.cur_measure
             self.row_in_measure = other.row_in_measure
 
-    def parse_duration(self, duration, duraugment):
+    @staticmethod
+    def parse_duration(duration, duraugment):
         if duration:
             duration = int(duration)
             if not 1 <= duration <= 64:
@@ -435,6 +436,17 @@ class PentlyRhythmContext(object):
             rows_per_beat *= 3
         return rows_per_beat
 
+    def duration_to_rows(self, denom, augment):
+        wholerows = self.scale * augment // (denom * 4)
+        partrows = self.scale * augment % (denom * 4)
+        if partrows != 0:
+            augmentname = dotted_names[augment]
+            msg = ("%s1/%d note not multiple of 1/%d note scale (%.3f rows)"
+                   % (augmentname, denom, self.scale,
+                      wholerows + partrows / (denom * 4)))
+            raise ValueError(msg)
+        return wholerows
+
     def fix_note_duration(self, notematch):
         """Convert duration to number of rows.
 
@@ -472,14 +484,7 @@ Return (pitch, number of rows, slur) or None if it's not actually a note
         elif self.durations_stick:
             self.last_duration = denom, augment
 
-        wholerows = self.scale * augment // (denom * 4)
-        partrows = self.scale * augment % (denom * 4)
-        if partrows != 0:
-            augmentname = dotted_names[augment]
-            msg = ("%s1/%d note not multiple of 1/%d note scale (%.3f rows)"
-                   % (augmentname, denom, self.scale,
-                      wholerows + partrows / (denom * 4)))
-            raise ValueError(msg)
+        wholerows = self.duration_to_rows(denom, augment)
         return pitcharp, wholerows, slur
 
     def parse_measure(self, measure=1, beat=1, row=0):
@@ -1819,15 +1824,34 @@ Used to find the target of a time, scale, durations, or notenames command.
         target.rhyctx.set_scale(int(words[1]))
 
     def add_tempo(self, words):
-        if not self.cur_song:
+        song = self.cur_song
+        if not song:
             raise ValueError("tempo must be used in a song")
-        if len(words) != 2:
-            raise ValueError("must have 2 words: tempo BPMVALUE")
-        tempo = float(words[1])
+        srhyctx = self.cur_song.rhyctx
+        if len(words) < 2:
+            raise ValueError("must have 2 words: tempo BPMVALUE or tempo DURATION=NOTEVALUE")
+
+        # the following are valid:
+        # tempo 96
+        # tempo 4.=96
+        # tempo 4. = 96
+        # the latter two inspired by LilyPond syntax described at
+        # http://lilypond.org/doc/v2.18/Documentation/learning/simple-notation#tempo-marks
+        defmatch = [s.strip() for s in ' '.join(words[1:]).split("=", 1)]
+        tempo = float(defmatch[-1])
+        if len(defmatch) > 1:
+            durationname = defmatch[0]
+            denom = durationname.rstrip('.')
+            augment = durationname[len(denom):]
+            denom, augment = srhyctx.parse_duration(denom, augment)
+            nrows = srhyctx.duration_to_rows(denom, augment)
+            rpb = srhyctx.get_beat_length()
+            tempo = tempo * nrows / rpb
+
         if not 1.0 <= tempo <= 1500.0:
             raise ValueError("tempo must be positive and no more than 1500 rows per minute")
         song = self.cur_song
-        song.rhyctx.tempo = tempo  # to be picked up on next wait rows
+        srhyctx.tempo = tempo  # to be picked up on next wait rows
 
     def add_resume(self, words):
         if not self.cur_song:

@@ -526,8 +526,8 @@ with the `PS_` suffix, such as `PS_twinkle`.  Use these values with
 
 The **`title` and `author`** commands can be used within a song.
 NSFe files reflect each song's title and author, and the NES file
-displays a list of titles.  If a title is not specified, the song's
-object name is used.
+displays a list of titles.  If a title or author is not specified,
+the song's object name or the NSF's author name is used.
 
 Patterns may be defined inside or outside a song.  A pattern defined
 inside a song inherits the song's `time` and `scale`.  If a pattern
@@ -542,6 +542,15 @@ number of rows per minute.  For example, a song in `time 6/8` and
 map to 601.2 rows per minute, which is rounded to 601.  A tempo
 that maps to more than 1500 rows per minute is forbidden because
 it would cause a row to be shorter than two frames.
+
+An optional note duration can be given before the tempo value.
+This causes the `tempo` command to convert the tempo value from
+notes of that duration per minute to beats per minute.  For example,
+if the current beat is a quarter note, `tempo 8=192` converts 192
+eighth notes per minute to 96 beats per minute.  Dotted durations,
+such as `8.`, are valid here as well.  Because it performs the
+conversion based on the current scale and time signature, the score
+should specify `time` and `scale` before a duration-scaled `tempo`.
 
 The **`at`** command waits for a `measure:beat:row` combination,
 where measures and beats are numbered from 1 and rows from 0, before
