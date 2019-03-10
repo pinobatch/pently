@@ -82,6 +82,23 @@ taut_start:
   PENTLY_WRITE_SONG_AUTHORS $00
 taut_end:
 
+  ; time: 4-byte durations in milliseconds of end of song (if not
+  ; looping) or end of second loop
+  .dword time_end-time_start
+  .byt "time"
+time_start:
+  PENTLY_WRITE_NSFE_DURATIONS
+time_end:
+
+  ; fade: 4-byte durations in milliseconds of fade after end of song.
+  ; Convention is -1 (player-specified fade duration) for looping
+  ; tracks or 0 (no fade) for tracks that end
+  .dword fade_end-fade_start
+  .byt "fade"
+fade_start:
+  PENTLY_WRITE_NSFE_FADES
+fade_end:
+
   ; Mark sound effects as such so that a player can construct "all
   ; songs" and "all sound effects" playlists
   ; TODO once pentlyas gains nsfshelldata output, as the length of

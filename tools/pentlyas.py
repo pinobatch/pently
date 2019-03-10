@@ -854,6 +854,7 @@ class PentlySong(PentlyRenderable):
         self.rehearsal_marks = {}
         self.total_rows = self.last_mark_rows = 0
         self.title = self.author = ""
+        self.wall_time = self.segno_wall_time = 0.0
 
     def wait_rows(self, rows_to_wait):
         """Updates the tempo and beat duration if needed, then waits some rows."""
@@ -880,11 +881,14 @@ class PentlySong(PentlyRenderable):
             self.last_beatlen = beat_length
             
         self.total_rows += rows_to_wait
+        self.wall_time += rows_to_wait * 60.0 / rowtempo
+        endminutes, endseconds = self.wall_time // 60, self.wall_time % 60
         while rows_to_wait > 256:
             self.conductor.append('waitRows 256')
             self.bytesize += 2
             rows_to_wait -= 256
-        self.conductor.append('waitRows %d' % rows_to_wait)
+        self.conductor.append('waitRows %d  ; end at %d:%05.2f'
+                              % (rows_to_wait, endminutes, endseconds))
         self.bytesize += 2
 
     def set_attack(self, chname):
@@ -961,6 +965,7 @@ class PentlySong(PentlyRenderable):
         self.bytesize += 1
         self.segno_fileline = fileline
         self.rehearsal_marks['%'] = (self.total_rows, fileline)
+        self.segno_wall_time = self.wall_time
 
     def add_mark(self, markname, fileline):
         if len(markname) > 24:
@@ -1755,19 +1760,19 @@ Used to find the target of a time, scale, durations, or notenames command.
         song = self.cur_song
         words = ' '.join(words).lower()
         if words == 'fine':
-            endcmd = 'fine'
+            song.looping = False
         elif words in ('dal segno', 'dalsegno'):
-            endcmd = 'dalSegno'
+            song.looping = True
         elif words in ('da capo', 'dacapo'):
             if song.segno_fileline is not None:
                 fileline = song.segno_fileline
                 raise ValueError("%s: cannot loop to start because segno was set at %s line %d"
                                  % (song.name, file, line))
-            endcmd = 'dalSegno'
+            song.looping = True
         else:
             raise ValueError('song end must be "fine" or "dal segno" or "da capo", not '
                              + end)
-        song.conductor.append(endcmd)
+        song.conductor.append('dalSegno' if song.looping else 'fine')
         song.bytesize += 1
         self.cur_song = self.cur_obj = None
 
@@ -2394,6 +2399,20 @@ def render_include_file(parser):
     lines.append(".macro PENTLY_WRITE_SONG_AUTHOR_PTRS")
     lines.extend(
         "  .addr PSAUTHOR_%d" % i for i in range(len(songs))
+    )
+    lines.append(".endmacro")
+
+    lines.append(".macro PENTLY_WRITE_NSFE_DURATIONS")
+    for song in songs:
+        duration = song.wall_time
+        if song.looping: duration += duration - song.segno_wall_time
+        lines.append("  .dword %d" % round(duration * 1000))
+    lines.append(".endmacro")
+
+    lines.append(".macro PENTLY_WRITE_NSFE_FADES")
+    lines.extend(
+        "  .dword $FFFFFFFF" if song.looping else "  .dword 0"
+        for song in songs
     )
     lines.append(".endmacro")
 
