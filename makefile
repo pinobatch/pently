@@ -14,9 +14,9 @@ title := pently
 version := 0.05wip10
 
 # Name of Pently score for main targets "pently.nes" and "pently.nsf"
-# is src/$(scorename).pently, such as src/musicseq.pently.
+# is audio/$(scorename).pently, such as audio/musicseq.pently.
 # To make a ROM or NSF based on a different score, such as
-# src/pino-a53.pently, use "make pino-a53.nsf".
+# audio/pino-a53.pently, use "make pino-a53.nsf".
 scorename := musicseq
 
 # Space-separated list of asm files that make up the ROM,
@@ -137,7 +137,7 @@ $(objdir)/pentlybss.inc: tools/pentlybss.py $(srcdir)/pentlyconfig.inc
 	$(PY) $^ pentlymusicbase -o $@
 
 # Translate music project
-$(objdir)/%.s: tools/pentlyas.py src/%.pently
+$(objdir)/%.s: tools/pentlyas.py audio/%.pently
 	$(PY) $^ -o $@ --write-inc $(@:.s=-titles.inc) --periods 76
 $(objdir)/%-titles.inc: $(objdir)/%.s
 	touch $@
@@ -146,7 +146,8 @@ $(objdir)/nsfshell-%.s: $(objdir)/%-titles.inc $(srcdir)/nsfshell.s
 $(objdir)/nsfeshell-%.s: $(objdir)/%-titles.inc $(srcdir)/nsfeshell.s
 	cat $^ > $@
 
-$(objdir)/%-rmarks.s: tools/pentlyas.py src/%.pently
+# Translate music project with bookmarks/rehearsal marks
+$(objdir)/%-rmarks.s: tools/pentlyas.py audio/%.pently
 	$(PY) $^ -o $@ --write-inc $(@:-rmarks.s=-titles.inc) --periods 76 --rehearse
 $(objdir)/tracknames-%.s: $(objdir)/%-titles.inc $(srcdir)/tracknames.s
 	cat $^ > $@
