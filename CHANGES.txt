@@ -2,6 +2,17 @@
 * Attack track allows grace notes (#35, reported by retrodpc)
 * Channel volume in attack track is ignored rather than clobbering
   another variable (#35, reported by retrodpc)
+* Option to round row grid to nearest tick on loop, pattern start,
+  or beat (#37)
+* Deprecate use of proc-local labels in preparation for ASM6 port
+* sfxed: Fix display of rate in slow (rate 10+) effects
+* pentlyas.py: Specify tempo based on a musical duration other than a
+  beat (#34)
+* Specify NSF title, author, and copyright in score, not hardcoded in
+  NSF shell (#38)
+* Specify track titles in score, not tracknames.txt (#38)
+* Write NSFe and NSF2 formats (#39, #41)
+* Calculate duration of each song and sound effect (#40)
 
 0.05wip10 (2018-10-28)
 * Grace note durations no longer reduced by 1 frame
