@@ -43,6 +43,9 @@ PENTLY_USE_TEMPO_ROUNDING_BEAT = 0
 ; Should sound effects be selectable in the NSF?
 PENTLY_USE_NSF_SOUND_FX = 1
 
+; Write track titles and other metadata?
+PENTLY_USE_NSF2 = 1
+
 ; 0-127; higher means quieter tri/noise
 PENTLY_INITIAL_4011 = 64
 

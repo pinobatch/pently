@@ -2,7 +2,7 @@
 ; Pently audio engine
 ; NSF player shell
 ;
-; Copyright 2012-2017 Damian Yerrick
+; Copyright 2012-2019 Damian Yerrick
 ; 
 ; This software is provided 'as-is', without any express or implied
 ; warranty.  In no event will the authors be held liable for any damages
@@ -56,77 +56,7 @@ INFO_start:
   .byt 0  ; first song to play
 INFO_end:
 
-  ; auth chunk contains up to four UTF8-encoded, NUL-terminated
-  ; strings in this order: title, artist, year and publisher, ripper
-  .dword auth_end-auth_start
-  .byt "auth"
-auth_start:
-  PENTLY_WRITE_NSFE_TITLE
-  .byt $00
-  PENTLY_WRITE_NSFE_AUTHOR
-  .byt $00
-  PENTLY_WRITE_NSFE_COPYRIGHT
-  .byt $00
-auth_end:
-
-  ; tlbl, taut: NUL-terminated song titles and authors
-  .dword tlbl_end-tlbl_start
-  .byt "tlbl"
-tlbl_start:
-  PENTLY_WRITE_SONG_TITLES $00
-  .if PENTLY_USE_NSF_SOUND_FX
-    PENTLY_WRITE_SFX_TITLES $00
-  .endif
-tlbl_end:
-
-  .dword taut_end-taut_start
-  .byt "taut"
-taut_start:
-  PENTLY_WRITE_SONG_AUTHORS $00
-taut_end:
-
-  ; time: 4-byte durations in milliseconds of end of song (if not
-  ; looping) or end of second loop
-  .dword time_end-time_start
-  .byt "time"
-time_start:
-  PENTLY_WRITE_NSFE_DURATIONS
-  .if PENTLY_USE_NSF_SOUND_FX
-    PENTLY_WRITE_NSFE_SFX_DURATIONS
-  .endif
-time_end:
-
-  ; fade: 4-byte durations in milliseconds of fade after end of song.
-  ; Convention is -1 (player-specified fade duration) for looping
-  ; tracks or 0 (no fade) for tracks that end
-  .dword fade_end-fade_start
-  .byt "fade"
-fade_start:
-  PENTLY_WRITE_NSFE_FADES
-  .if PENTLY_USE_NSF_SOUND_FX
-    PENTLY_WRITE_NSFE_SFX_FADES
-  .endif
-fade_end:
-
-  ; Mark sound effects as such so that a player can construct "all
-  ; songs" and "all sound effects" playlists
-  ; TODO once pentlyas gains nsfshelldata output, as the length of
-  ; this chunk depends on the score, which is currently .import'd
-  ; as opposed to being a constant
-  .if PENTLY_USE_NSF_SOUND_FX
-    .dword NUM_SOUNDS
-    .byt "psfx"
-    .repeat NUM_SOUNDS, I
-      .byte NUM_SONGS + I
-    .endrepeat
-  .endif
-
-  ; Show off Dendy compatibility if enabled
-  .if PENTLY_USE_PAL_ADJUST
-    .dword 2
-    .byt "regn"
-    .byt $07, $00
-  .endif
+  .include "../../src/nsfechunks.inc"
 
   ; this chunk MUST occur after INFO, but due to the structure of the
   ; link script, it must occur last in the NSFEHEADER
@@ -145,7 +75,7 @@ tvSystem: .res 1
 
 .segment "CODE"
 .proc init_sound_and_music
-   stx tvSystem
+  stx tvSystem
   pha
   jsr pently_init
   pla
@@ -158,4 +88,3 @@ tvSystem: .res 1
   .endif
   jmp pently_start_music
 .endproc
-

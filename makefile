@@ -121,10 +121,10 @@ $(objdir)/%.o: $(objdir)/%.s
 # Files that depend on additional headers
 $(objdir)/musicseq.o $(objdir)/pentlymusic.o: $(srcdir)/pentlyseq.inc
 $(objdir)/pentlysound.o $(objdir)/pentlymusic.o \
-$(objdir)/bpmmath.o $(objdir)/vis.o $(objdir)/main.o \
-$(objdir)/nsfeshell.o: \
+$(objdir)/bpmmath.o $(objdir)/vis.o $(objdir)/main.o: \
   $(srcdir)/pentlyconfig.inc
-$(objdir)/nsfshell-%.o: $(srcdir)/pentlyconfig.inc
+$(objdir)/nsfeshell-%.o $(objdir)/nsfshell-%.o: \
+  $(srcdir)/pentlyconfig.inc $(srcdir)/nsfechunks.inc
 
 $(objdir)/pentlymusic.o: $(objdir)/pentlybss.inc
 
