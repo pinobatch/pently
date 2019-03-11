@@ -1491,11 +1491,10 @@ is_decrease:
 .if PENTLY_USE_TEMPO_ROUNDING
 ;;
 ; Rounds accumulated musical time within this row to either
-; zero or a full row.
+; zero or one whole tick.
 .proc round_to_beat
   ; Calculate half a tick's worth of musical time
   lda music_tempoHi
-  sta $4444
   lsr a
   tax
   lda music_tempoLo
