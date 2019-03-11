@@ -36,10 +36,11 @@ objdir := obj/nes
 srcdir := src
 imgdir := tilesets
 
-#EMU := "/C/Program Files/Nintendulator/Nintendulator.exe"
+FT2P := ../ft2pently/ft2p
+FAMITRACKER := wine '/home/pino/.wine/drive_c/Program Files (x86)/FamiTracker/j0CC-Famitracker-j0.6.1.exe'
 EMU := fceux --input1 GamePad.0
 DEBUGEMU := ~/.wine/drive_c/Program\ Files\ \(x86\)/FCEUX/fceux.exe
-# other options for EMU are start (Windows) or gnome-open (GNOME)
+# other options for EMU are start (Windows) or xdg-open (*n?x)
 
 # Work around a quirk of how the Python 3 for Windows installer
 # sets up the PATH
@@ -152,6 +153,20 @@ $(objdir)/%-rmarks.s: tools/pentlyas.py audio/%.pently
 $(objdir)/tracknames-%.s: $(objdir)/%-titles.inc $(srcdir)/tracknames.s
 	cat $^ > $@
 
+# Translate FamiTracker music project
+
+$(objdir)/%.ftm.txt: audio/%.ftm
+	$(FAMITRACKER) $< -export $@
+$(objdir)/%.ftm.txt: audio/%.0cc
+	$(FAMITRACKER) $< -export $@
+$(objdir)/%.pently: $(objdir)/%.ftm.txt
+	$(FT2P) -i $< -o $@
+
+
+$(objdir)/%.s: tools/pentlyas.py $(objdir)/%.pently
+	$(PY) $^ -o $@ --write-inc $(@:.s=-titles.inc) --periods 76
+$(objdir)/%-rmarks.s: tools/pentlyas.py $(objdir)/%.pently
+	$(PY) $^ -o $@ --write-inc $(@:-rmarks.s=-titles.inc) --periods 76 --rehearse
 
 # Rules for CHR ROM
 

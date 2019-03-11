@@ -168,6 +168,16 @@ On the one hand, use of a Pently score as authoritative may cause
 problems for composers who work only in trackers.  On the other hand,
 composers fluent in MML or LilyPond may be attracted to the model.
 
+To listen to ft2pently's conversion of an `.ftm` or `.0cc` module:
+
+1. Edit `makefile` to reflect the paths to FamiTracker and ft2pently
+   executables on your system.
+2. Save the module in the `audio` folder.
+3. Run `make <nameofmodule>.nsf` or `make <nameofmodule>.nes`.
+
+For example, `audio/Foothills.ftm` exists, `make Foothills.nes` or
+`make Foothills.nsfe` will work.
+
 
 [ft2pently]: https://github.com/NovaSquirrel/ft2pently
 [FamiTracker effects]: http://famitracker.com/wiki/index.php?title=Effect_list

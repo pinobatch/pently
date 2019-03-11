@@ -1,0 +1,36 @@
+# SFX for Mega Mountain NES by adrian0901
+
+sfx twobeeps on pulse
+  timbre 1
+  volume 15 0 0 0 0 0 0 0 8
+  pitch g#'
+
+sfx sfx2 on pulse
+  rate 6
+  volume 15 15 15 15
+  pitch e''' c''' e''' c'''
+  timbre 2
+
+sfx othersfxpart1 on pulse
+  rate 4
+  pitch a' g#' g' f#' f#' f#' f#' f#' a' g#' g' f#' f#' f#' f#' f#' a' g#' g' f#'
+  volume 15 15 15 15 0 0 0 0 8 8 8 8 0 0 0 0 8 8 8 8
+  timbre 2 2 1 1 1 1 1 1 2 2 1 1 1 1 1 1 2 2 1 1
+
+sfx othersfxpart2 on noise
+  rate 4
+  pitch 11 12 13 13 13 13 13 13 11 12 13 13 13 13 13 13 11 12 13
+  volume 15 15 15 0 0 0 0 0 8 8 8 0 0 0 0 0 8 8 8
+  timbre 1
+  
+sfx fall on pulse
+  rate 3
+  volume 15 15 15 15 15 15 15 15 15 15
+  pitch a'' g#'' g'' f#'' f'' e'' d#'' d'' c#'' c''
+  timbre 1 0 0 0 0 0 0 0 1 0    
+  
+sfx text on noise
+  volume 15 15 15 15 15
+  pitch 15 14 13 14 15
+  timbre 1 1 0 1 0
+  
