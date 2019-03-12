@@ -565,8 +565,11 @@ The `pickup` command sets what the parser thinks is the current beat,
 so that the `at` command knows how many rows to wait.  For example,
 in a piece in 3/4 that starts on the third beat, use `pickup 0:3`,
 where `0` means the measure preceding the first full measure, and
-`3` means the third beat.  The `pickup` command also works in
-patterns; because only bar check uses it, the measure is ignored.
+`3` means the third beat.
+
+The `pickup` command also works in patterns for bar check use.
+If defining a pattern within a song, make sure to specify `pickup`
+outside a pattern, such as before the start of the pattern.
 
 In addition to the tracks for pitched channels (`pulse1`, `pulse2`,
 and `triangle`) and the drum track, Pently has an **attack track**
