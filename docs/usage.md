@@ -37,10 +37,10 @@ The following methods, declared in the assembly language include file
   before `pently_start_music` or after a song stops, the behavior is
   undefined.
 * `pently_play_note` plays the note with pitch A on channel X with
-  instrument Y.  Pitch ranges from 0 to 63; see "Pitch" below.
-  Channel is 0, 4, 8, 12, or 16, representing pulse 1, pulse 2,
-  triangle, noise, and attack.  Instrument is an element of the
-  `pently_instruments` table.
+  instrument Y.  Pitch ranges from 0 to 63 (or more depending on the
+  pitch table length); see "Pitch" below.  Channel is 0, 4, 8, 12,
+  or 16, representing pulse 1, pulse 2, triangle, noise, and attack.
+  Instrument is an element of the `pently_instruments` table.
 * `pently_skip_to_row` skips to row X*256+A.  This row must be on
   or after the current position; otherwise, behavior is undefined.
   This method is available only if `PENTLY_USE_REHEARSE` is enabled.
@@ -64,8 +64,8 @@ The file `musicseq.s` contains the sound effects, instruments, songs,
 and patterns that you define.  It should `.include "pentlyseq.inc"`
 to use the macros described below.  For those familiar with Music
 Macro Language ([MML]) or [LilyPond], the distribution includes a
-processor for an MML-like music description language.
-(For more information, see [pentlyas.md].)
+processor for an MML-like music description language described in 
+[pentlyas.md].
 
 [Dendy]: https://en.wikipedia.org/wiki/Dendy_(console)
 [MML]: http://www.nullsleep.com/treasure/mck_guide/
@@ -90,6 +90,13 @@ fewer:
 
 Pently has been used in at least one game written in the C language
 and compiled with cc65.
+
+### Reentrancy
+
+Pently in general is not reentrant.  In particular, the NMI
+handler must not call `pently_update` while `pently_start_sound`,
+`pently_start_music`, `pently_play_note`, or `pently_skip_to_row`
+is running in the main thread.  For workarounds, see [reentrancy.md].
 
 Configuration
 -------------
@@ -488,7 +495,7 @@ Bugs and limits
 No music engine is perfect for all projects.  These limits of Pently
 may pose a problem for some projects:
 
-* Pently is 1.8 kB with all features on or 1.2 kB with all features
+* Pently is 2 kB with all features on or 1.2 kB with all features
   off, which is much smaller than the FamiTracker or NerdTracker II
   player.  But even this may be too large for a very tight NROM-128
   game.
