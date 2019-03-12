@@ -2235,6 +2235,27 @@ def render_file(parser, segment='RODATA'):
          False),
     ]
 
+    # Propagate transposition base backward
+    revpatterns = sorted(parser.patterns.values(), key=lambda x: x.orderkey,
+                         reverse=True)
+    last_transpose = last_pitched = last_patname = None
+    for pat in revpatterns:
+        pat.calc_transpose()
+        pitched = pat.track != 'drum'
+        if not pat.fallthrough:
+            last_patname, last_pitched = pat.name, pitched
+            last_transpose = pat.transpose
+        if last_patname is None:
+            raise ValueError("%s falls through but is the last pattern"
+                             % pat.name)
+        if pitched != last_pitched:
+            raise ValueError(
+                "%s is %s but falls through into %s which is %s"
+                % (pat.name, "pitched" if pitched else "drum",
+                   last_patname, "pitched" if last_pitched else "drum")
+            )
+        pat.transpose = last_transpose
+
     # Pack byte arrays that are subsequences of another byte array
     # into the longer one
     subseq_pool_directory = []
