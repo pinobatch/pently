@@ -1085,6 +1085,7 @@ class PentlyPattern(PentlyRenderable):
         self.rhyctx = PentlyRhythmContext(rhyctx)
         self.rhyctx.last_duration = None
         self.instrument, self.track, self.notes = instrument, track, []
+        self.transpose_runs = self.transpose = None
 
         # TODO: The fallthrough feature is currently sort of broken
         # for pitched patterns.  Rendering needs to be reworked in
@@ -1316,13 +1317,21 @@ Return a list of tuples, one for each run
             pitch = note[0]
             if not isinstance(pitch, int):
                 continue
-            lo = min(runs[-1][1], pitch) if runs[-1][1] is not None else pitch
-            hi = max(runs[-1][2], pitch) if runs[-1][1] is not None else pitch
+            lo = hi = pitch
+            if runs[-1][1] is not None:
+                lo, hi = min(runs[-1][1], lo), max(runs[-1][2], hi)
             if hi - lo > 24:
                 runs.append([i, pitch, pitch])
             else:
                 runs[-1][1:3] = lo, hi
         return [tuple(i) for i in runs]
+
+    def calc_transpose(self):
+        if self.track == 'drum':
+            self.transpose_runs, self.transpose = [], None
+            return
+        self.transpose_runs = self.find_transpose_runs(self.notes)
+        self.transpose = self.transpose_runs[0][1]
 
     @staticmethod
     def collapse_ties(notes, tie_rests=False):
@@ -1435,14 +1444,17 @@ tie_rests -- True if track has no concept of a "note off"
         self.notes = notes = self.collapse_effects(notes)
 
         bytedata = []
-
-        if not is_drum:
-            transpose_runs = self.find_transpose_runs(self.notes)
-            self.transpose = cur_transpose = transpose_runs[0][1]
-            transpose_pos = 1
-        else:
-            transpose_runs = []
+        if self.transpose is None: self.calc_transpose()
+        transpose_runs, cur_transpose = self.transpose_runs, self.transpose
         last_slur = False
+
+        # If the first run isn't in range, which may happen in a
+        # FALLTHROUGH, schedule a TRANSPOSE for the first note
+        transpose_pos = 1
+        if (transpose_runs
+            and (transpose_pos > transpose_runs[0][1]
+                 or transpose_pos - 24 < transpose_runs[0][2])):
+            transpose_pos = 0
 
         for i, note in enumerate(notes):
             if (transpose_runs
@@ -1490,8 +1502,8 @@ tie_rests -- True if track has no concept of a "note off"
                 bytedata.append("LEGATO_ON" if slur else "LEGATO_OFF")
 
         # Transpose back to start at end of pattern
-        if transpose_runs and cur_transpose != transpose_runs[0][1]:
-            bytedata.append("TRANSPOSE,<%d" % (transpose_runs[0][1] - cur_transpose))
+        if transpose_runs and cur_transpose != self.transpose:
+            bytedata.append("TRANSPOSE,<%d" % (self.transpose - cur_transpose))
         if not self.fallthrough: bytedata.append('PATEND')
 
         asmname = self.get_asmname(self.name)
