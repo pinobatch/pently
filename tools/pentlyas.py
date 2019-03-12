@@ -1298,24 +1298,30 @@ EN(-?(?:
         else:
             raise ValueError("unknown pitched pattern note %s" % word)
 
-    # in a way that minimizes TRANSPOSE transitions
     @staticmethod
     def find_transpose_runs(data):
-        hi = None
-        runs = [[0, None]]
+        """Break a list into runs of pitches up to 24 semitones apart.
+
+Elements that are strings are ignored, as are sequences whose first
+element is not an int.
+
+Return a list of tuples, one for each run
+[starting index of run, lowest semitone in run, highest semitone in run]
+
+"""
+        runs = [[0, None, None]]
         for i, note in enumerate(data):
             if isinstance(note, str):
                 continue
             pitch = note[0]
             if not isinstance(pitch, int):
                 continue
-            lo = min(runs[-1][-1], pitch) if runs[-1][-1] is not None else pitch
-            hi = max(hi, pitch) if hi is not None else pitch
+            lo = min(runs[-1][1], pitch) if runs[-1][1] is not None else pitch
+            hi = max(runs[-1][2], pitch) if runs[-1][1] is not None else pitch
             if hi - lo > 24:
-                runs.append([i, pitch])
-                hi = pitch
+                runs.append([i, pitch, pitch])
             else:
-                runs[-1][-1] = lo
+                runs[-1][1:3] = lo, hi
         return [tuple(i) for i in runs]
 
     @staticmethod
