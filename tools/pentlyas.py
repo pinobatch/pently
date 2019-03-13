@@ -510,7 +510,6 @@ Return (pitch, number of rows, slur) or None if it's not actually a note
         """Set the current musical time."""
         measure, row, _, _ = self.parse_measure(measure, beat, row)
         self.cur_measure, self.row_in_measure = measure, row
-        print("set_measure to %d:%d in %x" % (self.cur_measure, self.row_in_measure, id(self)))
 
     def add_rows(self, rows):
         """Add a duration in rows to the current musical time."""
@@ -523,7 +522,6 @@ Return (pitch, number of rows, slur) or None if it's not actually a note
         """Seek to a given musical time.
 
 Return rows between old and new positions."""
-        print("wait from %d:%d in %x" % (self.cur_measure, self.row_in_measure, id(self)))
         measure, row, measure_length, beat_length = self.parse_measure(measure, beat, row)
         if (measure < self.cur_measure
             or (measure == self.cur_measure and row < self.row_in_measure)):
@@ -1421,13 +1419,16 @@ tie_rests -- True if track has no concept of a "note off"
     def make_final(self):
         """Collapse ties, collapse arpeggio effects, and calculate transpose runs"""
         pitched = self.track != 'drum'
-        if self.track == 'drum':
-            self.transpose_runs, self.transpose = [], None
-            return
         self.notes = self.collapse_ties(self.notes, not pitched)
         self.notes = self.collapse_effects(self.notes)
+        if self.track == 'drum':
+            self.transpose = self.lowest_note = self.highest_note = None
+            self.transpose_runs = []
+            return
         self.transpose_runs = self.find_transpose_runs(self.notes)
         self.transpose = self.transpose_runs[0][1]
+        self.lowest_note = min(x[1] for x in self.transpose_runs)
+        self.highest_note = max(x[2] for x in self.transpose_runs)
 
     row_to_duration = [
         (16, '|D_1'), (12, '|D_D2'), (8, '|D_2'), (6, '|D_D4'),
@@ -2238,28 +2239,57 @@ def render_file(parser, segment='RODATA'):
          False),
     ]
 
-    # Propagate transposition base backward
-    revpatterns = sorted(parser.patterns.values(), key=lambda x: x.orderkey,
-                         reverse=True)
-    last_transpose = last_pitched = last_patname = last_lowest_note = None
-    for pat in revpatterns:
-        pitched = pat.track != 'drum'
+    # Determine fallthrough groups and reject clearly invalid combinations
+    patterns = sorted(parser.patterns.values(), key=lambda x: x.orderkey)
+    fallthrough_group = {}
+    last_patname = last_parent = None
+    for i in range(len(patterns) - 1, -1, -1):
+        pat = patterns[i]
         pat.make_final()
-        lowest_note = (
-            min(x[1] for x in pat.transpose_runs) if pitched else None
-        )
+        pitched = pat.track != 'drum'
         if not pat.fallthrough:
-            last_patname, last_pitched = pat.name, pitched
-            last_transpose, last_lowest_note = pat.transpose, lowest_note
-        if last_patname is None:
+            last_parent, last_patname, last_pitched = i, pat.name, pitched
+        elif last_parent is None:
             raise ValueError("%s falls through but is the last pattern"
                              % pat.name)
-        if pitched != last_pitched:
+        elif pitched != last_pitched:
             raise ValueError(
                 "%s is %s but falls through into %s which is %s"
                 % (pat.name, "pitched" if pitched else "drum",
                    last_patname, "pitched" if last_pitched else "drum")
             )
+        fallthrough_group[last_parent] = i
+
+    # For pitched fallthrough groups with at least 2 members where
+    # the group's last pattern's range is 2 octaves or less,
+    # find patterns that can be combined in a 2-octave overall group
+    # with the last pattern in the group
+    for last, first in fallthrough_group.items():
+        if last == first: continue
+        lastpat = patterns[last]
+        if lastpat.track == 'drum': continue
+        grplowest, grphighest = lastpat.lowest_note, lastpat.highest_note
+        if grphighest - grplowest > 24: continue
+        groupable = [last]
+        for i in range(last - 1, first - 1, -1):
+            pat = patterns[i]
+            newgrplowest = min(grplowest, pat.lowest_note)
+            newgrphighest = max(grphighest, pat.highest_note)
+            if newgrphighest - newgrplowest <= 24:
+                grplowest, grphighest = newgrplowest, newgrphighest
+                groupable.append(i)
+        for i in groupable:
+            patterns[i].transpose_runs = [(0, grplowest, grphighest)]
+            patterns[i].transpose = grplowest
+
+    # Propagate transposition base and lowest note backward
+    last_transpose = last_pitched = last_patname = last_lowest_note = None
+    for pat in reversed(patterns):
+        pitched = pat.track != 'drum'
+        lowest_note, highest_note = pat.lowest_note, pat.highest_note
+        if not pat.fallthrough:
+            last_patname, last_pitched = pat.name, pitched
+            last_transpose, last_lowest_note = pat.transpose, lowest_note
         if lowest_note is not None:
             last_lowest_note = min(lowest_note, last_lowest_note)
             pat.transpose, pat.lowest_note = last_transpose, last_lowest_note
