@@ -510,6 +510,7 @@ Return (pitch, number of rows, slur) or None if it's not actually a note
         """Set the current musical time."""
         measure, row, _, _ = self.parse_measure(measure, beat, row)
         self.cur_measure, self.row_in_measure = measure, row
+        print("set_measure to %d:%d in %x" % (self.cur_measure, self.row_in_measure, id(self)))
 
     def add_rows(self, rows):
         """Add a duration in rows to the current musical time."""
@@ -522,6 +523,7 @@ Return (pitch, number of rows, slur) or None if it's not actually a note
         """Seek to a given musical time.
 
 Return rows between old and new positions."""
+        print("wait from %d:%d in %x" % (self.cur_measure, self.row_in_measure, id(self)))
         measure, row, measure_length, beat_length = self.parse_measure(measure, beat, row)
         if (measure < self.cur_measure
             or (measure == self.cur_measure and row < self.row_in_measure)):
@@ -1326,13 +1328,6 @@ Return a list of tuples, one for each run
                 runs[-1][1:3] = lo, hi
         return [tuple(i) for i in runs]
 
-    def calc_transpose(self):
-        if self.track == 'drum':
-            self.transpose_runs, self.transpose = [], None
-            return
-        self.transpose_runs = self.find_transpose_runs(self.notes)
-        self.transpose = self.transpose_runs[0][1]
-
     @staticmethod
     def collapse_ties(notes, tie_rests=False):
         """Interpret slur commands; combine w notes and slurred same-pitch notes.
@@ -1423,6 +1418,17 @@ tie_rests -- True if track has no concept of a "note off"
 
         return rnotes
 
+    def make_final(self):
+        """Collapse ties, collapse arpeggio effects, and calculate transpose runs"""
+        pitched = self.track != 'drum'
+        if self.track == 'drum':
+            self.transpose_runs, self.transpose = [], None
+            return
+        self.notes = self.collapse_ties(self.notes, not pitched)
+        self.notes = self.collapse_effects(self.notes)
+        self.transpose_runs = self.find_transpose_runs(self.notes)
+        self.transpose = self.transpose_runs[0][1]
+
     row_to_duration = [
         (16, '|D_1'), (12, '|D_D2'), (8, '|D_2'), (6, '|D_D4'),
         (4, '|D_4'), (3, '|D_D8'), (2, '|D_8'), (1, '')
@@ -1440,11 +1446,8 @@ tie_rests -- True if track has no concept of a "note off"
 
     def render(self, scopes):
         is_drum = self.track == 'drum'
-        notes = self.collapse_ties(self.notes, is_drum)
-        self.notes = notes = self.collapse_effects(notes)
 
         bytedata = []
-        if self.transpose is None: self.calc_transpose()
         transpose_runs, cur_transpose = self.transpose_runs, self.transpose
         last_slur = False
 
@@ -1452,11 +1455,11 @@ tie_rests -- True if track has no concept of a "note off"
         # FALLTHROUGH, schedule a TRANSPOSE for the first note
         transpose_pos = 1
         if (transpose_runs
-            and (transpose_pos > transpose_runs[0][1]
-                 or transpose_pos - 24 < transpose_runs[0][2])):
+            and (cur_transpose > transpose_runs[0][1]
+                 or cur_transpose + 24 < transpose_runs[0][2])):
             transpose_pos = 0
 
-        for i, note in enumerate(notes):
+        for i, note in enumerate(self.notes):
             if (transpose_runs
                 and transpose_pos < len(transpose_runs)
                 and i >= transpose_runs[transpose_pos][0]):
@@ -2238,13 +2241,16 @@ def render_file(parser, segment='RODATA'):
     # Propagate transposition base backward
     revpatterns = sorted(parser.patterns.values(), key=lambda x: x.orderkey,
                          reverse=True)
-    last_transpose = last_pitched = last_patname = None
+    last_transpose = last_pitched = last_patname = last_lowest_note = None
     for pat in revpatterns:
-        pat.calc_transpose()
         pitched = pat.track != 'drum'
+        pat.make_final()
+        lowest_note = (
+            min(x[1] for x in pat.transpose_runs) if pitched else None
+        )
         if not pat.fallthrough:
             last_patname, last_pitched = pat.name, pitched
-            last_transpose = pat.transpose
+            last_transpose, last_lowest_note = pat.transpose, lowest_note
         if last_patname is None:
             raise ValueError("%s falls through but is the last pattern"
                              % pat.name)
@@ -2254,7 +2260,9 @@ def render_file(parser, segment='RODATA'):
                 % (pat.name, "pitched" if pitched else "drum",
                    last_patname, "pitched" if last_pitched else "drum")
             )
-        pat.transpose = last_transpose
+        if lowest_note is not None:
+            last_lowest_note = min(lowest_note, last_lowest_note)
+            pat.transpose, pat.lowest_note = last_transpose, last_lowest_note
 
     # Pack byte arrays that are subsequences of another byte array
     # into the longer one

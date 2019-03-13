@@ -446,7 +446,16 @@ slurred group.  This is useful for tying notes together or producing
 legato (HOPO).  Slurring into a note with the same pitch is the same
 as a wait: `eb2~ eb8`, `eb2( eb8)`, and `eb2 w8` mean the same.
 
-Notes are separated by at least one space.
+Notes are separated by at least one space.  Notes are added to a
+pattern until it is closed by one of these commands: `title`,
+`author`, `copyright`, `drum`, `song`, `segno`, `fine`, `dal segno`,
+`da capo`, `at`, `attack`, `play`, `stop`, or `fallthrough`.
+
+If a pattern ends with the `fallthrough` command, playback continues
+into the following pattern in the score.  For example, if pattern
+`AAA` falls through and the next pattern is `BBB`, then playing `AAA`
+produces `AAA`, `BBB`, `AAA`, `BBB`, ..., while playing `BBB`
+produces `BBB`, `BBB`, ...
 
 A simple pattern might look like this:
 
@@ -569,7 +578,8 @@ where `0` means the measure preceding the first full measure, and
 
 The `pickup` command also works in patterns for bar check use.
 If defining a pattern within a song, make sure to specify `pickup`
-outside a pattern, such as before the start of the pattern.
+outside a pattern definition, such as before the start of the first
+pattern or after a command that closes a pattern.
 
 In addition to the tracks for pitched channels (`pulse1`, `pulse2`,
 and `triangle`) and the drum track, Pently has an **attack track**
