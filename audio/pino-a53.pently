@@ -481,13 +481,11 @@ song thwaite_0400
   tempo 100
   scale 8
 
+  pattern drum2
+    kick4. clhat snare4. clhat4 kick8
+    fallthrough
   pattern drum1
     kick4. clhat2. clhat4 kick8
-
-  pattern drum2
-    snare4. clhat4 kick8
-    kick4. clhat2. clhat4 kick8
-    kick4. clhat
   
   pattern chords1 on pulse1 with xylo_short
     relative
@@ -520,11 +518,11 @@ song thwaite_0400
   at 1:3
   play drum1
   
-  at 9:1
+  at 8:3
   segno
   play drum2
   
-  at 17:1
+  at 16:3
   dal segno
 
 # This is melodies from the third movement of Beethoven's
@@ -666,19 +664,22 @@ song tennis_win_game
 
   pattern fanfare on pulse2 with fanfarehorn
     relative
-    bb'8 bb eb4 r8 bb8 eb2
+    bb'8 bb
+    fallthrough
 
-  pattern fanfarebass on triangle with v02detached
+  pattern fanfarejoinin on pulse1 with fanfarehorn
     relative
-    r4 eb'4 r8 bb8 eb2
+    eb''4 r8 bb8 eb2
 
   pattern drum
     clhat8 clhat snare4. clhat16 clhat snare2
 
   play fanfare
-  play fanfarebass
-  play fanfarebass on pulse1 with fanfarehorn up 4
   play drum
+
+  at 1
+  play fanfarejoinin on triangle with v02detached down 12
+  play fanfarejoinin down 8
 
   at 2
   fine
@@ -696,7 +697,7 @@ song axe_beat
     kick8 ohat snare16 w1g clhat ohat8
 
   # The tiestream keeps Pently from ending real-time-composed notes
-  # on a channel.
+  # on a channel, as the "stop" pattern is whole rests.
   pattern tiestream on pulse2 with xylo_short
     w1
 

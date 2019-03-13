@@ -1452,8 +1452,11 @@ tie_rests -- True if track has no concept of a "note off"
         transpose_runs, cur_transpose = self.transpose_runs, self.transpose
         last_slur = False
 
+        if cur_transpose is None:  # "tiestream" with only waits
+            transpose_runs = []
+
         # If the first run isn't in range, which may happen in a
-        # FALLTHROUGH, schedule a TRANSPOSE for the first note
+        # fallthrough, schedule a TRANSPOSE for the first note
         transpose_pos = 1
         if (transpose_runs
             and (cur_transpose > transpose_runs[0][1]
@@ -2264,6 +2267,8 @@ def render_file(parser, segment='RODATA'):
     # the group's last pattern's range is 2 octaves or less,
     # find patterns that can be combined in a 2-octave overall group
     # with the last pattern in the group
+    # TODO: Figure out what to do with tiestreams, when lastpat
+    # or pat is all rests/waits
     for last, first in fallthrough_group.items():
         if last == first: continue
         lastpat = patterns[last]
