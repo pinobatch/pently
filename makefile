@@ -11,7 +11,7 @@
 
 # These are used in the title of the NES program and the zip file.
 title := pently
-version := 0.05wip10
+version := 0.05wip11
 
 # Name of Pently score for main targets "pently.nes" and "pently.nsf"
 # is audio/$(scorename).pently, such as audio/musicseq.pently.
@@ -161,7 +161,6 @@ $(objdir)/%.ftm.txt: audio/%.0cc
 	$(FAMITRACKER) $< -export $@
 $(objdir)/%.pently: $(objdir)/%.ftm.txt
 	$(FT2P) -i $< -o $@
-
 
 $(objdir)/%.s: tools/pentlyas.py $(objdir)/%.pently
 	$(PY) $^ -o $@ --write-inc $(@:.s=-titles.inc) --periods 76

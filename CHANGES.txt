@@ -1,4 +1,4 @@
-0.05wip11 (future)
+0.05wip11 (2019-03-14)
 * Attack track allows grace notes (#35, reported by retrodpc)
 * Channel volume in attack track is ignored rather than clobbering
   another variable (#35, reported by retrodpc)
