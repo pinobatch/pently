@@ -67,7 +67,8 @@ directive_ignore = {
 directive_translation = {
     'if': 'if', 'else': 'else', 'elseif': 'elseif', 'endif': 'endif',
     'ifdef': 'ifdef', 'ifndef': 'ifndef',
-    'byt': 'db', 'byte': 'db', 'word': 'dw', 'addr': 'dw', 'res': 'dsb'
+    'byt': 'db', 'byte': 'db', 'word': 'dw', 'addr': 'dw', 'res': 'dsb',
+    'macro': 'macro', 'endmacro': 'endm'
 }
 
 allfiles = [
@@ -140,7 +141,7 @@ for line in chain(*allfiles):
             dfnparts = words[1].split(None, 1)
             word0 = dfnparts[0]
             words = [word0, "equ %s" % (dfnparts[1])]
-        if word0 in directive_translation:
+        elif word0 in directive_translation:
             words[0] = directive_translation[word0]
             word0 = words[0]
         else:

@@ -51,12 +51,10 @@ name = <((* - pently_sfx_table) / 4)
 ;      |||| |    ++++- noise period class (3=high, F=low)
 ;      |||| +--------- noise waveform (0=hiss, 1=buzz)
 ;      ++++----------- volume (0=silent)
-
-; This is experimental
 .macro sfxframe duty, volume, pitch
   .byte ((duty)<<6|(volume))
   .byte (pitch)
-.endmac
+.endmacro
 
 .macro drumdef name, sfx1, sfx2
 name = <(* - pently_drums) * 4
@@ -71,30 +69,31 @@ name = <(* - pently_drums) * 4
 ; Instrument definitions
 .macro instdef name, duty, volume, decayrate, earlycut, attackptr, attacklen
 name = <(* - pently_instruments) / 5
-.local earlycutbits, attacklenbits
-  .byte (((duty) << 6) | (volume))
-  .ifnblank decayrate
-    .byte decayrate
-  .else
-    .byte 0
-  .endif
+  .scope
+    .byte (((duty) << 6) | (volume))
+    .ifnblank decayrate
+      .byte decayrate
+    .else
+      .byte 0
+    .endif
 
-  .if !.blank({earlycut})
-    .if (earlycut)
-      earlycutbits = $80
+    .if !.blank({earlycut})
+      .if (earlycut)
+        earlycutbits = $80
+      .else
+        earlycutbits = $00
+      .endif
     .else
       earlycutbits = $00
     .endif
-  .else
-    earlycutbits = $00
-  .endif
-  .if !.blank({attacklen})
-    .byte earlycutbits|(attacklen)
-    .addr attackptr
-  .else
-    .byte earlycutbits
-    .addr 0
-  .endif
+    .if !.blank({attacklen})
+      .byte earlycutbits|(attacklen)
+      .addr attackptr
+    .else
+      .byte earlycutbits
+      .addr 0
+    .endif
+  .endscope
 .endmacro
 
 ; Song definition
@@ -169,9 +168,10 @@ CON_SETBEAT = $38  ; low bits: duration type (D_something) corresponding to one 
   .byt CON_DALSEGNO
 .endmacro
 .macro setTempo rowsPerMin
-.local irpm
-irpm = rowsPerMin
-  .byt CON_SETTEMPO|>irpm, <irpm
+  .scope
+  irpm = rowsPerMin
+    .byt CON_SETTEMPO|>irpm, <irpm
+  .endscope
 .endmacro
 .macro setBeatDuration durCode
   .byt CON_SETBEAT|(durCode)
