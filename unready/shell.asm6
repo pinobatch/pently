@@ -1,0 +1,105 @@
+INESPRG = 1    ; 16384 byte units
+INESCHR = 1    ; 8192 byte units
+INESMIR = $01  ; 0: VRAM A10=PA11; 1: VRAM A10=PA10
+INESMAP = 0    ; NROM
+
+PPUCTRL      = $2000
+  VRAM_DOWN  = $04
+  OBJ_0000   = $00
+  OBJ_1000   = $08
+  OBJ_8X16   = $20
+  BG_0000    = $00
+  BG_1000    = $10
+  VBLANK_NMI = $80
+PPUMASK      = $2001
+  LIGHTGRAY  = $01
+  BG_CLIP    = $08
+  BG_ON      = $0A
+  OBJ_CLIP   = $10
+  OBJ_ON     = $14
+  TINT_R     = $20
+  TINT_G     = $40
+  TINT_B     = $80
+PPUSTATUS    = $2002
+OAMADDR      = $2003
+PPUSCROLL    = $2005
+PPUADDR      = $2006
+PPUDATA      = $2007
+OAM_DMA      = $4014
+P1           = $4016
+P2           = $4017
+
+
+; Zero page variables
+enum $0010
+  nmis: dsb 1
+  oam_used: dsb 1
+  cur_keys: dsb 2
+  new_keys: dsb 2
+  pently_zptemp: dsb 5
+ende
+
+OAM = $0200
+
+; BSS variables
+.enum $0300
+
+.ende
+
+
+; iNES header
+  db "NES",$1A
+  db INESPRG, INESCHR
+  db INESMIR | ((INESMAP & $0F) << 4)
+  db (INESMAP & $F0)
+  dsb 8, $00
+
+; Code start
+  .base $C000
+nmi_handler:
+  inc nmis
+irq_handler:
+  rti
+reset_handler:
+  sei
+  cld
+  ldx #$40
+  stx $4017  ; disable APU frame IRQ
+  ldx #$FF
+  txs        ; init stack
+  inx
+  stx $2000  ; disable vblank NMI
+  stx $2001  ; disable rendering
+  stx $4010  ; disable DMC IRQ
+  bit $2002  ; acknowledge NMI if reset during vblank
+
+@vblankwait1:
+  bit $2002
+  bpl @vblankwait1
+@vblankwait2:
+  bit $2002
+  bpl @vblankwait2
+
+  ; fall through
+
+main:
+  lda #$3F
+  sta PPUADDR
+  lda #$00
+  sta PPUADDR
+  lda #$2A
+  sta PPUDATA
+  
+  lda #0
+  sta PPUADDR
+  sta PPUADDR
+
+forever:
+  jmp forever
+  
+; Vectors
+  org $FFFA
+  dw nmi_handler, reset_handler, irq_handler
+
+  base $0000
+  dsb $2000, $AA
