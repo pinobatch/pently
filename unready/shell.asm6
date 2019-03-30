@@ -83,19 +83,150 @@ reset_handler:
   ; fall through
 
 main:
+  lda #VBLANK_NMI
+  sta PPUCTRL
   lda #$3F
   sta PPUADDR
-  lda #$00
-  sta PPUADDR
-  lda #$2A
-  sta PPUDATA
-  
-  lda #0
-  sta PPUADDR
-  sta PPUADDR
+  ldx #$00
+  stx PPUADDR
+  @loadpalloop:
+    lda initial_palette,x
+    sta PPUDATA
+    inx
+    cpx #32
+    bcc @loadpalloop
+
+  ; Load initial nametable
+  stx PPUADDR
+  ldy #0
+  sty PPUADDR
+  @load_iso_nt_row:
+    tya
+    and #$01
+    asl a
+    ldx #32
+    @load_iso_nt_cell:
+      ora #$0C
+      sta PPUDATA
+      adc #1
+      and #3
+      dex
+      bne @load_iso_nt_cell
+    iny
+    cpy #30
+    bne @load_iso_nt_row
+  txa
+  ldx #64
+  @load_iso_nt_attr:
+    sta PPUDATA
+    dex
+    bne @load_iso_nt_attr
 
 forever:
+  ldx #0
+  stx oam_used
+
+  lda #112
+  sta msprXLo
+  lda #128
+  sta msprYLo
+  lda #0
+  sta msprYHi
+  sta msprXHi
+  sta msprAttr
+  lda #$60
+  sta msprBaseTile
+  ldx #0
+  lda #4
+  jsr draw_metasprite
+
+  lda #64
+  sta msprXLo
+  lda #104
+  sta msprYLo
+  lda #0
+  sta msprYHi
+  sta msprXHi
+  lda #$40
+  sta msprAttr
+  lda #$60
+  sta msprBaseTile
+  ldx #0
+  lda #2
+  jsr draw_metasprite
+
+  lda #160
+  sta msprXLo
+  lda #104
+  sta msprYLo
+  lda #0
+  sta msprYHi
+  sta msprXHi
+  sta msprAttr
+  lda #$60
+  sta msprBaseTile
+  ldx #0
+  lda #2
+  jsr draw_metasprite
+
+  lda #112
+  sta msprXLo
+  lda #80
+  sta msprYLo
+  lda #0
+  sta msprYHi
+  sta msprXHi
+  sta msprAttr
+  lda #$60
+  sta msprBaseTile
+  ldx #0
+  lda #0
+  jsr draw_metasprite
+
+  ldx oam_used
+  jsr ppu_clear_oam
+
+  lda nmis
+  @nmiwait:
+    cmp nmis
+    beq @nmiwait
+  lda #>OAM
+  sta OAM_DMA
+  ldx #0
+  ldy #0
+  lda #VBLANK_NMI
+  sec
+  jsr ppu_screen_on
   jmp forever
+
+initial_palette:
+  hex 0f202a1a 0f242424 0f242424 0f242424
+  hex 0f27180f 0f381202 0f242424 0f242424
+
+ppu_clear_oam:
+  txa
+  and #$FC
+  tax
+  lda #$FF
+  @loop:
+    sta OAM,x
+    inx
+    inx
+    inx
+    inx
+    bne @loop
+  rts
+
+ppu_screen_on:
+  stx PPUSCROLL
+  sty PPUSCROLL
+  sta PPUCTRL
+  lda #BG_ON
+  bcc @no_sprites
+    lda #BG_ON|OBJ_ON
+  @no_sprites:
+  sta PPUMASK
+  rts
 
 include "metasprite.asm6"
 

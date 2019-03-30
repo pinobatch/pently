@@ -47,6 +47,7 @@ mspr_sattr   dsb 1  ; attributes of strip (msprAttr xor strip palette)
 ende
 
 draw_metasprite:
+  sta $4444
   ; Seek to start of frame
   asl a
   tay
@@ -81,7 +82,7 @@ draw_metasprite:
   adc msprXLo
   sta msprXLo
   bcs @nodecxhi
-    dec msprYHi
+    dec msprXHi
     sec
   @nodecxhi:
 
@@ -114,7 +115,7 @@ draw_metasprite:
     bne @is_offscreen_y
 
     ; Ensure in Y=0 to 238 (change this value for status bars, etc.)
-    lda msprYLo
+    lda mspr_sylo
     cmp #239
     bcc @not_offscreen_y
     @is_offscreen_y:
@@ -134,11 +135,10 @@ draw_metasprite:
 
     ; Get starting X position of strip
     lda (mspr_ptr),y
-    sta mspr_sylo
+    eor mspr_xxor
     iny  ; points at palette and length
     clc
     adc msprXLo
-    eor mspr_xxor
     sta mspr_sxlo
     lda #0
     adc msprXHi
@@ -204,43 +204,43 @@ bell_girl_cels:
   dw @bell_girl_n
 
 @bell_girl_s:
-  db 128-28,128- 4,$01,$2B          ; head
-  db 128-24,128- 8,$04,$00,$40      ; shoulders
-  db 128-16,128-12,$08,$10,$11,$50  ; arms and belt
-  db 128- 8,128-12,$08,$20,$21,$60  ; bottom of apron
-  db 128- 0,128-12,$08,$29,$2A,$69  ; hem
+  db 128-28,128- 4,$00,$2B          ; head
+  db 128-24,128- 8,$05,$00,$40      ; shoulders
+  db 128-16,128-12,$09,$10,$11,$50  ; arms and belt
+  db 128- 8,128-12,$09,$20,$21,$60  ; bottom of apron
+  db 128- 0,128-12,$09,$29,$2A,$69  ; hem
   db 0
 
 @bell_girl_sw:
-  db 128-28,128- 4,$01,$2C          ; head
-  db 128-24,128- 8,$04,$01,$02      ; shoulders
-  db 128-16,128-12,$08,$12,$13,$14  ; arms and belt
-  db 128- 8,128-12,$08,$22,$23,$24  ; bottom of apron
-  db 128- 0,128-12,$08,$29,$2A,$69  ; hem
+  db 128-28,128- 4,$00,$2C          ; head
+  db 128-24,128- 8,$05,$01,$02      ; shoulders
+  db 128-16,128-12,$09,$12,$13,$14  ; arms and belt
+  db 128- 8,128-12,$09,$22,$23,$24  ; bottom of apron
+  db 128- 0,128-12,$09,$29,$2A,$69  ; hem
   db 0
 
 @bell_girl_w:
-  db 128-28,128- 4,$01,$2D          ; head
-  db 128-24,128- 4,$00,$03          ; shoulders
-  db 128-16,128-12,$08,$15,$16,$17  ; arms and belt
-  db 128- 8,128-12,$08,$25,$26,$27  ; bottom of apron
-  db 128- 0,128-12,$08,$29,$2A,$69  ; hem
+  db 128-28,128- 4,$00,$2D          ; head
+  db 128-24,128- 4,$01,$03          ; shoulders
+  db 128-16,128-12,$09,$15,$16,$17  ; arms and belt
+  db 128- 8,128-12,$09,$25,$26,$27  ; bottom of apron
+  db 128- 0,128-12,$09,$29,$2A,$69  ; hem
   db 0
 
 @bell_girl_nw:
-  db 128-28,128- 4,$01,$2E          ; head
-  db 128-24,128- 8,$04,$04,$05      ; shoulders
-  db 128-16,128-12,$08,$18,$19,$1a  ; arms and belt
-  db 128- 8,128-12,$08,$28,$26,$27  ; bottom of apron
-  db 128- 0,128-12,$08,$29,$2A,$69  ; hem
+  db 128-28,128- 4,$00,$2E          ; head
+  db 128-24,128- 8,$05,$04,$05      ; shoulders
+  db 128-16,128-12,$09,$18,$19,$1a  ; arms and belt
+  db 128- 8,128-12,$09,$28,$26,$27  ; bottom of apron
+  db 128- 0,128-12,$09,$29,$2A,$69  ; hem
   db 0
 
 @bell_girl_n:
-  db 128-28,128- 4,$01,$2F          ; head
-  db 128-24,128- 8,$04,$06,$46      ; shoulders
-  db 128-16,128-12,$08,$1B,$1C,$5B  ; arms and belt
-  db 128- 8,128-12,$08,$57,$26,$27  ; bottom of apron
-  db 128- 0,128-12,$08,$29,$2A,$69  ; hem
+  db 128-28,128- 4,$00,$2F          ; head
+  db 128-24,128- 8,$05,$06,$46      ; shoulders
+  db 128-16,128-12,$09,$1B,$1C,$5B  ; arms and belt
+  db 128- 8,128-12,$09,$67,$26,$27  ; bottom of apron
+  db 128- 0,128-12,$09,$29,$2A,$69  ; hem
   db 0
 
 shadow_cels:
