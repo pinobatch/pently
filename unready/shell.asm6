@@ -96,10 +96,12 @@ main:
 
 forever:
   jmp forever
-  
+
+include "metasprite.asm6"
+
 ; Vectors
   org $FFFA
   dw nmi_handler, reset_handler, irq_handler
 
   base $0000
-  dsb $2000, $AA
+  incbin "sicktiles.chr"

@@ -15,6 +15,7 @@
 * NSF shell: Write NSFe and NSF2 formats (#39, #41)
 * sfxed: Fix display of rate in slow (rate 10+) effects
 * Move .pently files to audio folder
+* Document workarounds for lack of reentrancy (#2)
 * makefile: Add a recipe to convert a FamiTracker module with
   ft2pently (#36)
 
