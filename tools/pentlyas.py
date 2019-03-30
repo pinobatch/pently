@@ -839,10 +839,15 @@ class PentlyDrum(PentlyRenderable):
 
     def render(self, scopes=None):
         # TODO: For drums defined in a song, check for effects in same song
-        sfxnames = ', '.join('PE_'+self.get_asmname(sfxname)
-                             for sfxname in self.sfxnames)
+        sfxnames = ['PE_'+self.get_asmname(sfxname)
+                    for sfxname in self.sfxnames]
+        # To appease ASM6's lack of variadic macros, emit all
+        # arguments, even those that are optional in ca65.
+        # https://forums.nesdev.com/viewtopic.php?f=2&t=18610
+        if len(sfxnames) < 2:
+            sfxnames.append("$80")
         self.asmname = 'DR_'+PentlyRenderable.get_asmname(self.name)
-        self.asmdef = "drumdef %s, %s" % (self.asmname, sfxnames)
+        self.asmdef = "drumdef %s,%s" % (self.asmname, ",".join(sfxnames))
         self.bytesize = 2
 
 class PentlySong(PentlyRenderable):

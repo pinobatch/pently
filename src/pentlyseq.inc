@@ -2,7 +2,7 @@
 ; Pently audio engine
 ; Sequence data macro definitions
 ;
-; Copyright 2010-2017 Damian Yerrick
+; Copyright 2010-2019 Damian Yerrick
 ; 
 ; This software is provided 'as-is', without any express or implied
 ; warranty.  In no event will the authors be held liable for any damages
@@ -56,17 +56,24 @@ name = <((* - pently_sfx_table) / 4)
   .byte (pitch)
 .endmacro
 
+; When using the ASM6 translation of this macro pack, all arguments
+; are required, even those optional in ca65.  This is because ASM6
+; lacks variadic macros.
+; https://forums.nesdev.com/viewtopic.php?f=2&t=18610
+
+; sfx2 is optional in ca65
 .macro drumdef name, sfx1, sfx2
 name = <(* - pently_drums) * 4
   .byte sfx1
-  .ifblank sfx2
-    .byte $80
-  .else
+  .ifnblank sfx2
     .byte sfx2
+  .else
+    .byte $80
   .endif
 .endmacro
 
 ; Instrument definitions
+; decayrate and later are optional in ca65
 .macro instdef name, duty, volume, decayrate, earlycut, attackptr, attacklen
 name = <(* - pently_instruments) / 5
   .scope
@@ -77,7 +84,7 @@ name = <(* - pently_instruments) / 5
       .byte 0
     .endif
 
-    .if !.blank({earlycut})
+    .ifnblank earlycut
       .if (earlycut)
         earlycutbits = $80
       .else
@@ -86,7 +93,7 @@ name = <(* - pently_instruments) / 5
     .else
       earlycutbits = $00
     .endif
-    .if !.blank({attacklen})
+    .ifnblank attacklen
       .byte earlycutbits|(attacklen)
       .addr attackptr
     .else

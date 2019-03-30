@@ -68,7 +68,6 @@ directive_translation = {
     'if': 'if', 'else': 'else', 'elseif': 'elseif', 'endif': 'endif',
     'ifdef': 'ifdef', 'ifndef': 'ifndef',
     'byt': 'db', 'byte': 'db', 'word': 'dw', 'addr': 'dw', 'res': 'dsb',
-    'macro': 'macro', 'endmacro': 'endm'
 }
 
 allfiles = [
@@ -78,7 +77,7 @@ allfiles = [
 ]
 specialseg = None
 specialseg_lines = defaultdict(list)
-inscope = False
+inscope = 0
 lines = []
 anon_labels_seen = 0
 anon_label_fmt = "@ca65toasm6_anonlabel_%d"
@@ -116,6 +115,18 @@ for line in chain(*allfiles):
         word0 = words[0].lower().lstrip('.')
         if word0 in directive_ignore:
             continue
+
+        # Because ASM6 appears to lack any sort of support for
+        # variadic macros, treat all arguments as nonblank and
+        # modify pentlyas to never omit arguments.
+        # https://forums.nesdev.com/viewtopic.php?f=2&t=18610
+        if word0 == 'ifblank':
+            lines.append('if 0')
+            continue
+        if word0 == 'ifnblank':
+            lines.append('if 1')
+            continue
+
         if word0 == 'zeropage':
             specialseg = 'zeropage'
             continue
@@ -137,6 +148,18 @@ for line in chain(*allfiles):
             lines.append('endr')
             inscope -= 1
             continue
+
+        # Macro is considered a "scope" so that "name =" doesn't
+        # get moved out to global includes
+        if word0 == 'macro':
+            lines.append('macro ' + words[1])
+            inscope += 1
+            continue
+        if word0 == 'endmacro':
+            lines.append('endm')
+            inscope -= 1
+            continue
+
         if word0 == 'define':
             dfnparts = words[1].split(None, 1)
             word0 = dfnparts[0]
@@ -155,7 +178,7 @@ for line in chain(*allfiles):
         # and = is for numbers, but I don't know if = is required to be
         # constant at the time that line is assembled.
         words = [label, "=", expr]
-        if not specialseg and not inscope:
+        if False and not specialseg and not inscope:
             global_equates.append(" ".join(words))
             continue
         label = None
