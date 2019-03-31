@@ -36,15 +36,10 @@ enum $0010
   oam_used: dsb 1
   cur_keys: dsb 2
   new_keys: dsb 2
-  pently_zptemp: dsb 5
+;  pently_zptemp: dsb 5
 ende
 
 OAM = $0200
-
-; BSS variables
-.enum $0300
-
-.ende
 
 
 ; iNES header
@@ -203,32 +198,9 @@ initial_palette:
   hex 0f202a1a 0f242424 0f242424 0f242424
   hex 0f27180f 0f381202 0f242424 0f242424
 
-ppu_clear_oam:
-  txa
-  and #$FC
-  tax
-  lda #$FF
-  @loop:
-    sta OAM,x
-    inx
-    inx
-    inx
-    inx
-    bne @loop
-  rts
-
-ppu_screen_on:
-  stx PPUSCROLL
-  sty PPUSCROLL
-  sta PPUCTRL
-  lda #BG_ON
-  bcc @no_sprites
-    lda #BG_ON|OBJ_ON
-  @no_sprites:
-  sta PPUMASK
-  rts
-
+include "ppuclear.asm6"
 include "metasprite.asm6"
+;include "pently.asm6"
 
 ; Vectors
   org $FFFA

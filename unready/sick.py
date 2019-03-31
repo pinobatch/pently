@@ -35,7 +35,7 @@ Anonymous labels should be easier to translate automatically.
 import sys
 import os
 import re
-from collections import defaultdict
+from collections import OrderedDict
 from itertools import chain
 
 quotesRE = r"""[^"';]+|"[^"]*"|'[^']*'|;.*"""
@@ -57,6 +57,7 @@ def openreadlines(filename, xform=None):
 filestoload = [
     "pentlyconfig.inc", "pently.inc", "pentlyseq.inc",
     "pentlysound.s", "../obj/nes/pentlybss.inc", "pentlymusic.s",
+    "../obj/nes/musicseq.s"
 ]
 
 directive_ignore = {
@@ -75,13 +76,21 @@ allfiles = [
                   lambda x: uncomment(x).strip())
     for n in filestoload
 ]
-specialseg = None
-specialseg_lines = defaultdict(list)
-inscope = 0
 lines = []
+for filename in filestoload:
+    lines.append('.segment ""')
+    lines.extend(openreadlines(os.path.join("../src", filename),
+                               lambda x: uncomment(x).strip()))
+
+known_segs = ['', 'ZEROPAGE', 'BSS']
+seg_lines = OrderedDict()
+for seg in known_segs:
+    seg_lines[seg] = []
+cur_seg = ""
+inscope = 0
+
 anon_labels_seen = 0
 anon_label_fmt = "@ca65toasm6_anonlabel_%d"
-global_equates = []
 def resolve_anon_ref(m):
     s = m.group(0)
     distance = len(s) - 2
@@ -92,7 +101,7 @@ def resolve_anon_ref(m):
     else:
         raise ValueError("unknown anonref %s" % s)
 
-for line in chain(*allfiles):
+for line in lines:
     if not line: continue
     words = line.split(None, 1)
     label = None
@@ -121,42 +130,45 @@ for line in chain(*allfiles):
         # modify pentlyas to never omit arguments.
         # https://forums.nesdev.com/viewtopic.php?f=2&t=18610
         if word0 == 'ifblank':
-            lines.append('if 0')
+            seg_lines[cur_seg].append('if 0')
+            inscope += 1
             continue
         if word0 == 'ifnblank':
-            lines.append('if 1')
+            seg_lines[cur_seg].append('if 1')
+            inscope += 1
             continue
 
         if word0 == 'zeropage':
-            specialseg = 'zeropage'
+            cur_seg = 'ZEROPAGE'
             continue
         if word0 == 'bss':
-            specialseg = 'bss'
+            cur_seg = 'BSS'
             continue
         if word0 == 'segment':
-            specialseg = None
+            cur_seg = words[1].strip('"').upper()
+            seg_lines.setdefault(cur_seg, [])
             continue
         if word0 == 'scope':
-            lines.append('rept 1')
+            seg_lines[cur_seg].append('rept 1')
             inscope += 1
             continue
         if word0 == 'proc':
-            lines.append('%s: rept 1' % words[1])
+            seg_lines[cur_seg].append('%s: rept 1' % words[1])
             inscope += 1
             continue
         if word0 in ('endscope', 'endproc'):
-            lines.append('endr')
+            seg_lines[cur_seg].append('endr')
             inscope -= 1
             continue
 
         # Macro is considered a "scope" so that "name =" doesn't
         # get moved out to global includes
         if word0 == 'macro':
-            lines.append('macro ' + words[1])
+            seg_lines[cur_seg].append('macro ' + words[1])
             inscope += 1
             continue
         if word0 == 'endmacro':
-            lines.append('endm')
+            seg_lines[cur_seg].append('endm')
             inscope -= 1
             continue
 
@@ -174,13 +186,11 @@ for line in chain(*allfiles):
     equate = equateRE.match(line)
     if equate:
         label, expr = equate.groups()
-        # Not sure if I want EQU or =, as EQU is for string replacement
-        # and = is for numbers, but I don't know if = is required to be
-        # constant at the time that line is assembled.
+        # Not sure if I want EQU or =, as EQU is for string
+        # replacement (like ca65 .define) and = is for numbers,
+        # but I don't know if = is required to be constant
+        # at the time that line is assembled.
         words = [label, "=", expr]
-        if False and not specialseg and not inscope:
-            global_equates.append(" ".join(words))
-            continue
         label = None
 
     if len(words) > 1:
@@ -196,14 +206,8 @@ for line in chain(*allfiles):
     line = " ".join(words)
     if label:
         line = "%s: %s" % (label, line)
-    if specialseg:
-        specialseg_lines[specialseg].append(line)
-    else:
-        lines.append(line)
+    seg_lines[cur_seg].append(line)
 
-print("\n".join(global_equates))
-for segment, seglines in specialseg_lines.items():
-    print(";;; VARIABLES SEGMENT %s" % segment)
+for segment, seglines in seg_lines.items():
+    print(";;; SEGMENT %s" % segment)
     print("\n".join(seglines))
-
-print("\n".join(lines))
