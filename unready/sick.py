@@ -56,6 +56,17 @@ def openreadlines(filename, xform=None):
     with open(filename, "r", encoding="utf-8") as infp:
         return [xform(x) if xform else x for x in infp]
 
+def fix_pc_references(s):
+    # This is not ideal, but it gets the job of translating ca65 *
+    # to ASM6 $ done for any reference to the current PC that is
+    # adjacent to the start or end of the expression or of a
+    # parenthesized subexpression.
+    if s.startswith('*'):
+        s = '$' + s[1:]
+    if s.endswith('*'):
+        s = '$' + s[1:]
+    return s.replace('(*', '($').replace('*)', '$)')
+
 filestoload = [
     "pentlyconfig.inc", "pently.inc", "pentlyseq.inc",
     "pentlysound.s", "../obj/nes/pentlybss.inc", "pentlymusic.s",
@@ -196,15 +207,16 @@ for line in lines:
         words = [label, "=", expr]
         label = None
 
-    if len(words) > 1:
-        operand = quotesRE.findall(words[1])
+    for j in range(1, len(words)):
+        operand = fix_pc_references(words[j])
+        operand = quotesRE.findall(operand)
         for i in range(len(operand)):
             randpart = operand[i]
             if randpart.startswith(("'", '"')): continue
             randpart = randpart.replace("::", "")
             randpart = anonlabelrefRE.sub(resolve_anon_ref, randpart)
             operand[i] = randpart
-        words[1] = operand = "".join(operand)
+        words[j] = operand = "".join(operand)
 
     line = " ".join(words)
     if label:
