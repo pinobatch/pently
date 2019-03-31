@@ -40,10 +40,12 @@ from itertools import chain
 
 quotesRE = r"""[^"';]+|"[^"]*"|'[^']*'|;.*"""
 quotesRE = re.compile(quotesRE)
-equateRE = r"""\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)"""
-equateRE = re.compile(equateRE)
+equateRE = r"""\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?:=|\.set)\s*(.*)"""
+equateRE = re.compile(equateRE, re.IGNORECASE)
 anonlabelrefRE = r""":([+]+|[-]+)"""
 anonlabelrefRE = re.compile(anonlabelrefRE)
+wordRE = r"""\s*([A-Za-z_][A-Za-z0-9_]*)"""
+wordRE = re.compile(wordRE)
 
 def uncomment(line):
     lineparts = quotesRE.findall(line.rstrip())
@@ -88,6 +90,7 @@ for seg in known_segs:
     seg_lines[seg] = []
 cur_seg = ""
 inscope = 0
+delay_labels = set()
 
 anon_labels_seen = 0
 anon_label_fmt = "@ca65toasm6_anonlabel_%d"
@@ -206,7 +209,36 @@ for line in lines:
     line = " ".join(words)
     if label:
         line = "%s: %s" % (label, line)
+        # A label used for a zero page "dsb" must come before all
+        # "=" that refer to it, or (d,X) addressing will give error
+        # "Incomplete expression".  So delay any segmentless equates
+        # that refer to a label and occur before its definition.
+        if cur_seg in ('ZEROPAGE', 'BSS'):
+            delay_labels.add(label)
+
     seg_lines[cur_seg].append(line)
+
+segmentless_lines = []
+delayed_lines = []
+for line in seg_lines.pop(''):
+    words = wordRE.findall(line)
+    if delay_labels.intersection(words):
+        delayed_lines.append(line)
+    else:
+        segmentless_lines.append(line)
+    
+print(";;; SEGMENTLESS")
+print("\n".join(segmentless_lines))
+print(";;; ZERO PAGE")
+print(".enum $00D0")
+print("\n".join(seg_lines.pop('ZEROPAGE')))
+print("ende")
+print(";;; BSS")
+print(".enum $0700")
+print("\n".join(seg_lines.pop('BSS')))
+print("ende")
+print(";;; SEGMENTLESS DELAYED")
+print("\n".join(delayed_lines))
 
 for segment, seglines in seg_lines.items():
     print(";;; SEGMENT %s" % segment)
