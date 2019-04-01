@@ -4,21 +4,23 @@ sick
 translate Pently from ca65 to ASM6
 
 Rules for ASM6
-- Assembler directives need not have a leading dot.
-- equ replaces =; = instead replaces .set
+- Assembler directives need not have a leading dot
+- $ replaces * as current PC
+- = behaves as .set
+- If right side of = is above the definition of a ZP variable,
+  indirect addressing modes may fail, so move the = down
+- equ replaces .define
 - db or byte replaces .byt
 - dw or word replaces .addr
 - dsb replaces .res
 - rept (with no second argument) replaces .repeat; emulate the second
-  argument with =.
-- rept 1 replaces .scope
-- No .bss; emulate it with .enum and = $. May need host to allocate
-  both zero page and BSS memory.
-- No other .segment; treat code and read-only data the same.
-- No .proc; emulate it by either prefixing the namespace to non-@ labels
-  or perhaps wrapping the body in a .rept 1.
-- No .assert; emulate it with if.
-- No second argument to .assert either, but it can be emulated with if.
+  argument with =
+- rept 1 replaces .scope and .proc
+- No .bss; emulate it with enum...ende and dsb (may need caller to
+  allocate both zero page and BSS memory)
+- No other .segment; treat code and read-only data the same
+- No .assert; emulate it with if
+- No variadic macros
 - Unnamed labels follow the x816 convention (-, --, +foo), not the ca65
   convention (:). Change them as described below
 
@@ -100,7 +102,6 @@ seg_lines = OrderedDict()
 for seg in known_segs:
     seg_lines[seg] = []
 cur_seg = ""
-inscope = 0
 delay_labels = set()
 
 anon_labels_seen = 0
@@ -144,12 +145,15 @@ for line in lines:
         # modify pentlyas to never omit arguments.
         # https://forums.nesdev.com/viewtopic.php?f=2&t=18610
         if word0 == 'ifblank':
-            seg_lines[cur_seg].append('if 0')
-            inscope += 1
+            seg_lines[cur_seg].append('if 0  ; was ifblank')
             continue
         if word0 == 'ifnblank':
-            seg_lines[cur_seg].append('if 1')
-            inscope += 1
+            seg_lines[cur_seg].append('if 1  ; was ifnblank')
+            continue
+
+        if word0 == 'ifndef' and words[1].endswith('_INC'):
+            print("Stripping ifndef", words, file=sys.stderr)
+            seg_lines[cur_seg].append('if 1  ; was include guard')
             continue
 
         if word0 == 'zeropage':
@@ -164,26 +168,23 @@ for line in lines:
             continue
         if word0 == 'scope':
             seg_lines[cur_seg].append('rept 1')
-            inscope += 1
             continue
         if word0 == 'proc':
             seg_lines[cur_seg].append('%s: rept 1' % words[1])
-            inscope += 1
             continue
         if word0 in ('endscope', 'endproc'):
             seg_lines[cur_seg].append('endr')
-            inscope -= 1
             continue
 
         # Macro is considered a "scope" so that "name =" doesn't
         # get moved out to global includes
+        # TODO: revisit this now that global includes are based on
+        # segment, not scope
         if word0 == 'macro':
             seg_lines[cur_seg].append('macro ' + words[1])
-            inscope += 1
             continue
         if word0 == 'endmacro':
             seg_lines[cur_seg].append('endm')
-            inscope -= 1
             continue
 
         if word0 == 'define':
