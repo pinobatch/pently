@@ -610,8 +610,6 @@ noSecondDrum:
 ; The 6502 adds 2 to PC in JSR and 1 in RTS, so push minus 1.
 ; Each effect is called with carry clear and the effect number
 ; times 2 in Y.
-.pushseg
-.segment PENTLY_RODATA
 patcmdhandlers:
   .addr set_fx_instrument-1
   .addr set_fx_arpeggio-1
@@ -626,9 +624,7 @@ patcmdhandlers:
   .addr set_fx_portamento-1  ; Reserved for future use
   .addr set_fx_fastarp-1
   .addr set_fx_slowarp-1
-
 num_patcmdhandlers = (* - patcmdhandlers) / 2
-.popseg
 
 set_fx_instrument:
   lda (musicPatternPos,x)
