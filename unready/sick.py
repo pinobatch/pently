@@ -23,6 +23,8 @@ Rules for ASM6
 - No variadic macros
 - Unnamed labels follow the x816 convention (-, --, +foo), not the ca65
   convention (:). Change them as described below
+- All symbols defined in a macro are local, but macros can reassign
+  existing symbols.
 
 Anonymous labels should be easier to translate automatically.
 
@@ -84,6 +86,12 @@ directive_translation = {
     'if': 'if', 'else': 'else', 'elseif': 'elseif', 'endif': 'endif',
     'ifdef': 'ifdef', 'ifndef': 'ifndef',
     'byt': 'db', 'byte': 'db', 'word': 'dw', 'addr': 'dw', 'res': 'dsb',
+    'endproc': 'endr', 'endscope': 'endr',
+    'macro': 'macro', 'endmacro': 'endm'
+}
+
+macros_equal_0 = {
+    'sfxdef', 'instdef', 'drumdef', 'songdef', 'patdef'
 }
 
 allfiles = [
@@ -152,7 +160,6 @@ for line in lines:
             continue
 
         if word0 == 'ifndef' and words[1].endswith('_INC'):
-            print("Stripping ifndef", words, file=sys.stderr)
             seg_lines[cur_seg].append('if 1  ; was include guard')
             continue
 
@@ -172,20 +179,17 @@ for line in lines:
         if word0 == 'proc':
             seg_lines[cur_seg].append('%s: rept 1' % words[1])
             continue
-        if word0 in ('endscope', 'endproc'):
-            seg_lines[cur_seg].append('endr')
-            continue
 
         # Macro is considered a "scope" so that "name =" doesn't
         # get moved out to global includes
         # TODO: revisit this now that global includes are based on
         # segment, not scope
-        if word0 == 'macro':
-            seg_lines[cur_seg].append('macro ' + words[1])
-            continue
-        if word0 == 'endmacro':
-            seg_lines[cur_seg].append('endm')
-            continue
+##        if word0 == 'macro':
+##            seg_lines[cur_seg].append('macro ' + words[1])
+##            continue
+##        if word0 == 'endmacro':
+##            seg_lines[cur_seg].append('endm')
+##            continue
 
         if word0 == 'define':
             dfnparts = words[1].split(None, 1)
@@ -197,6 +201,11 @@ for line in lines:
         else:
             print("unknown directive", line, file=sys.stderr)
             continue
+
+    # Suggested by Overkill/egg boy color
+    if line and words[0] in macros_equal_0:
+        name_to_zero = words[1].split(',', 1)[0].strip()
+        seg_lines[''].append(name_to_zero + " = 0  ; macro will change")
 
     equate = equateRE.match(line)
     if equate:

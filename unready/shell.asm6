@@ -33,6 +33,7 @@ P2           = $4017
 ; Zero page variables
 enum $0010
   nmis: dsb 1
+  tvSystem: dsb 1
   oam_used: dsb 1
   cur_keys: dsb 2
   new_keys: dsb 2
@@ -116,8 +117,15 @@ main:
     sta PPUDATA
     dex
     bne @load_iso_nt_attr
+  stx tvSystem
+  jsr pently_init
+;  lda #1
+;  jsr pently_start_music
+  lda #PE_kick
+  jsr pently_start_sound
 
 forever:
+  jsr pently_update
   ldx #0
   stx oam_used
 
@@ -200,7 +208,7 @@ initial_palette:
 
 include "ppuclear.asm6"
 include "metasprite.asm6"
-;include "pently.asm6"
+include "pently.asm6"
 
 ; Vectors
   org $FFFA
