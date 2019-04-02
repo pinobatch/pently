@@ -75,6 +75,13 @@ PENTLY_USE_TEMPO_ROUNDING = PENTLY_USE_TEMPO_ROUNDING_SEGNO || (PENTLY_USE_TEMPO
 ; 16  | Conductor track position            Tempo counter
 ; 20  | Play/Pause
 
+.zeropage
+; ASM6 translation quirk:
+; The delay_labels mechanism to reduce forward references to
+; pently_zp_state and pentlymusicbase does not work correctly
+; if the references are in a .if block.  So move them to
+; .zeropage so that delay_labels will not touch them.
+
 musicPatternPos = pently_zp_state + 2
 .if PENTLY_USE_ATTACK_PHASE
   noteAttackPos           = pently_zp_state + 16
@@ -89,7 +96,6 @@ musicPatternPos = pently_zp_state + 2
   pently_tempoCounterHi   = pently_zp_state + 19
   pently_music_playing    = pently_zp_state + 20
 .endif
-
 
 .bss
 ; Statically allocated so as not to be cleared by the clear loop

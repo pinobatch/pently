@@ -2338,6 +2338,7 @@ def render_file(parser, segment='RODATA'):
     bytes_lines = []
     songbytes = {'': 0}
     total_partbytes = 0
+    subseq_refs = []
     for row in parts_to_print:
         things, deflabel, exportable, is_bytes = row
 
@@ -2373,7 +2374,7 @@ def render_file(parser, segment='RODATA'):
                 line = ('%s = %s + %d'
                         % (thing.asmdataname, subseq_pool_directory[diridx],
                            startoffset))
-                lines.append(line)
+                subseq_refs.append(line)
                 continue
 
             # Otherwise, emit the array
@@ -2388,6 +2389,14 @@ def render_file(parser, segment='RODATA'):
         bytes_lines.append('; %s: %d bytes' % (deflabel, partbytes))
         bytes_lines.extend(';   %s: %d bytes' % (thing.asmname, thing.bytesize)
                            for thing in defs1)
+
+    # Put all references to subsequences below the definitions of
+    # said sequences in order to reduce forward references in ASM6
+    lines.extend([
+        '',
+        '; references to subsequences'
+    ])
+    lines.extend(subseq_refs)
 
     lines.extend([
         '',
