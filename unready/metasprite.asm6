@@ -47,7 +47,6 @@ mspr_sattr   dsb 1  ; attributes of strip (msprAttr xor strip palette)
 ende
 
 draw_metasprite:
-  sta $4444
   ; Seek to start of frame
   asl a
   tay

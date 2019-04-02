@@ -1,7 +1,7 @@
-INESPRG = 1    ; 16384 byte units
-INESCHR = 1    ; 8192 byte units
-INESMIR = $01  ; 0: VRAM A10=PA11; 1: VRAM A10=PA10
-INESMAP = 0    ; NROM
+_INESPRG = 1    ; 16384 byte units
+_INESCHR = 1    ; 8192 byte units
+_INESMIR = $01  ; 0: VRAM A10=PA11; 1: VRAM A10=PA10
+_INESMAP = 0    ; NROM
 
 PPUCTRL      = $2000
   VRAM_DOWN  = $04
@@ -44,9 +44,9 @@ OAM = $0200
 
 ; iNES header
   db "NES",$1A
-  db INESPRG, INESCHR
-  db INESMIR | ((INESMAP & $0F) << 4)
-  db (INESMAP & $F0)
+  db _INESPRG, _INESCHR
+  db _INESMIR | ((_INESMAP & $0F) << 4)
+  db (_INESMAP & $F0)
   dsb 8, $00
 
 ; Code start
@@ -119,10 +119,8 @@ main:
   stx tvSystem
 
   jsr pently_init
-  lda #9
+  lda #PS_arp_waltz
   jsr pently_start_music
-;  lda #PE_kick
-;  jsr pently_start_sound
 
 forever:
   jsr pently_update
