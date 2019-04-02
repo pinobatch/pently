@@ -27,8 +27,8 @@ chPitchHi        PER_CHANNEL
 
 # Pitch effects
 arpPhase         PER_CHANNEL         ARPEGGIO|ATTACK_TRACK
-arpIntervalA     PER_PITCHED_CHANNEL ARPEGGIO
-arpIntervalB     PER_PITCHED_CHANNEL ARPEGGIO
+arpInterval1     PER_PITCHED_CHANNEL ARPEGGIO
+arpInterval2     PER_PITCHED_CHANNEL ARPEGGIO
 vibratoDepth     PER_PITCHED_CHANNEL VIBRATO
 vibratoPhase     PER_PITCHED_CHANNEL VIBRATO
 notePitch        PER_PITCHED_CHANNEL PORTAMENTO
@@ -66,6 +66,12 @@ pently_tempo_scale SINGLETON         REHEARSAL
 """
 specs = [row.strip() for row in specs.split("\n")]
 specs = [row.split() for row in specs if row and not row.startswith('#')]
+
+# Use of indexed addressing mode requires some fields to precede
+# others in memory.
+must_ascend = [
+    ['arpInterval1', 'arpInterval2']
+]
 
 def load_uses(config_path):
     """Read the set of features that Pently is configured to use."""
@@ -116,11 +122,24 @@ def ffd(needed, num_cols):
     cols.sort(key=byel1, reverse=True)
     return cols
 
-def format_cols(cols, base_label):
-    return [
-        "%s = %s + %d" % (name, base_label, ht * len(cols) + i)
+def sort_cols(cols):
+    offsets = {
+        name: ht * len(cols) + i
         for i, (names, totalht) in enumerate(cols)
         for name, ht in names
+    }
+    for row in must_ascend:
+        keys = [k for k in row if k in offsets]
+        values = sorted(offsets[k] for k in row)
+        offsets.update(zip(keys, values))
+
+    offsets = sorted(offsets.items(), key=lambda x: x[1])
+    return offsets
+
+def format_cols(offsets, base_label):
+    return [
+        "%s = %s + %d" % (name, base_label, offset)
+        for name, offset in offsets
     ]
 
 def parse_argv(argv):
@@ -154,11 +173,11 @@ def main(argv=None):
                % (minht, maxht, sumht))
     out.append("; Below max: %d; layout waste %d" % (belowmax, waste))
     out.append("%s_size = %d" % (args.base_label, bytesneeded))
+    cols = sort_cols(cols)
     out.extend(format_cols(cols, args.base_label))
     outfp = open(args.output, "w") if args.output != '-' else sys.stdout
     with outfp:
         print("\n".join(out), file=outfp)
-        
 
 if __name__=='__main__':
     main()

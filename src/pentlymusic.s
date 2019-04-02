@@ -100,19 +100,6 @@ conductorSegnoHi        = pentlyBSS + 17
 ; Noise envelope is NOT unused.  Conductor track cymbals use it.
 pentlymusicbase: .res pentlymusicbase_size
 
-; Regardless of whether pentlyBSS puts arpIntervalA before
-; arpIntervalB or vice versa, arpInterval1 must precede
-; arpInterval2 because of how they're indexed.
-.if PENTLY_USE_ARPEGGIO
-  .if arpIntervalB - arpIntervalA > 0
-    arpInterval1 = arpIntervalA
-    arpInterval2 = arpIntervalB
-  .else
-    arpInterval1 = arpIntervalB
-    arpInterval2 = arpIntervalA
-  .endif
-.endif
-
 ; Visualize particular notes within a playing score
 .if PENTLY_USE_ARPEGGIO || PENTLY_USE_ATTACK_TRACK
   pently_vis_arpphase = arpPhase
