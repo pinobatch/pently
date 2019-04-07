@@ -73,12 +73,13 @@ def fix_pc_references(s):
 
 filestoload = [
     "pentlyconfig.inc", "pently.inc", "pentlyseq.inc",
-    "pentlysound.s", "../obj/nes/pentlybss.inc", "pentlymusic.s",
+    "pentlysound.s", "pentlymusic.s",
 ]
 
 directive_ignore = {
     'import', 'export', 'importzp', 'exportzp', 'global', 'globalzp',
-    'include', 'assert', 'pushseg', 'popseg'
+    'include', 'assert', 'pushseg', 'popseg',
+    'res'
 }
     
 directive_translation = {
@@ -179,17 +180,6 @@ for line in lines:
             seg_lines[cur_seg].append('%s: rept 1' % words[1])
             continue
 
-        # Macro is considered a "scope" so that "name =" doesn't
-        # get moved out to global includes
-        # TODO: revisit this now that global includes are based on
-        # segment, not scope
-##        if word0 == 'macro':
-##            seg_lines[cur_seg].append('macro ' + words[1])
-##            continue
-##        if word0 == 'endmacro':
-##            seg_lines[cur_seg].append('endm')
-##            continue
-
         if word0 == 'define':
             dfnparts = words[1].split(None, 1)
             word0 = dfnparts[0]
@@ -247,17 +237,12 @@ for line in seg_lines.pop(''):
         delayed_lines.append(line)
     else:
         segmentless_lines.append(line)
+
+seg_lines.pop('ZEROPAGE', '')
+seg_lines.pop('BSS', '')
     
 print(";;; SEGMENTLESS")
 print("\n".join(segmentless_lines))
-print(";;; ZERO PAGE")
-print(".enum $00D0")
-print("\n".join(seg_lines.pop('ZEROPAGE')))
-print("ende")
-print(";;; BSS")
-print(".enum $0700")
-print("\n".join(seg_lines.pop('BSS')))
-print("ende")
 print(";;; SEGMENTLESS DELAYED")
 print("\n".join(delayed_lines))
 

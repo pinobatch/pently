@@ -43,6 +43,7 @@ NOISE_CH = $0C
 SFX_CHANNEL_BITS = $0C
 ATTACK_TRACK = $10
 
+.zeropage
 .if PENTLY_USE_MUSIC = 0
   PENTLYZP_SIZE = 16
 .elseif PENTLY_USE_ATTACK_PHASE
@@ -50,13 +51,11 @@ ATTACK_TRACK = $10
 .else
   PENTLYZP_SIZE = 21
 .endif
-
-.zeropage
 pently_zp_state: .res PENTLYZP_SIZE
 sfx_datalo = pently_zp_state + 0
 sfx_datahi = pently_zp_state + 1
-.bss
 
+.bss
 ; The statically allocated prefix of pentlyBSS
 pentlyBSS: .res 18
 

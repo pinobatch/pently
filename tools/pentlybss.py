@@ -73,6 +73,16 @@ must_ascend = [
     ['arpInterval1', 'arpInterval2']
 ]
 
+asm6_prefix = """; Generated for ASM6
+pentlyBSS: dsb 18
+sfx_rate = pentlyBSS + 0
+sfx_ratecd = pentlyBSS + 1
+ch_lastfreqhi = pentlyBSS + 2
+sfx_remainlen = pentlyBSS + 3
+conductorSegnoLo = pentlyBSS + 16
+conductorSegnoHi = pentlyBSS + 17
+"""
+
 def load_uses(config_path):
     """Read the set of features that Pently is configured to use."""
     useRE = re.compile(r"PENTLY_USE_([a-zA-Z0-9_]+)\s*=\s*([0-9])+\s*(?:;.*)?")
@@ -148,6 +158,8 @@ def parse_argv(argv):
     parser.add_argument("base_label")
     parser.add_argument("-o", "--output", default='-',
                         help="write output to file")
+    parser.add_argument("--asm6", action="store_true",
+                        help="write output in asm6 format")
     return parser.parse_args(argv[1:])
 
 def main(argv=None):
@@ -160,6 +172,10 @@ def main(argv=None):
         out.append("; Variables not needed per configuration")
         out.extend(format_unneeded(unneeded_vars))
     unneeded_vars = None
+
+    if args.asm6:
+        out.append(asm6_prefix)
+        out.append("%s: dsb %s_size" % (args.base_label, args.base_label))
 
     cols = ffd(needed_vars, num_cols)
     minht = min(col[1] for col in cols)
@@ -175,6 +191,8 @@ def main(argv=None):
     out.append("%s_size = %d" % (args.base_label, bytesneeded))
     cols = sort_cols(cols)
     out.extend(format_cols(cols, args.base_label))
+
+
     outfp = open(args.output, "w") if args.output != '-' else sys.stdout
     with outfp:
         print("\n".join(out), file=outfp)

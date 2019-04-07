@@ -37,10 +37,13 @@ enum $0010
   oam_used: dsb 1
   cur_keys: dsb 2
   new_keys: dsb 2
+  include "pentlyzp.inc"
 ende
 
-OAM = $0200
-
+enum $0200
+  OAM: dsb 256
+  include "pentlybss.inc"
+ende
 
 ; iNES header
   db "NES",$1A
