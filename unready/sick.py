@@ -74,7 +74,6 @@ def fix_pc_references(s):
 filestoload = [
     "pentlyconfig.inc", "pently.inc", "pentlyseq.inc",
     "pentlysound.s", "../obj/nes/pentlybss.inc", "pentlymusic.s",
-    "../obj/nes/musicseq.s"
 ]
 
 directive_ignore = {
@@ -203,7 +202,7 @@ for line in lines:
             continue
 
     # Suggested by Overkill/egg boy color
-    if line and words[0] in macros_equal_0:
+    if False and line and words[0] in macros_equal_0:
         name_to_zero = words[1].split(',', 1)[0].strip()
         seg_lines[''].append(name_to_zero + " = 0  ; macro will change")
 

@@ -1528,6 +1528,11 @@ tie_rests -- True if track has no concept of a "note off"
 
 # Parse the score into objects ######################################
 
+def relpathjoin(basepath, filename):
+    if os.path.isabs(filename) or not basepath:
+        return filename
+    return os.path.join(os.path.dirname(basepath), filename)
+
 class PentlyInputParser(object):
 
     def __init__(self, filename=None):
@@ -2013,6 +2018,7 @@ Used to find the target of a time, scale, durations, or notenames command.
         self.cur_obj = None
 
     def add_include(self, words):
+        # this is mostly to diagnose include loops
         if len(self.filelinestack) >= 20:
             self.warn("approaching limbo")
             raise ValueError("include nested too deeply")
@@ -2022,6 +2028,8 @@ Used to find the target of a time, scale, durations, or notenames command.
         path = " ".join(words[1:])
         if not path:
             raise ValueError('include requires a path')
+        path = relpathjoin(self.filelinestack[-1][0], path)
+
         with open(path, "r") as infp:
             self.filelinestack.append([path, 0])
             self.extend(infp)
@@ -2186,9 +2194,11 @@ n bytes: ASCII encoded rehearsal mark names, separated by $0A,
     songs = sorted(parser.songs.items(), key=lambda x: x[1].orderkey)
     lines = [
         "; Rehearsal mark data begin",
+        "pently_rehearsal_marks:"
+    ]
+    exports = [
         ".exportzp pently_resume_song",
         ".export pently_rehearsal_marks, pently_resume_rows:absolute",
-        "pently_rehearsal_marks:"
     ]
     rmidxnames = ["PRM_%s" % row[0] for row in songs]
     lines.extend(wrapdata(rmidxnames, ".addr "))
@@ -2225,9 +2235,9 @@ n bytes: ASCII encoded rehearsal mark names, separated by $0A,
         "pently_resume_rows = %d" % resume_rows,
         "; Rehearsal mark end"
     ])
-    return lines
+    return lines, exports
 
-def render_file(parser, segment='RODATA'):
+def render_file(parser, segment='RODATA', asm6=False):
     if len(parser.songs) == 0:
         raise IndexError("no songs defined")
 
@@ -2327,14 +2337,18 @@ def render_file(parser, segment='RODATA'):
         '; author: ' + parser.author,
         '; copyright: ' + parser.copyright,
         ';',
-        '.include "../../src/pentlyseq.inc"',
-        '.segment "%s"' % segment,
         'NUM_SONGS=%d' % len(parser.songs),
         'NUM_SOUNDS=%d' % len(parser.sfxs),
-        '.exportzp NUM_SONGS, NUM_SOUNDS',
     ]
+    if not asm6:
+        # ASM6 relies on the caller to include pentlyseq.inc first
+        lines.extend([
+            '.include "../../src/pentlyseq.inc"',
+            '.segment "%s"' % segment,
+        ])
+
     all_export = []
-    all_exportzp = ['pently_resume_mute']
+    all_exportzp = ['NUM_SONGS', 'NUM_SOUNDS', 'pently_resume_mute']
     bytes_lines = []
     songbytes = {'': 0}
     total_partbytes = 0
@@ -2360,6 +2374,10 @@ def render_file(parser, segment='RODATA'):
         total_partbytes += partbytes
         lines.append("%s:  ; %d %s, %d bytes"
                      % (deflabel, len(defs1), entries_plural, partbytes))
+
+        # Workaround for *def macros not being able to create new variables
+        if asm6:
+            lines.extend("%s = 0" % thing.asmname for thing in defs1)
         lines.extend(thing.asmdef for thing in defs1)
         for thing in defs1:
 
@@ -2398,16 +2416,15 @@ def render_file(parser, segment='RODATA'):
     ])
     lines.extend(subseq_refs)
 
-    lines.extend([
-        '',
+    exports = [
         '; Make music data available to Pently'
-    ])
-    lines.extend(wrapdata(all_export, ".export "))
-    lines.extend([
+    ]
+    exports.extend(wrapdata(all_export, ".export "))
+    exports.extend([
         '',
         '; Sound effect, instrument, and song names for your program to .importzp'
     ])
-    lines.extend(wrapdata(all_exportzp, ".exportzp "))
+    exports.extend(wrapdata(all_exportzp, ".exportzp "))
     lines.append("pently_resume_mute = $%02X" % parser.resume_mute)
     lines.extend([
         '',
@@ -2426,7 +2443,7 @@ def render_file(parser, segment='RODATA'):
     )
 
     lines.append('')
-    return lines
+    return lines, exports
 
 def ca65_escape_bytes(blo):
     """Encode an iterable of ints in 0-255, mostly ASCII, for ca65 .byte statement"""
@@ -2608,6 +2625,9 @@ def parse_argv(argv):
                         help='show tracebacks and other verbose diagnostics')
     parser.add_argument("-W", '--warn', action="append", choices=warntypes,
                         help='enable warning options')
+    parser.add_argument("--asm6", action='store_true',
+                        help='produce output for ASM6 (default: ca65)')
+
     args = parser.parse_args(argv[1:])
     args.warn = set(args.warn or [])
     if not args.infilename and not args.periods:
@@ -2636,6 +2656,11 @@ def main(argv=None):
     lines = [
         '; Generated using Pently music assembler'
     ]
+    if args.asm6:
+        lines.append('; in ASM6 mode')
+    exports = [
+        '; Exports'
+    ]
     if args.infilename:
         is_stdin = args.infilename == '-'
         display_filename = "<stdin>" if is_stdin else args.infilename
@@ -2646,9 +2671,13 @@ def main(argv=None):
             if parser.cur_song:
                 parser.warn(parser.cur_song.get_unclosed_msg())
             lines.append('; Music from ' + display_filename)
-            lines.extend(render_file(parser, args.segment))
+            l, e = render_file(parser, args.segment, args.asm6)
+            lines.extend(l)
+            exports.extend(e)
             if args.rehearse:
-                lines.extend(render_rehearsal(parser))
+                l, e = render_rehearsal(parser)
+                lines.extend(l)
+                exports.extend(e)
         except Exception as e:
             if args.verbose:
                 import traceback
@@ -2672,12 +2701,16 @@ def main(argv=None):
         lines.extend([
             '; Period table of length %d for %s: %d bytes'
             % (args.periods, args.period_region, args.periods * 2),
-            '.export periodTableLo, periodTableHi',
             'periodTableLo:'
         ])
-        lines.extend(wrapdata(("$%02x" % (x & 0xFF) for x in periods), '.byt '))
+        lines.extend(wrapdata(("$%02x" % (x & 0xFF) for x in periods), '.byte '))
         lines.append('periodTableHi:')
-        lines.extend(wrapdata((str(x >> 8) for x in periods), '.byt '))
+        lines.extend(wrapdata((str(x >> 8) for x in periods), '.byte '))
+        exports.append('.export periodTableLo, periodTableHi')
+
+    if not args.asm6:
+        lines.extend(exports)
+        exports[:] = []
 
     is_stdout = not args.output or args.output == '-'
     outfp = sys.stdout if is_stdout else open(args.output, 'w')
@@ -2693,5 +2726,5 @@ def main(argv=None):
             outfp.write("\n".join(lines))
 
 if __name__=='__main__':
-##    main(["pentlyas", "../src/musicseq.pently"])
+##    main(["pentlyas.py", "../audio/musicseq.pently"])
     main()

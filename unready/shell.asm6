@@ -207,6 +207,7 @@ initial_palette:
 include "ppuclear.asm6"
 include "metasprite.asm6"
 include "pently.asm6"
+include "musicseq.asm6"
 
 ; Vectors
   org $FFFA

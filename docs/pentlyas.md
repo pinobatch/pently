@@ -80,7 +80,8 @@ such as `c#`.
 
 The **`include`** command pastes another text file into a score.
 You can use this to refer to a library of sound effects, drums,
-instruments, or chord definitions.
+instruments, or chord definitions.  The file's path is relative
+to the directory containing the file where `.include` appears.
 
 The **`title`, `author`, and `copyright`** commands define the
 corresponding field of the NSF or NSFe file.  Traditionally, the

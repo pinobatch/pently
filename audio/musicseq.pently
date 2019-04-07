@@ -28,7 +28,7 @@ copyright 2019 Damian Yerrick
 durations stick
 notenames english
 
-include src/Pino_drumkit.inc
+include Pino_drumkit.inc
 
 sfx quiethat on noise
   volume 2 1
