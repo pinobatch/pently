@@ -80,10 +80,9 @@ enough for our use case, as the source code can use (*) to produce
     return s.replace('(*', '($').replace('*)', '$)')
 
 class AnonLabelCounter(object):
-    anon_label_fmt = "@ca65toasm6_anonlabel_%d"
-
-    def __init__(self, start=0):
+    def __init__(self, start=0, prefix="@ca65toasm6_anonlabel_"):
         self.count = start
+        self.prefix = prefix
 
     def inc(self):
         self.count += 1
@@ -91,7 +90,7 @@ class AnonLabelCounter(object):
     def format(self, count=None):
         if count is None:
             count = self.count
-        return self.anon_label_fmt % count
+        return "%s%d" % (self.prefix, count)
 
     def resolve_anonref(self, m):
         """Translate a match whose group 0 is :+, :++, :-, or :-- to a label"""
@@ -108,11 +107,6 @@ class AnonLabelCounter(object):
 
     def resolve_anonrefs(self, s):
         return anonlabelrefRE.sub(self.resolve_anonref, s)
-
-filestoload = [
-    "pentlyconfig.inc", "pently.inc", "pentlyseq.inc",
-    "pentlysound.s", "pentlymusic.s",
-]
 
 directive_ignore = {
     'import', 'export', 'importzp', 'exportzp', 'global', 'globalzp',
@@ -134,116 +128,126 @@ macros_equal_0 = {
 
 known_segs = ['', 'ZEROPAGE', 'BSS']
 
-lines = []
-for filename in filestoload:
-    lines.append('.segment ""')
-    lines.extend(openreadlines(os.path.join("../src", filename),
-                               lambda x: uncomment(x).strip()))
+def translate(filestoload):
+    lines = []
+    for filename in filestoload:
+        lines.append('.segment ""')
+        lines.extend(openreadlines(os.path.join("../src", filename),
+                                   lambda x: uncomment(x).strip()))
 
-anoncount = AnonLabelCounter()
-seg_lines = OrderedDict()
-for seg in known_segs:
-    seg_lines[seg] = []
-cur_seg = ""
+    anoncount = AnonLabelCounter()
+    seg_lines = OrderedDict((k, []) for k in known_segs)
+    cur_seg = ""
 
-for line in lines:
-    if not line: continue
-    words = line.split(None, 1)
-    label = None
-
-    if ':' in words[0] or (len(words) > 1 and words[1].startswith(':')):
-        candidatelabel, candidateline = (s.strip() for s in line.split(':', 1))
-        if candidateline.startswith(("+", "-", ":")):
-            pass  # actually an anonymous label reference or scope resolution
-        else:
-            label, line = candidatelabel, candidateline
-            if label == '':
-                anoncount.inc()
-                label = anoncount.format()
-            words = line.split(None, 1)
-    else:
+    for line in lines:
+        if not line: continue
+        words = line.split(None, 1)
         label = None
 
-    # Dot-directives
-    if line.startswith('.'):
-        word0 = words[0].lower().lstrip('.')
-        if word0 in directive_ignore:
-            continue
-
-        # Because ASM6 appears to lack any sort of support for
-        # variadic macros, treat all arguments as nonblank and
-        # modify pentlyas to never omit arguments.
-        # https://forums.nesdev.com/viewtopic.php?f=2&t=18610
-        if word0 == 'ifblank':
-            seg_lines[cur_seg].append('if 0  ; was ifblank')
-            continue
-        if word0 == 'ifnblank':
-            seg_lines[cur_seg].append('if 1  ; was ifnblank')
-            continue
-
-        if word0 == 'ifndef' and words[1].endswith('_INC'):
-            seg_lines[cur_seg].append('if 1  ; was include guard')
-            continue
-
-        if word0 == 'zeropage':
-            cur_seg = 'ZEROPAGE'
-            continue
-        if word0 == 'bss':
-            cur_seg = 'BSS'
-            continue
-        if word0 == 'segment':
-            cur_seg = words[1].strip('"').upper()
-            seg_lines.setdefault(cur_seg, [])
-            continue
-        if word0 == 'scope':
-            seg_lines[cur_seg].append('rept 1')
-            continue
-        if word0 == 'proc':
-            seg_lines[cur_seg].append('%s: rept 1' % words[1])
-            continue
-
-        if word0 == 'define':
-            dfnparts = words[1].split(None, 1)
-            word0 = dfnparts[0]
-            words = [word0, "equ %s" % (dfnparts[1])]
-        elif word0 in directive_translation:
-            words[0] = directive_translation[word0]
-            word0 = words[0]
+        if ':' in words[0] or (len(words) > 1 and words[1].startswith(':')):
+            candidatelabel, candidateline = (s.strip() for s in line.split(':', 1))
+            if candidateline.startswith(("+", "-", ":")):
+                pass  # actually an anonymous label reference or scope resolution
+            else:
+                label, line = candidatelabel, candidateline
+                if label == '':
+                    anoncount.inc()
+                    label = anoncount.format()
+                words = line.split(None, 1)
         else:
-            print("unknown directive", line, file=sys.stderr)
-            continue
+            label = None
 
-    equate = equateRE.match(line)
-    if equate:
-        label, expr = equate.groups()
-        # EQU is for string replacement (like ca65 .define),
-        # and = is for numbers.
-        words = [label, "=", expr]
-        label = None
+        # Dot-directives
+        if line.startswith('.'):
+            word0 = words[0].lower().lstrip('.')
+            if word0 in directive_ignore:
+                continue
 
-    for j in range(1, len(words)):
-        operand = fix_pc_references(words[j])
-        operand = quotesRE.findall(operand)
-        for i in range(len(operand)):
-            randpart = operand[i]
-            if randpart.startswith(("'", '"')): continue
-            randpart = randpart.replace("::", "")
-            randpart = anoncount.resolve_anonrefs(randpart)
-            operand[i] = randpart
-        words[j] = operand = "".join(operand)
+            # Because ASM6 appears to lack any sort of support for
+            # variadic macros, treat all arguments as nonblank and
+            # modify pentlyas to never omit arguments.
+            # https://forums.nesdev.com/viewtopic.php?f=2&t=18610
+            if word0 == 'ifblank':
+                seg_lines[cur_seg].append('if 0  ; was ifblank')
+                continue
+            if word0 == 'ifnblank':
+                seg_lines[cur_seg].append('if 1  ; was ifnblank')
+                continue
 
-    line = " ".join(words)
-    if label:
-        line = "%s: %s" % (label, line)
-    seg_lines[cur_seg].append(line)
+            if word0 == 'ifndef' and words[1].endswith('_INC'):
+                seg_lines[cur_seg].append('if 1  ; was include guard')
+                continue
 
-# These segments allocate RAM variables by stuffing them into a
-# ca65 segment with a conventional name.  They're omitted from the
-# translation because ASM6 libraries instead allocate variables by
-# collecting them in a file that the app includes within an enum.
-seg_lines.pop('ZEROPAGE', '')
-seg_lines.pop('BSS', '')
+            if word0 == 'zeropage':
+                cur_seg = 'ZEROPAGE'
+                continue
+            if word0 == 'bss':
+                cur_seg = 'BSS'
+                continue
+            if word0 == 'segment':
+                cur_seg = words[1].strip('"').upper()
+                seg_lines.setdefault(cur_seg, [])
+                continue
+            if word0 == 'scope':
+                seg_lines[cur_seg].append('rept 1')
+                continue
+            if word0 == 'proc':
+                seg_lines[cur_seg].append('%s: rept 1' % words[1])
+                continue
 
-for segment, seglines in seg_lines.items():
-    print(";;; SEGMENT %s" % segment)
-    print("\n".join(seglines))
+            if word0 == 'define':
+                dfnparts = words[1].split(None, 1)
+                word0 = dfnparts[0]
+                words = [word0, "equ %s" % (dfnparts[1])]
+            elif word0 in directive_translation:
+                words[0] = directive_translation[word0]
+                word0 = words[0]
+            else:
+                print("unknown directive", line, file=sys.stderr)
+                continue
+
+        equate = equateRE.match(line)
+        if equate:
+            label, expr = equate.groups()
+            # EQU is for string replacement (like ca65 .define),
+            # and = is for numbers.
+            words = [label, "=", expr]
+            label = None
+
+        for j in range(1, len(words)):
+            operand = fix_pc_references(words[j])
+            operand = quotesRE.findall(operand)
+            for i in range(len(operand)):
+                randpart = operand[i]
+                if randpart.startswith(("'", '"')): continue
+                randpart = randpart.replace("::", "")
+                randpart = anoncount.resolve_anonrefs(randpart)
+                operand[i] = randpart
+            words[j] = operand = "".join(operand)
+
+        line = " ".join(words)
+        if label:
+            line = "%s: %s" % (label, line)
+        seg_lines[cur_seg].append(line)
+
+    # These segments allocate RAM variables by stuffing them into
+    # a ca65 segment with a conventional name.  Omit them from the
+    # translation because ASM6 libraries instead allocate variables by
+    # collecting them in a file that the app includes within an enum.
+    seg_lines.pop('ZEROPAGE', '')
+    seg_lines.pop('BSS', '')
+
+    out = []
+    for segment, seglines in seg_lines.items():
+        out.append(";;; SEGMENT %s" % segment)
+        out.extend(seglines)
+    out.append("")
+    return "\n".join(out)
+
+
+filestoload = [
+    "pentlyconfig.inc", "pently.inc", "pentlyseq.inc",
+    "pentlysound.s", "pentlymusic.s",
+]
+xlated = translate(filestoload)
+sys.stdout.write(xlated)
