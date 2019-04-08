@@ -31,8 +31,8 @@ Anonymous labels should be easier to translate automatically.
 - At the start of translation, set a counter to 0.
 - When a line's label is :, increase the counter by 1 and then emit a
   label of the form @ca65toasm6_anonlabel_1:.
-- Replace :+ in an expression with @ca65toasm6_anonlabel_{anon_labels_seen+1}.
-- Replace :- in an expression with @ca65toasm6_anonlabel_{anon_labels_seen}.
+- Replace :+ in an expression with @ca65toasm6_anonlabel_{anoncount+1}.
+- Replace :- in an expression with @ca65toasm6_anonlabel_{anoncount}.
 
 
 """
@@ -79,6 +79,36 @@ enough for our use case, as the source code can use (*) to produce
         s = '$' + s[1:]
     return s.replace('(*', '($').replace('*)', '$)')
 
+class AnonLabelCounter(object):
+    anon_label_fmt = "@ca65toasm6_anonlabel_%d"
+
+    def __init__(self, start=0):
+        self.count = start
+
+    def inc(self):
+        self.count += 1
+
+    def format(self, count=None):
+        if count is None:
+            count = self.count
+        return self.anon_label_fmt % count
+
+    def resolve_anonref(self, m):
+        """Translate a match whose group 0 is :+, :++, :-, or :-- to a label"""
+        s = m.group(0)
+        distance = len(s) - 2
+        if s[1] == '+':
+            return self.format(self.count + distance + 1)
+        elif s[1] == '-':
+            if self.count - distance < 0:
+                raise ValueError("anonref %s points before start" % s)
+            return self.format(self.count - distance)
+        else:
+            raise ValueError("unknown anonref %s" % s)
+
+    def resolve_anonrefs(self, s):
+        return anonlabelrefRE.sub(self.resolve_anonref, s)
+
 filestoload = [
     "pentlyconfig.inc", "pently.inc", "pentlyseq.inc",
     "pentlysound.s", "pentlymusic.s",
@@ -110,22 +140,11 @@ for filename in filestoload:
     lines.extend(openreadlines(os.path.join("../src", filename),
                                lambda x: uncomment(x).strip()))
 
+anoncount = AnonLabelCounter()
 seg_lines = OrderedDict()
 for seg in known_segs:
     seg_lines[seg] = []
 cur_seg = ""
-
-anon_labels_seen = 0
-anon_label_fmt = "@ca65toasm6_anonlabel_%d"
-def resolve_anon_ref(m):
-    s = m.group(0)
-    distance = len(s) - 2
-    if s[1] == '+':
-        return anon_label_fmt % (anon_labels_seen + distance + 1)
-    elif s[1] == '-':
-        return anon_label_fmt % (anon_labels_seen - distance)
-    else:
-        raise ValueError("unknown anonref %s" % s)
 
 for line in lines:
     if not line: continue
@@ -139,8 +158,8 @@ for line in lines:
         else:
             label, line = candidatelabel, candidateline
             if label == '':
-                anon_labels_seen += 1
-                label = anon_label_fmt % anon_labels_seen
+                anoncount.inc()
+                label = anoncount.format()
             words = line.split(None, 1)
     else:
         label = None
@@ -209,7 +228,7 @@ for line in lines:
             randpart = operand[i]
             if randpart.startswith(("'", '"')): continue
             randpart = randpart.replace("::", "")
-            randpart = anonlabelrefRE.sub(resolve_anon_ref, randpart)
+            randpart = anoncount.resolve_anonrefs(randpart)
             operand[i] = randpart
         words[j] = operand = "".join(operand)
 
