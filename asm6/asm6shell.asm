@@ -207,14 +207,14 @@ initial_palette:
   hex 0f202a1a 0f242424 0f242424 0f242424
   hex 0f27180f 0f381202 0f242424 0f242424
 
-include "ppuclear.asm6"
-include "metasprite.asm6"
-include "pently.asm6"
-include "musicseq.asm6"
+include "ppuclear.asm"
+include "metasprite.asm"
+include "pently.asm"
+include "musicseq.asm"
 
 ; Vectors
   org $FFFA
   dw nmi_handler, reset_handler, irq_handler
 
   base $0000
-  incbin "sicktiles.chr"
+  incbin "asm6shelltiles.chr"

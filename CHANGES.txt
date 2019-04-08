@@ -1,3 +1,10 @@
+0.05wip12 (future)
+* Add port to ASM6 via a translation script (#9, requested by Pokun,
+  Doug Fraker, and Joe Granato)
+* pentlybss.py: Sort arpeggio interval variables
+* pentlybss.py: ASM6-compatible output mode
+* pentlyas.py: ASM6-compatible output mode
+
 0.05wip11 (2019-03-14)
 * Attack track allows grace notes (#35, reported by retrodpc)
 * Channel volume in attack track is ignored rather than clobbering

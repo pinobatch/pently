@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-sick
+ca65toasm6
 translate Pently from ca65 to ASM6
 
 Rules for ASM6
@@ -132,7 +132,7 @@ def translate(filestoload):
     lines = []
     for filename in filestoload:
         lines.append('.segment ""')
-        lines.extend(openreadlines(os.path.join("../src", filename),
+        lines.extend(openreadlines(filename,
                                    lambda x: uncomment(x).strip()))
 
     anoncount = AnonLabelCounter()
@@ -146,9 +146,9 @@ def translate(filestoload):
 
         if ':' in words[0] or (len(words) > 1 and words[1].startswith(':')):
             candidatelabel, candidateline = (s.strip() for s in line.split(':', 1))
-            if candidateline.startswith(("+", "-", ":")):
-                pass  # actually an anonymous label reference or scope resolution
-            else:
+            # Ensure it's not actually an anonymous label reference
+            # or scope resolution
+            if not candidateline.startswith(("+", "-", ":")):
                 label, line = candidatelabel, candidateline
                 if label == '':
                     anoncount.inc()
@@ -206,14 +206,16 @@ def translate(filestoload):
                 print("unknown directive", line, file=sys.stderr)
                 continue
 
+        # EQU is for string replacement (like ca65 .define),
+        # and = is for numbers.
         equate = equateRE.match(line)
         if equate:
             label, expr = equate.groups()
-            # EQU is for string replacement (like ca65 .define),
-            # and = is for numbers.
             words = [label, "=", expr]
             label = None
 
+        # Translate references to the program counter,
+        # to top-level scopes, and to anonymous labels
         for j in range(1, len(words)):
             operand = fix_pc_references(words[j])
             operand = quotesRE.findall(operand)
@@ -225,6 +227,7 @@ def translate(filestoload):
                 operand[i] = randpart
             words[j] = operand = "".join(operand)
 
+        # And stick it in the current segment
         line = " ".join(words)
         if label:
             line = "%s: %s" % (label, line)
@@ -245,9 +248,5 @@ def translate(filestoload):
     return "\n".join(out)
 
 
-filestoload = [
-    "pentlyconfig.inc", "pently.inc", "pentlyseq.inc",
-    "pentlysound.s", "pentlymusic.s",
-]
-xlated = translate(filestoload)
+xlated = translate(sys.argv[1:])
 sys.stdout.write(xlated)
