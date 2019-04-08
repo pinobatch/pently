@@ -52,19 +52,27 @@ wordRE = r"""\s*([A-Za-z_][A-Za-z0-9_]*)"""
 wordRE = re.compile(wordRE)
 
 def uncomment(line):
+    """Remove the comment from a line of ca65 source code."""
     lineparts = quotesRE.findall(line.rstrip())
     if lineparts and lineparts[-1].startswith(";"): del lineparts[-1]
     return "".join(lineparts)
 
 def openreadlines(filename, xform=None):
+    """Open a file and return a list of all its lines.
+
+xform -- a function to run on all lines"""
     with open(filename, "r", encoding="utf-8") as infp:
         return [xform(x) if xform else x for x in infp]
 
 def fix_pc_references(s):
-    # This is not ideal, but it gets the job of translating ca65 *
-    # to ASM6 $ done for any reference to the current PC that is
-    # adjacent to the start or end of the expression or of a
-    # parenthesized subexpression.
+    """Translate references to the current program counter from ca65 to ASM6.
+
+ca65 uses * for PC; ASM6 uses $.
+Only references at the start or end of an expression or of a
+parenthesized subexpression get translated.  But that should be
+enough for our use case, as the source code can use (*) to produce
+($) in the translation.
+"""
     if s.startswith('*'):
         s = '$' + s[1:]
     if s.endswith('*'):
@@ -94,23 +102,18 @@ macros_equal_0 = {
     'sfxdef', 'instdef', 'drumdef', 'songdef', 'patdef'
 }
 
-allfiles = [
-    openreadlines(os.path.join("../src", n),
-                  lambda x: uncomment(x).strip())
-    for n in filestoload
-]
+known_segs = ['', 'ZEROPAGE', 'BSS']
+
 lines = []
 for filename in filestoload:
     lines.append('.segment ""')
     lines.extend(openreadlines(os.path.join("../src", filename),
                                lambda x: uncomment(x).strip()))
 
-known_segs = ['', 'ZEROPAGE', 'BSS']
 seg_lines = OrderedDict()
 for seg in known_segs:
     seg_lines[seg] = []
 cur_seg = ""
-delay_labels = set()
 
 anon_labels_seen = 0
 anon_label_fmt = "@ca65toasm6_anonlabel_%d"
@@ -191,18 +194,11 @@ for line in lines:
             print("unknown directive", line, file=sys.stderr)
             continue
 
-    # Suggested by Overkill/egg boy color
-    if False and line and words[0] in macros_equal_0:
-        name_to_zero = words[1].split(',', 1)[0].strip()
-        seg_lines[''].append(name_to_zero + " = 0  ; macro will change")
-
     equate = equateRE.match(line)
     if equate:
         label, expr = equate.groups()
-        # Not sure if I want EQU or =, as EQU is for string
-        # replacement (like ca65 .define) and = is for numbers,
-        # but I don't know if = is required to be constant
-        # at the time that line is assembled.
+        # EQU is for string replacement (like ca65 .define),
+        # and = is for numbers.
         words = [label, "=", expr]
         label = None
 
@@ -220,31 +216,14 @@ for line in lines:
     line = " ".join(words)
     if label:
         line = "%s: %s" % (label, line)
-        # A label used for a zero page "dsb" must come before all
-        # "=" that refer to it, or (d,X) addressing will give error
-        # "Incomplete expression".  So delay any segmentless equates
-        # that refer to a label and occur before its definition.
-        if cur_seg in ('ZEROPAGE', 'BSS'):
-            delay_labels.add(label)
-
     seg_lines[cur_seg].append(line)
 
-segmentless_lines = []
-delayed_lines = []
-for line in seg_lines.pop(''):
-    words = wordRE.findall(line)
-    if delay_labels.intersection(words):
-        delayed_lines.append(line)
-    else:
-        segmentless_lines.append(line)
-
+# These segments allocate RAM variables by stuffing them into a
+# ca65 segment with a conventional name.  They're omitted from the
+# translation because ASM6 libraries instead allocate variables by
+# collecting them in a file that the app includes within an enum.
 seg_lines.pop('ZEROPAGE', '')
 seg_lines.pop('BSS', '')
-    
-print(";;; SEGMENTLESS")
-print("\n".join(segmentless_lines))
-print(";;; SEGMENTLESS DELAYED")
-print("\n".join(delayed_lines))
 
 for segment, seglines in seg_lines.items():
     print(";;; SEGMENT %s" % segment)
