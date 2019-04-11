@@ -209,7 +209,7 @@ initial_palette:
 
 include "ppuclear.asm"
 include "metasprite.asm"
-include "pently.asm"
+include "pently-asm6.asm"
 include "musicseq.asm"
 
 ; Vectors

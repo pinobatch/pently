@@ -1,4 +1,7 @@
-; TODO: Find some way to preprocess pentlyconfig.inc
+include "pentlyconfig.inc"
+include "pently-asm6.inc"
+
+; TODO: exploit pentlyconfig.inc
 ; to extract PENTLY_USE_MUSIC and PENTLY_USE_ATTACK_PHASE
 ; Until then, set size to maximum
 PENTLYZP_SIZE = 32

@@ -35,7 +35,8 @@ __pycache__/
 
 # ambivalent about whether to use obj folder with ASM6
 /asm6/pently-asm6.nes
-/asm6/pently.asm
+/asm6/pently-asm6.asm
+/asm6/pently-asm6.inc
 /asm6/pentlybss.inc
 /asm6/asm6shell.lst
 /asm6/musicseq.asm

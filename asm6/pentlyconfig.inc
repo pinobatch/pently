@@ -51,7 +51,5 @@ PENTLY_INITIAL_4011 = 32
 
 ; Five bytes of scratch space on zero page that need not be preserved
 ; across calls
-
 pently_zptemp = $0000
-; .importzp pently_zptemp
 
