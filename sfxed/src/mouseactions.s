@@ -1,6 +1,11 @@
 .include "nes.inc"
 .include "global.inc"
 
+.zeropage
+last_sensitivity: .res 1
+
+.code
+
 ;;
 ; @param X, Y mouse
 ; @param cur_mbuttons, new_mbuttons
@@ -21,6 +26,17 @@
   lsr a
   ora new_keys
   sta new_keys
+
+  ; If sensitivity changed, schedule redraw
+  lda cur_mbuttons
+  and #$30
+  cmp last_sensitivity
+  beq sensitivity_not_changed
+    sta last_sensitivity
+    lda #DIRTY_MOUSE_STATUS
+    ora dirty_areas
+    sta dirty_areas
+  sensitivity_not_changed:
 
   ; check for play/cancel command (L+R)
   lda cur_mbuttons
@@ -64,13 +80,13 @@ gesture_handlers:
   lsr a
   lsr a
   beq oob
-  cmp #4 + SCREEN_HT
+  cmp #TOPBAR_HT + SCREEN_HT
   bcc inbounds
 oob:
   sec
   rts
 inbounds:
-  adc #<-4
+  adc #<-TOPBAR_HT
   bcc is_topbar
   clc
   adc doc_yscroll
@@ -168,18 +184,27 @@ not_bdrag:
   
 not_rmb:
   bvc not_lmb
+
+  ; Status bar click changes mouse sensitivity
+  lda mouse_y
+  sec
+  sbc #8 * (TOPBAR_HT + SCREEN_HT)
+  bcs mouse_footer_click
+
+  ; In left margin: Do nothing
   lda mouse_x
   cmp #16
   bcc not_lmb
+
+  ; In right margin and below header: Start a scrolling gesture
   cmp #240
   bcc not_scrollbar
   lda mouse_y
-  cmp #32
-  bcc not_scrollbar
-  cmp #32+8*SCREEN_HT
-  bcs not_scrollbar
-  jmp start_scrollbar_gesture
+  cmp #8 * TOPBAR_HT
+  bcs start_scrollbar_gesture
 not_scrollbar:
+
+  ; Within a clickable area of the client area or header
   jsr mouse_place_cursor
   bcs not_lmb
 
@@ -241,6 +266,26 @@ have_gesture:
   rts
 .endproc
 
+
+;;
+; @param A height of click below top of footer in pixels
+; @param mouse_x horizontal position of click
+.proc mouse_footer_click
+  lsr a
+  lsr a
+  lsr a
+  bne not_row_0
+    ; Right half of row 0: Change sensitivity
+    lda mouse_x
+    bpl unknown_footer_click
+    ldx mouse_port
+    jmp mouse_change_sensitivity
+  not_row_0:
+
+  unknown_footer_click:
+  rts
+.endproc
+
 .proc mouse_gesture_celldrag
 keystosend = $00
   lda #0
@@ -290,8 +335,8 @@ notD:
 
   lda keystosend
   beq :+
-  jsr change_cell_at_cursor
-:
+    jsr change_cell_at_cursor
+  :
   jmp end_gesture_if_lmb_up
 .endproc
 
@@ -433,6 +478,11 @@ neg:
   jmp writeback_while_lmb_down
 .endproc
 
+;;
+; Moves the mouse pointer by a distance if it wouldn't leave
+; (0, 0)-(255, 255).
+; @param X two's complement horizontal displacement
+; @param Y two's complement vertical displacement
 .proc move_mouse_pointer
   stx 0
   lda mouse_x
@@ -441,8 +491,8 @@ neg:
   adc 0
   eor #$80
   bvs :+
-  sta mouse_x
-:
+    sta mouse_x
+  :
   sty 0
   lda mouse_y
   clc
@@ -450,9 +500,7 @@ neg:
   adc 0
   eor #$80
   bvs :+
-  sta mouse_y
-:
+    sta mouse_y
+  :
   rts
 .endproc
-
-

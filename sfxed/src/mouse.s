@@ -10,6 +10,8 @@ mouse_port: .res 1  ; $00: port 1; $01: port 2; >=$80: no mouse
 
 .segment "CODE"
 ;;
+; Assumes that the first 8 bits of the report have already been
+; read.
 ; @param X player number
 ; @return 1: buttons
 .proc read_mouse
@@ -29,6 +31,9 @@ mouse_port: .res 1  ; $00: port 1; $01: port 2; >=$80: no mouse
   sta new_mbuttons,x
   lda 1
   sta cur_mbuttons,x
+  ; Hyper Click requires a few extra cycles here to let its MCU refill
+  ; what appears to be a 16-bit shift register
+  jsr knownrts  ; burn a few cycles to let Hyper Click catch up
 :
   lda $4016,x
   and mouse_mask
@@ -41,6 +46,7 @@ mouse_port: .res 1  ; $00: port 1; $01: port 2; >=$80: no mouse
   cmp #1
   rol 3
   bcc :-
+knownrts:
   rts
 .endproc
 
@@ -60,41 +66,35 @@ mouse_port: .res 1  ; $00: port 1; $01: port 2; >=$80: no mouse
 ; to detect having mice in both ports.
 ; Priority: DA15 port 1, NES port 1, DA15 port 2, 7-pin port 2
 ; Any detected mouse will start in medium sensitivity.  May confuse
-; Four Score for mouse if player 3 or 4 is holding Start+Right.
+; Four Score for mouse if player 3 or 4 is holding Right.
 ; @return mouse_mask is $01 for 7-pin or $02 for DA15;
 ; mouse_port is $00 for $4016, $01 for $4017, or >$80 for no mouse.
 .proc detect_mouse
 tries_left = $06
 
-  lda #0
-  sta mouse_port
+  ldx #0
 portloop:
+  stx mouse_port
+  jsr mouse_change_sensitivity
   lda #$02  ; try famicom DA15 then try nes 7-pin
   sta mouse_mask
 maskloop:
-  lda #4
-  sta tries_left
-tryloop:
-  ldx mouse_port
-  jsr mouse_change_sensitivity
   jsr read_pads
   ldx mouse_port
   jsr read_mouse
   lda 1
-  and #$3F
-  cmp #$11  ; mouse 1 at medium 
+  and #$0F
+  cmp #$01  ; mouse signature nibble is 1
   beq found
-  dec tries_left
-  bne tryloop
 
   ; try the next bit on this port
   lsr mouse_mask
   bne maskloop
 
   ; try the next port
-  lda mouse_port
+  ldx mouse_port
   bne not_found
-  inc mouse_port
+  inx
   bne portloop
 not_found:
   ; Set mouse_port bit 7 to show that no mouse is connected

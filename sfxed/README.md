@@ -7,13 +7,7 @@ Entertainment System directly on the console with immediate feedback.
 Controls
 --------
 
-You can use the editor with a standard controller or a Super NES
-Mouse.  The mouse may be plugged into an NES/Super NES combo
-clone, a Super NES controller to NES 7-pin adapter, or a Super NES
-controller to Famicom DA15 expansion port adapter.  If a mouse was
-detected, a notice will be displayed on the bottom of the screen.
-
-Controller operation:
+Use with a standard controller:
 
 * Control Pad: Move cursor
 * A+Control Pad: Change value in cell
@@ -21,6 +15,13 @@ Controller operation:
 * B+Left/Right: Copy sound
 * B+A: Play sound
 * Start: Save to SRAM
+
+The editor also works with a Super NES Mouse (Nintendo SNS-016) or
+a Hyper Click mouse (Hyperkin M07208).  The mouse may be plugged into
+controller port 1 or 2 of an NES/Super NES combo clone, a Super NES
+controller to NES 7-pin adapter, or a Super NES controller to
+Famicom DA15 expansion port adapter.  If a mouse is detected, its
+port number is displayed at the bottom of the screen.
 
 Mouse operation:
 
@@ -32,6 +33,7 @@ Mouse operation:
 * Right-drag up or down: Insert or delete rows
 * Right-drag left or right: Copy sound
 * Left+Right buttons: Play sound
+* Click port number: Change sensitivity (Nintendo only, not Hyperkin)
 
 How to make a sound
 -------------------
@@ -39,7 +41,7 @@ How to make a sound
 A sound can be played on the pulse, triangle, or noise channel.
 The "rate" refers to how many frames (16.7 ms on NTSC or 20 ms on
 PAL) make up each row.  Finally, a sound can be muted so that it
-plays or doesn't play when you push B+A.
+plays or doesn't play when you press B+A.
 
 Each sound has up to 64 rows with three columns: pitch, volume,
 and timbre.
@@ -101,12 +103,10 @@ Known issues
 * Cannot save to SRAM with mouse.  Workaround: Plug the mouse into
   NES port 2 or the Famicom expansion port and press Start on
   controller 1 to save.
-* A-0 and A#0 notes on triangle aren't always played.
 * Pitches between two semitones are not supported.
 * Changing a sound to or from noise may produce unexpected pitches.
 
 License
 -----
-
-Copyright © 2009-2018 Damian Yerrick.
+Copyright © 2009-2019 Damian Yerrick.
 Pently is free software, under the zlib License.

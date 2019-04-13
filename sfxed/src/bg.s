@@ -12,6 +12,9 @@ PULSE_WAVE_TILE = $D0
 TRIANGLE_WAVE_TILE = $D6
 NOISE_WAVE_TILE = $D8
 
+status_linebuf = $0180
+
+
 .segment "ZEROPAGE"
 present_arg: .res 1
 present_jmp: .res 1
@@ -120,38 +123,7 @@ topbarloop:
 
   jsr load_ui_text
 
-  ; After load_ui_text, the line img is clear.
-  ; Report the status of the mouse.
-  lday #msg_nomouse
-  bit mouse_port
-  bmi write_mtxt
-yes_mouse:
-  ldx #0
-copymtxtloop:
-  lda msg_mouse,x
-  beq mtxtdone
-  cmp #2
-  beq is2
-  bcs mtxthave
-  and mouse_port  ; 1: Write port (0)
-  clc
-  adc #'1'
-  bcc mtxthave
-is2:
-  lda #'0'  ; 2: Write mask (1 for NES 7-pin, 2 for Famicom DA15)
-  ora mouse_mask
-mtxthave:
-  sta $0180,x
-  inx
-  bpl copymtxtloop
-mtxtdone:
-  sta $0180,x
-  lday #$0180
-write_mtxt:
-  ldx #0
-  jsr vwfPuts
-  lda #16
-  jsr invertTiles
+  jsr prepare_mouse_status
   lday #$0100
   jsr copyLineImg
 
@@ -521,13 +493,65 @@ no_tens_digit:
   jmp invertTiles
 .endproc
 
+
 .proc copyLineImg_arg
   ldy #0
   lda present_arg
   bpl :+
-  ldy #8
-:
+    ldy #8
+  :
   jmp copyLineImg
+.endproc
+
+.proc prepare_mouse_status
+  ; After load_ui_text, the line img is clear.
+  ; Report the status of the mouse.
+  jsr clearLineImg
+  lday #msg_nomouse
+  bit mouse_port
+  bmi write_mtxt
+yes_mouse:
+  ldx #0
+copymtxtloop:
+  lda msg_mouse,x
+  beq mtxtdone
+  cmp #2
+  beq is2
+  bcs mtxthave
+
+  ; Calculate external port number (1-4) from port address (0 or 1)
+  ; and mask (1 or 2)
+  lda mouse_mask
+  asl a  ; 2 for D0 or 4 for D1
+  adc mouse_port  ; 2, 3, 4, or 5
+  adc #'0' - 1  ; '1', '2', '3', or '4'
+  bcc mtxthave
+is2:
+  ; reserved for sensitivity
+  ldy mouse_port
+  lda cur_mbuttons,y
+  and #$30
+  lsr a
+  lsr a
+  lsr a
+  lsr a
+  adc #'1'
+mtxthave:
+  sta status_linebuf,x
+  inx
+  bpl copymtxtloop
+mtxtdone:
+  sta status_linebuf,x
+  lday #status_linebuf
+write_mtxt:
+  ldx #0
+  jsr vwfPuts
+  lda #$01
+  sta present_arg
+  lday #copyLineImg_arg
+  stay present_funcptr
+  lda #16
+  jmp invertTiles
 .endproc
 
 ;;
@@ -787,8 +811,11 @@ dirty_prepares:
   .repeat ::NUM_SOUNDS
     .addr prepare_column-1
   .endrepeat
-  .addr handle_dirty_scroll-1, prepare_rate_line-1, prepare_top_bar-1
-  .repeat 8 - (::NUM_SOUNDS + 3)
+  .addr handle_dirty_scroll-1
+  .addr prepare_rate_line-1
+  .addr prepare_top_bar-1
+  .addr prepare_mouse_status-1
+  .repeat 8 - (::NUM_SOUNDS + 4)
     .addr unknown_dirty_prepare-1
   .endrepeat
 .popseg  
@@ -838,7 +865,7 @@ uitxt:
 str_rate:
   .byte "rate:",0
 msg_mouse:
-  .byte "Mouse port ",1," mask ",2,0
+  .byte "Mouse port ",1," speed ",2,0
 msg_nomouse:
   .byte "No mouse connected",0
 one_shl_x:
