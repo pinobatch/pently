@@ -140,7 +140,7 @@ def sort_cols(cols):
     }
     for row in must_ascend:
         keys = [k for k in row if k in offsets]
-        values = sorted(offsets[k] for k in row)
+        values = sorted(offsets[k] for k in keys)
         offsets.update(zip(keys, values))
 
     offsets = sorted(offsets.items(), key=lambda x: x[1])
