@@ -259,7 +259,7 @@ instrument orchhit
 
 instrument fanfarehorn
   detached
-  volume 4 7 8 8 7 7 6
+  volume 4 7 9 9 8 8 7
   timbre 1 0
   pitch -1 0
 
@@ -908,3 +908,39 @@ song rhde_kalinka
 
   at 18:1
   fine
+
+song K_231
+  title Leck mich im Arsch (K.231)
+  author Mozart, arr. D. Yerrick
+  time 2/2
+  tempo 75
+  scale 8
+
+  pattern LMIA
+    relative
+    bb'1 c
+    a bb
+    r2 bb w a
+    r eb' w d
+    d f eb c
+    f f, r bb4 a
+    g f eb d c c f g
+    f eb d c bb f''8 f f f f f
+    f4 bb, bb2 r4 eb8 eb eb eb eb eb
+    eb4 a, a2 r4 bb8 c d eb f4
+    g, g'8 g g g g g g4 c, c2
+    r4 f8 f f f f f f4 bb, bb2
+
+  at 1:1
+  resume
+  play LMIA with fanfarehorn on pulse2
+
+  at 5:1
+  play LMIA with piano on pulse1
+
+  at 9:1
+  play LMIA with v02detached on triangle
+  segno
+
+  at 33:1
+  dal segno
