@@ -371,3 +371,72 @@ The following are all the symbols that are valid in pattern code:
 [cents]: https://en.wikipedia.org/wiki/Cent_(music)
 [acciaccatura]: https://en.wikipedia.org/wiki/Ornament_%28music%29#Acciaccatura
 [fall through]: https://en.wikipedia.org/wiki/Switch_statement#Fallthrough
+
+Low-level data formats
+----------------------
+If generating Pently bytecode without use of macros, the low-level
+data formats accepted by Pently versions 3, 4, and 5 are as follows:
+
+### Definition tables
+
+`sfxdef` expands to 4 bytes: a 2-byte little-endian base address,
+1 byte with channel in bits 3-2 and step period minus 1 in bits 7-4,
+and 1 byte of length in steps.
+
+`drumdef` expands to 2 bytes with sound effect IDs of the first and
+second sound effects that make up this drum.  The second byte (and 
+the second) may be $80 or greater for no second sound effect.
+
+`instdef` expands to 5 bytes.  The first is duty in bits 7-6 and
+volume in bits 3-0.  The second is the decay rate in volume units per
+16 frames.  The third is attack length in steps in bits 6-0 and
+early cut (1: enabled) in bit 7.  The next two are the address of
+attack data, ignored if the attack's length is 0.
+
+Song and pattern tables are lists of addresses.  The `songdef`
+and `patdef` macros only create symbol names for their IDs.
+
+### Conductor
+
+* `0x pp tt ii`: On track `x`, play pattern `pp` with base note `tt`
+  and instrument `ii`
+* `20 rr`: Wait `rr + 1` rows
+* `21`: Stop music and set tempo to 0
+* `22`: Set loop point
+* `23`: Jump to loop point
+* `24+x` (4+): Set attack track to channel `x`
+* `28+x nn ii` (4+): Play note `nn` on channel `x` with instrument `ii`
+* `30+h ll`: Set tempo to `h * 256 + ll` rows per minute
+* `38+d` (4+): Set beat duration to offset `d` in the duration table
+
+### Patterns
+
+For pattern bytes $00-$D7: Bits 7-3 are the relative semitone number
+(0-24 for notes, 25 for tie, 26 for rest), and bits 2-0 are an index
+into a duration table `[1, 2, 3, 4, 6, 8, 12, 16]`.
+
+Pattern bytes $D8 and up set effects:
+
+* `D8 ii` (3+): Set instrument to ii
+* `D9 xy` (4+): Set arpeggio intervals to x and y semitones
+* `DA` (3+): Disable legato
+* `DB` (3+): Enable legato (do not retrigger notes)
+* `DC tt` (4+): Add `tt` to track's base note
+* `DD gg` (4+): Reduce duration of following note/rest to `gg` frames
+* `DE dd` (4+): Set vibrato depth to dd
+* `DF dd` (5): Set channel volume
+* `E0 sd` (5): Set pitch bend style to s and depth to d
+* `E2` (5): Update arpeggio every tick
+* `E3` (5): Update arpeggio every second tick
+* `FF`: Restart pattern from beginning
+
+### Historical notes
+
+- In Pently 2, the drum table did not exist.  The driver supported
+  drums with one sound effect, but the only publicly released game
+  with Pently 2 (_Concentration Room_) used no drums.
+- Through Pently 3, `instdef` was 4 bytes:  duty and volume, decay
+  rate, early cut enable, and an unused byte.  Attack was not
+  supported.
+- Through Pently 4, a zero pitch byte in attack data could not
+  be elided.
