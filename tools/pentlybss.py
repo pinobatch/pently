@@ -23,52 +23,52 @@ num_cols = 4  # spacing between channels' length counters
 
 specs = """
 # Pitch
-chPitchHi        PER_CHANNEL
+chPitchHi            PER_CHANNEL
 
 # Pitch effects
-arpPhase         PER_CHANNEL         ARPEGGIO|ATTACK_TRACK
-arpInterval1     PER_PITCHED_CHANNEL ARPEGGIO
-arpInterval2     PER_PITCHED_CHANNEL ARPEGGIO
-vibratoDepth     PER_PITCHED_CHANNEL VIBRATO
-vibratoPhase     PER_PITCHED_CHANNEL VIBRATO
-notePitch        PER_PITCHED_CHANNEL PORTAMENTO
-chPitchLo        PER_PITCHED_CHANNEL PORTAMENTO
-chPortamento     PER_PITCHED_CHANNEL PORTAMENTO
+arpPhase             PER_CHANNEL         ARPEGGIO|ATTACK_TRACK
+arpInterval1         PER_PITCHED_CHANNEL ARPEGGIO
+arpInterval2         PER_PITCHED_CHANNEL ARPEGGIO
+vibratoDepth         PER_PITCHED_CHANNEL VIBRATO
+vibratoPhase         PER_PITCHED_CHANNEL VIBRATO
+notePitch            PER_PITCHED_CHANNEL PORTAMENTO
+chPitchLo            PER_PITCHED_CHANNEL PORTAMENTO
+chPortamento         PER_PITCHED_CHANNEL PORTAMENTO
 
 # Envelope
-attack_remainlen PER_CHANNEL         ATTACK_PHASE
-attackPitch      PER_CHANNEL         ATTACK_TRACK
-noteEnvVol       PER_CHANNEL
-noteLegato       PER_CHANNEL
-channelVolume    PER_CHANNEL         CHANNEL_VOLUME
+attack_remainlen     PER_CHANNEL         ATTACK_PHASE
+attackPitch          PER_CHANNEL         ATTACK_TRACK
+noteEnvVol           PER_CHANNEL
+noteLegato           PER_CHANNEL
+channelVolume        PER_CHANNEL         CHANNEL_VOLUME
 
 # Pattern reading
-noteRowsLeft     PER_TRACK
-graceTime        PER_TRACK
-noteInstrument   PER_TRACK
-musicPattern     PER_TRACK
-patternTranspose PER_TRACK
-music_tempoLo    SINGLETON
-music_tempoHi    SINGLETON
-conductorWaitRows SINGLETON
-pently_rows_per_beat SINGLETON       BPMMATH
-pently_row_beat_part SINGLETON       BPMMATH
-pently_mute_track  PER_TRACK         VARMIX
+noteRowsLeft         PER_TRACK
+graceTime            PER_TRACK
+noteInstrument       PER_TRACK
+musicPattern         PER_TRACK
+patternTranspose     PER_TRACK
+music_tempoLo        SINGLETON
+music_tempoHi        SINGLETON
+conductorWaitRows    SINGLETON
+pently_rows_per_beat SINGLETON           BPMMATH
+pently_row_beat_part SINGLETON           BPMMATH
+pently_mute_track    PER_TRACK           VARMIX
 
 # Visualization and rehearsal
-pently_vis_dutyvol PER_CHANNEL       VIS
-pently_vis_pitchlo PER_CHANNEL       VIS
-pently_vis_pitchhi PER_CHANNEL       VIS
-pently_rowshi      PER_CHANNEL       REHEARSAL
-pently_rowslo      PER_CHANNEL       REHEARSAL
-pently_tempo_scale SINGLETON         REHEARSAL
+pently_vis_dutyvol   PER_CHANNEL         VIS
+pently_vis_pitchlo   PER_CHANNEL         VIS
+pently_vis_pitchhi   PER_CHANNEL         VIS
+pently_rowshi        PER_CHANNEL         REHEARSAL
+pently_rowslo        PER_CHANNEL         REHEARSAL
+pently_tempo_scale   SINGLETON           REHEARSAL
 
 """
 specs = [row.strip() for row in specs.split("\n")]
 specs = [row.split() for row in specs if row and not row.startswith('#')]
 
-# Use of indexed addressing mode requires some fields to precede
-# others in memory.
+# Use of indexed addressing mode requires some fields of a given
+# heighttype to precede others in memory.
 must_ascend = [
     ['arpInterval1', 'arpInterval2']
 ]

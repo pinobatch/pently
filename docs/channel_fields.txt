@@ -1,0 +1,38 @@
+The rough structure of each track in Pently for NES.
+
+- Pattern reading
+    - `noteRowsLeft`
+    - `graceTime`
+    - `musicPatternPos`
+    - `musicPatternPos+1`
+    - `musicPattern`
+    - `patternTranspose`
+    - `mute_track`
+    - `noteLegato` (not on attack track?)
+    - `noteInstrument`
+- Music voice
+    - `attack_remainlen`
+    - `attackPitch`
+    - `noteAttackPos`
+    - `noteAttackPos+1`
+    - `noteEnvVol`
+    - `channelVolume`
+    - `arpPhase`
+    - `arpIntervalA`
+    - `arpIntervalB`
+    - `chPortamento`
+    - `notePitch`
+    - `chPitchLo`
+    - `chPitchHi`
+    - `vibratoDepth`
+    - `vibratoPhase`
+- Sound effect voice
+    - `sfx_datalo`
+    - `sfx_datahi`
+    - `sfx_rate`
+    - `sfx_rate_countdown`
+    - `sfx_remainlen`
+- PSG writing section
+    - `ch_lastfreqhi`
+
+(TODO: Bring these closer to the order of access)

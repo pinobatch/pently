@@ -59,6 +59,7 @@ debug: $(title).nes
 	$(DEBUGEMU) $<
 clean:
 	-rm $(objdir)/*.o $(objdir)/*.s $(objdir)/*.chr $(objdir)/*.inc
+	-rm $(objdir)/*.ftm.txt
 
 # Rule to create or update the distribution zipfile by adding all
 # files listed in zip.in.  Actually the zipfile depends on every
