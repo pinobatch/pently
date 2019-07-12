@@ -39,9 +39,9 @@
     .byt $01  ; version: NSF classic
   .endif
   .if PENTLY_USE_NSF_SOUND_FX
-    .byt NUM_SONGS+NUM_SOUNDS
+    .byt PENTLY_NUM_SONGS+PENTLY_NUM_SOUNDS
   .else
-    .byt NUM_SONGS
+    .byt PENTLY_NUM_SONGS
   .endif
   .byt 1  ; first song to play
   .addr __ROM7_START__  ; load address (should match link script)
@@ -84,9 +84,9 @@ tvSystem: .res 1
   jsr pently_init
   pla
   .if ::PENTLY_USE_NSF_SOUND_FX
-    cmp #NUM_SONGS
+    cmp #PENTLY_NUM_SONGS
     bcc is_music
-      sbc #NUM_SONGS
+      sbc #PENTLY_NUM_SONGS
       jmp pently_start_sound
     is_music:
   .endif

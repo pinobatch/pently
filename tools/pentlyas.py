@@ -2337,8 +2337,8 @@ def render_file(parser, segment='RODATA', asm6=False):
         '; author: ' + parser.author,
         '; copyright: ' + parser.copyright,
         ';',
-        'NUM_SONGS=%d' % len(parser.songs),
-        'NUM_SOUNDS=%d' % len(parser.sfxs),
+        'PENTLY_NUM_SONGS=%d' % len(parser.songs),
+        'PENTLY_NUM_SOUNDS=%d' % len(parser.sfxs),
     ]
     if not asm6:
         # ASM6 relies on the caller to include pentlyseq.inc first
@@ -2348,7 +2348,9 @@ def render_file(parser, segment='RODATA', asm6=False):
         ])
 
     all_export = []
-    all_exportzp = ['NUM_SONGS', 'NUM_SOUNDS', 'pently_resume_mute']
+    all_exportzp = [
+      'PENTLY_NUM_SONGS', 'PENTLY_NUM_SOUNDS', 'pently_resume_mute'
+    ]
     bytes_lines = []
     songbytes = {'': 0}
     total_partbytes = 0
@@ -2476,8 +2478,8 @@ def render_include_file(parser):
         '; author: ' + parser.author,
         '; copyright: ' + parser.copyright,
         ';',
-        'NUM_SONGS=%d' % len(parser.songs),
-        'NUM_SOUNDS=%d' % len(parser.sfxs),
+        'PENTLY_NUM_SONGS=%d' % len(parser.songs),
+        'PENTLY_NUM_SOUNDS=%d' % len(parser.sfxs),
         "",
         ".macro PENTLY_WRITE_NSFE_TITLE",
         "  .byte "+ca65_escape_bytes(title_utf8),

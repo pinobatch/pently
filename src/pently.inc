@@ -21,6 +21,10 @@
 ; 3. This notice may not be removed or altered from any source distribution.
 ;
 
+.ifndef PENTLY_INC
+PENTLY_INC = 1
+.include "pentlyconfig.inc"
+
 ; Configuration ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; These default values are used if pentlyconfig.inc is not included.
@@ -224,3 +228,5 @@ PENTLY_USE_TEMPO_ROUNDING_BEAT = 0
 
 ; Size (for debugging) ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .global PENTLYSOUND_SIZE, PENTLYMUSIC_SIZE
+
+.endif

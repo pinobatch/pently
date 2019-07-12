@@ -84,10 +84,10 @@ fade_end:
   ; this chunk depends on the score, which is currently .import'd
   ; as opposed to being a constant
   .if PENTLY_USE_NSF_SOUND_FX
-    .dword NUM_SOUNDS
+    .dword PENTLY_NUM_SOUNDS
     .byt "psfx"
-    .repeat NUM_SOUNDS, I
-      .byte NUM_SONGS + I
+    .repeat PENTLY_NUM_SOUNDS, I
+      .byte PENTLY_NUM_SONGS + I
     .endrepeat
   .endif
 

@@ -1,5 +1,8 @@
 ; Configuration settings for Pently
 
+.ifndef PENTLYCONFIG_INC
+PENTLYCONFIG_INC = 1
+
 ; Master switch for build supporting only sound effects
 PENTLY_USE_MUSIC = 1
 
@@ -49,6 +52,10 @@ PENTLY_USE_NSF2 = 1
 ; 0-127; higher means quieter tri/noise
 PENTLY_INITIAL_4011 = 64
 
+; Nonzero to suppress prefix-free pentlyseq.s.  This is useful in
+; ASM6 programs so as not to pollute the main program's namespace.
+PENTLY_USE_PREFIXED_DATA = 0
+
 ; Five bytes of scratch space on zero page that need not be preserved
 ; across calls.  This needs to be either an = or an .importzp
 
@@ -57,3 +64,5 @@ pently_zptemp = $0000
 
 .define PENTLY_CODE "CODE"
 .define PENTLY_RODATA "RODATA"
+
+.endif

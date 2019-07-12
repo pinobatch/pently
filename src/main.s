@@ -27,7 +27,7 @@
 .include "pently.inc"
 
 .import getTVSystem
-.importzp NUM_SONGS
+.importzp PENTLY_NUM_SONGS
 
 ; Size diagnostics
 .import periodTableHi, periodTableLo
@@ -242,7 +242,7 @@ forever:
   beq notDown
     inc cur_song
     lda cur_song
-    cmp #NUM_SONGS
+    cmp #PENTLY_NUM_SONGS
     bcc have_new_song
     lda #0
     jmp have_new_song
@@ -253,9 +253,9 @@ forever:
   beq notUp
     dec cur_song
     lda cur_song
-    cmp #NUM_SONGS
+    cmp #PENTLY_NUM_SONGS
     bcc have_new_song
-      lda #NUM_SONGS-1
+      lda #PENTLY_NUM_SONGS-1
     have_new_song:
     sta cur_song
     jsr pently_start_music

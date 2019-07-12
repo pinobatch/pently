@@ -21,9 +21,9 @@
 ; 3. This notice may not be removed or altered from any source distribution.
 ;
 
-.include "pentlyconfig.inc"
-.include "pently.inc"
 .include "pentlyseq.inc"
+.include "pently.inc"
+.out "before pentlybss.inc"
 .include "../obj/nes/pentlybss.inc"
 
 .importzp pently_zp_state
@@ -39,18 +39,18 @@
 .import pently_row_callback, pently_dalsegno_callback
 .endif
 
-NUM_CHANNELS = 4
-DRUM_TRACK = 12
-ATTACK_TRACK = 16
-MAX_CHANNEL_VOLUME = 4
-DEFAULT_TEMPO = 300
-DEFAULT_ROWS_PER_BEAT = 4
-MAX_TEMPO_SCALE = 8
+PENTLY_NUM_CHANNELS = 4
+PENTLY_DRUM_TRACK = 12
+PENTLY_ATTACK_TRACK = 16
+PENTLY_MAX_CHANNEL_VOLUME = 4
+PENTLY_INITIAL_TEMPO = 300
+PENTLY_INITIAL_ROW_LENGTH = 4
+PENTLY_MAX_TEMPO_SCALE = 8
 
 .if PENTLY_USE_ATTACK_TRACK
-  LAST_TRACK = ATTACK_TRACK
+  PENTLY_LAST_TRACK = PENTLY_ATTACK_TRACK
 .else
-  LAST_TRACK = DRUM_TRACK
+  PENTLY_LAST_TRACK = PENTLY_DRUM_TRACK
 .endif
 
 PENTLY_USE_TEMPO_ROUNDING = PENTLY_USE_TEMPO_ROUNDING_SEGNO || (PENTLY_USE_TEMPO_ROUNDING_PLAY_CH > 0) || PENTLY_USE_TEMPO_ROUNDING_BEAT
@@ -82,16 +82,16 @@ PENTLY_USE_TEMPO_ROUNDING = PENTLY_USE_TEMPO_ROUNDING_SEGNO || (PENTLY_USE_TEMPO
 ; if the references are in a .if block.  So move them to
 ; .zeropage so that delay_labels will not touch them.
 
-musicPatternPos = pently_zp_state + 2
+pentlyi_chnPatternPos = pently_zp_state + 2
 .if PENTLY_USE_ATTACK_PHASE
-  noteAttackPos           = pently_zp_state + 16
-  conductorPos            = pently_zp_state + 22
+  pentlyi_noteAttackPos   = pently_zp_state + 16
+  pentlyi_conductorPos    = pently_zp_state + 22
   pently_tempoCounterLo   = pently_zp_state + 26
   pently_tempoCounterHi   = pently_zp_state + 27
   pently_music_playing    = pently_zp_state + 30
-  attackChannel           = pently_zp_state + 31
+  pentlyi_attackChn       = pently_zp_state + 31
 .else
-  conductorPos            = pently_zp_state + 16
+  pentlyi_conductorPos    = pently_zp_state + 16
   pently_tempoCounterLo   = pently_zp_state + 18
   pently_tempoCounterHi   = pently_zp_state + 19
   pently_music_playing    = pently_zp_state + 20
@@ -154,17 +154,17 @@ pentlymusic_code_start = *
   asl a
   tax
   lda pently_songs,x
-  sta conductorPos
+  sta pentlyi_conductorPos
   sta conductorSegnoLo
   lda pently_songs+1,x
-  sta conductorPos+1
+  sta pentlyi_conductorPos+1
   sta conductorSegnoHi
 
   ; Clear all music state except that shared with sound effects
   ldy #pentlymusicbase_size - 1
   lda #0
   .if ::PENTLY_USE_ATTACK_TRACK
-    sta attackChannel
+    sta pentlyi_attackChn
   .endif
   :
     sta pentlymusicbase,y
@@ -172,20 +172,20 @@ pentlymusic_code_start = *
     bpl :-
 
   ; Init each track's volume and play silent pattern
-  ldx #LAST_TRACK
+  ldx #PENTLY_LAST_TRACK
   channelLoop:
     lda #<silentPattern
-    sta musicPatternPos,x
+    sta pentlyi_chnPatternPos,x
     lda #>silentPattern
-    sta musicPatternPos+1,x
+    sta pentlyi_chnPatternPos+1,x
     tya  ; Y is $FF from the clear everything loop
     sta musicPattern,x
     .if ::PENTLY_USE_CHANNEL_VOLUME
       .if ::PENTLY_USE_ATTACK_TRACK
-        cpx #ATTACK_TRACK
+        cpx #PENTLY_ATTACK_TRACK
         bcs :+
       .endif
-        lda #MAX_CHANNEL_VOLUME
+        lda #PENTLY_MAX_CHANNEL_VOLUME
         sta channelVolume,x
       :
     .endif
@@ -202,12 +202,12 @@ pentlymusic_code_start = *
   sta pently_tempoCounterHi
   .if ::PENTLY_USE_BPMMATH
     sta pently_row_beat_part
-    lda #DEFAULT_ROWS_PER_BEAT
+    lda #PENTLY_INITIAL_ROW_LENGTH
     sta pently_rows_per_beat
   .endif
-  lda #<DEFAULT_TEMPO
+  lda #<PENTLY_INITIAL_TEMPO
   sta music_tempoLo
-  lda #>DEFAULT_TEMPO
+  lda #>PENTLY_INITIAL_TEMPO
   sta music_tempoHi
   ; Fall through
 .endproc
@@ -241,7 +241,7 @@ scaled_tempoHi  = pently_zptemp + 0
     ldx pently_tempo_scale
     clc  ; allow have_scaled_tempoLo to round
     beq have_scaled_tempoLo
-    cpx #MAX_TEMPO_SCALE
+    cpx #PENTLY_MAX_TEMPO_SCALE
     bcs music_not_playing
     shiftLoop:
       lsr scaled_tempoHi
@@ -315,12 +315,12 @@ music_not_playing:
 
 doConductor:
   ldy #0
-  lda (conductorPos),y
-  inc conductorPos
+  lda (pentlyi_conductorPos),y
+  inc pentlyi_conductorPos
   bne :+
-    inc conductorPos+1
+    inc pentlyi_conductorPos+1
   :
-  cmp #CON_WAITROWS
+  cmp #PENTLY_CON_WAITROWS
   beq is_waitrows
   bcs not_playpat
     ; 00-07 pp tt ii: Play pattern pp on track A & $07,
@@ -339,7 +339,7 @@ doConductor:
     .endif
 
     lda #0
-    cpx #ATTACK_TRACK
+    cpx #PENTLY_ATTACK_TRACK
     ; If attack track is enabled, don't enable legato on attack
     ; track. Otherwise, don't start patterns on attack track at all
     ; because another variable overlaps it.
@@ -351,41 +351,41 @@ doConductor:
       sta noteLegato,x  ; start all patterns with legato off
     skipClearLegato:
 
-    lda (conductorPos),y
+    lda (pentlyi_conductorPos),y
     sta musicPattern,x
     iny
-    lda (conductorPos),y
+    lda (pentlyi_conductorPos),y
     sta patternTranspose,x
     iny
-    lda (conductorPos),y
+    lda (pentlyi_conductorPos),y
     sta noteInstrument,x
     jsr startPattern
   skip3conductor:
     lda #3
     clc
-    adc conductorPos
-    sta conductorPos
+    adc pentlyi_conductorPos
+    sta pentlyi_conductorPos
     bcc :+
-      inc conductorPos+1
+      inc pentlyi_conductorPos+1
     :
     jmp doConductor
 
   is_waitrows:
     ; 20 ww: Wait ww+1 rows
-    lda (conductorPos),y
+    lda (pentlyi_conductorPos),y
     sta conductorWaitRows
-    inc conductorPos
+    inc pentlyi_conductorPos
     bne :+
-      inc conductorPos+1
+      inc pentlyi_conductorPos+1
     :
     jmp processPatterns
   not_playpat:
   
   ; Loop control block 21-23
-  cmp #CON_DALSEGNO
+  cmp #PENTLY_CON_DALSEGNO
   beq is_dalsegno
   bcs not_loopcontrol
-  cmp #CON_SEGNO
+  cmp #PENTLY_CON_SEGNO
   bcs is_segno
     ; 21: Fine (end playback; set playing and tempo to 0)
     lda #0
@@ -399,16 +399,16 @@ doConductor:
       rts
    .endif
   is_segno:
-    lda conductorPos
+    lda pentlyi_conductorPos
     sta conductorSegnoLo
-    lda conductorPos+1
+    lda pentlyi_conductorPos+1
     sta conductorSegnoHi
     jmp segno_round
   is_dalsegno:
     lda conductorSegnoLo
-    sta conductorPos
+    sta pentlyi_conductorPos
     lda conductorSegnoHi
-    sta conductorPos+1
+    sta pentlyi_conductorPos+1
     .if ::PENTLY_USE_ROW_CALLBACK
       sec
       jsr pently_dalsegno_callback
@@ -423,54 +423,54 @@ doConductor:
     jmp doConductor
   not_loopcontrol:
 
-  cmp #CON_NOTEON
+  cmp #PENTLY_CON_NOTEON
   bcs not_setattack
     ; 24-26: Play attack track on channel A & $07
     .if ::PENTLY_USE_ATTACK_TRACK
       and #%00000011
       asl a
       asl a
-      sta attackChannel
+      sta pentlyi_attackChn
     .endif
     jmp doConductor
   not_setattack:
 
-  cmp #CON_SETTEMPO
+  cmp #PENTLY_CON_SETTEMPO
   bcs not_noteon
     ; 28-2F nn ii: Play note nn with instrument ii on track A & $07
     and #%00000011
     asl a
     asl a
     tax
-    lda (conductorPos),y
-    inc conductorPos
+    lda (pentlyi_conductorPos),y
+    inc pentlyi_conductorPos
     bne :+
-      inc conductorPos+1
+      inc pentlyi_conductorPos+1
     :
     pha
-    lda (conductorPos),y
+    lda (pentlyi_conductorPos),y
     tay
     pla
     jsr pently_play_note
     jmp skipConductorByte
   not_noteon:
   
-  cmp #CON_SETBEAT
+  cmp #PENTLY_CON_SETBEAT
   bcs not_tempo_change
     ; 30-37 tt: Set tempo to (A & $07) * 256 + tt
     and #%00000111
     sta music_tempoHi
-    lda (conductorPos),y
+    lda (pentlyi_conductorPos),y
     sta music_tempoLo
   skipConductorByte:
-    inc conductorPos
+    inc pentlyi_conductorPos
     bne :+
-      inc conductorPos+1
+      inc pentlyi_conductorPos+1
     :
     jmp doConductor
   not_tempo_change:
   
-  cmp #CON_SETBEAT+8
+  cmp #PENTLY_CON_SETBEAT+8
   bcs not_set_beat
     .if ::PENTLY_USE_BPMMATH
       and #%00000111
@@ -488,7 +488,7 @@ doConductor:
 ; Pattern reading ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 .proc processPatterns
-  ldx #4 * (NUM_CHANNELS - 1)
+  ldx #4 * (PENTLY_NUM_CHANNELS - 1)
   channelLoop:
     jsr processTrackPattern
     dex
@@ -499,7 +499,7 @@ doConductor:
 
   ; Process attack track last so it can override a just played attack
   .if ::PENTLY_USE_ATTACK_TRACK
-    ldx #ATTACK_TRACK
+    ldx #PENTLY_ATTACK_TRACK
     ;jmp processTrackPattern
     ; (that's a fallthrough)
   .else
@@ -515,20 +515,20 @@ skipNote:
 
 anotherPatternByte:
   ; Read one pattern byte.  If it's a loop, restart the pattern.
-  lda (musicPatternPos,x)
-  cmp #PATEND
+  lda (pentlyi_chnPatternPos,x)
+  cmp #PENTLY_PATEND
   bne notStartPatternOver
     jsr startPattern
-    lda (musicPatternPos,x)
+    lda (pentlyi_chnPatternPos,x)
   notStartPatternOver:
-  inc musicPatternPos,x
+  inc pentlyi_chnPatternPos,x
   bne patternNotNewPage
-    inc musicPatternPos+1,x
+    inc pentlyi_chnPatternPos+1,x
   patternNotNewPage:
 
-  cmp #INSTRUMENT
+  cmp #PENTLY_INSTRUMENT
   bcc isNoteCmd
-  sbc #INSTRUMENT
+  sbc #PENTLY_INSTRUMENT
   cmp #num_patcmdhandlers  ; ignore invalid pattern commands
   bcs anotherPatternByte
   asl a
@@ -561,7 +561,7 @@ isNoteCmd:
   isKeyOff:
     lda #0
     .if ::PENTLY_USE_ATTACK_TRACK
-      cpx #ATTACK_TRACK
+      cpx #PENTLY_ATTACK_TRACK
       bcs notKeyOff
     .endif
     .if ::PENTLY_USE_ATTACK_PHASE
@@ -572,7 +572,7 @@ isNoteCmd:
   jmp skipNote
 
   isTransposedNote:
-    cpx #DRUM_TRACK
+    cpx #PENTLY_DRUM_TRACK
     beq isDrumNote
     clc
     adc patternTranspose,x
@@ -582,7 +582,7 @@ isNoteCmd:
 
 isDrumNote:
   .if ::PENTLY_USE_VARMIX
-    ldy pently_mute_track+DRUM_TRACK
+    ldy pently_mute_track+PENTLY_DRUM_TRACK
     bmi skipNote
   .endif
   asl a
@@ -596,7 +596,7 @@ isDrumNote:
   bmi noSecondDrum
   jsr pently_start_sound
 noSecondDrum:
-  ldx #DRUM_TRACK
+  ldx #PENTLY_DRUM_TRACK
   jmp skipNote
 
 ; Effect handlers
@@ -620,32 +620,32 @@ patcmdhandlers:
 num_patcmdhandlers = (* - patcmdhandlers) / 2
 
 set_fx_instrument:
-  lda (musicPatternPos,x)
+  lda (pentlyi_chnPatternPos,x)
   sta noteInstrument,x
 nextPatternByte:
-  inc musicPatternPos,x
+  inc pentlyi_chnPatternPos,x
   bne :+
-    inc musicPatternPos+1,x
+    inc pentlyi_chnPatternPos+1,x
   :
   jmp anotherPatternByte
 
 .if ::PENTLY_USE_ARPEGGIO
 set_fx_arpeggio:
-  cpx #DRUM_TRACK
+  cpx #PENTLY_DRUM_TRACK
   bcs :+
-    lda (musicPatternPos,x)
+    lda (pentlyi_chnPatternPos,x)
     lsr a
     lsr a
     lsr a
     lsr a
     sta arpInterval1,x
-    lda (musicPatternPos,x)
+    lda (pentlyi_chnPatternPos,x)
     and #$0F
     sta arpInterval2,x
   :
   jmp nextPatternByte
 set_fx_fastarp:
-  cpx #DRUM_TRACK
+  cpx #PENTLY_DRUM_TRACK
   bcs :+
     lda #%10111111
     and arpPhase,x
@@ -653,7 +653,7 @@ set_fx_fastarp:
   :
   jmp anotherPatternByte
 set_fx_slowarp:
-  cpx #DRUM_TRACK
+  cpx #PENTLY_DRUM_TRACK
   bcs :+
     lda #%01000000
     ora arpPhase,x
@@ -667,7 +667,7 @@ set_fx_slowarp:
 .endif
 
 set_fx_legato:
-  cpx #DRUM_TRACK
+  cpx #PENTLY_DRUM_TRACK
   bcs :+
     tya
     and #$02
@@ -676,7 +676,7 @@ set_fx_legato:
   jmp anotherPatternByte
 
 set_fx_grace:
-  lda (musicPatternPos,x)
+  lda (pentlyi_chnPatternPos,x)
   ; Because grace note processing decrements before comparing to
   ; zero, 1 is treated the same as 0.
   ; 0: this row's pattern already read
@@ -690,15 +690,15 @@ set_fx_grace:
 
 set_fx_transpose:
   lda patternTranspose,x
-  adc (musicPatternPos,x)
+  adc (pentlyi_chnPatternPos,x)
   sta patternTranspose,x
   jmp nextPatternByte
 
 .if ::PENTLY_USE_VIBRATO
 set_fx_vibrato:
-  cpx #DRUM_TRACK
+  cpx #PENTLY_DRUM_TRACK
   bcs :+
-    lda (musicPatternPos,x)
+    lda (pentlyi_chnPatternPos,x)
     and #$07
     sta vibratoDepth,x
   :
@@ -709,9 +709,9 @@ set_fx_vibrato:
 
 .if ::PENTLY_USE_PORTAMENTO
 set_fx_portamento:
-  cpx #DRUM_TRACK
+  cpx #PENTLY_DRUM_TRACK
   bcs :+
-    lda (musicPatternPos,x)
+    lda (pentlyi_chnPatternPos,x)
     sta chPortamento,x
   :
   jmp nextPatternByte
@@ -725,10 +725,10 @@ set_fx_ch_volume:
     ; Channel volume has no effect on attack track, yet it should be
     ; explicitly ignored so that if attack and pulse share a pattern,
     ; it doesn't clobber some other variable.
-    cpx #ATTACK_TRACK
+    cpx #PENTLY_ATTACK_TRACK
     bcs :+
   .endif
-    lda (musicPatternPos,x)
+    lda (pentlyi_chnPatternPos,x)
     sta channelVolume,x
   :
   jmp nextPatternByte
@@ -746,24 +746,24 @@ set_fx_ch_volume:
   cmp #255
   bcc @notSilentPattern
     lda #<silentPattern
-    sta musicPatternPos,x
+    sta pentlyi_chnPatternPos,x
     lda #>silentPattern
-    sta musicPatternPos+1,x
+    sta pentlyi_chnPatternPos+1,x
     rts
   @notSilentPattern:
   asl a
   tay
   bcc @isLoPattern
     lda pently_patterns+256,y
-    sta musicPatternPos,x
+    sta pentlyi_chnPatternPos,x
     lda pently_patterns+257,y
-    sta musicPatternPos+1,x
+    sta pentlyi_chnPatternPos+1,x
     rts
   @isLoPattern:
   lda pently_patterns,y
-  sta musicPatternPos,x
+  sta pentlyi_chnPatternPos,x
   lda pently_patterns+1,y
-  sta musicPatternPos+1,x
+  sta pentlyi_chnPatternPos+1,x
   rts
 .endproc
 
@@ -775,7 +775,7 @@ set_fx_ch_volume:
   pha
   
   ; Fake out grace processing
-  ldx #LAST_TRACK
+  ldx #PENTLY_LAST_TRACK
   graceloop:
     lda graceTime,x
     beq noGraceThisCh
@@ -808,7 +808,7 @@ set_fx_ch_volume:
   ; When seeking, kill cymbals because they tend to leave an
   ; envelope hanging
   lda #0
-  sta noteEnvVol+DRUM_TRACK
+  sta noteEnvVol+PENTLY_DRUM_TRACK
   rts
 .endproc
 .endif
@@ -835,7 +835,7 @@ instrument_id = pently_zptemp + 1
   ; x = channel #
   ; y = offset in instrument table
 .if ::PENTLY_USE_ATTACK_TRACK
-  cpx #ATTACK_TRACK
+  cpx #PENTLY_ATTACK_TRACK
   bcs skipSustainPart
     lda arpPhase,x  ; bit 7 set if attack is injected
     bmi dont_legato_injected_attack
@@ -845,7 +845,7 @@ instrument_id = pently_zptemp + 1
     dont_legato_injected_attack:
     lda notenum
 .if ::PENTLY_USE_PORTAMENTO
-    cpx #DRUM_TRACK
+    cpx #PENTLY_DRUM_TRACK
     bcs bypass_notePitch
       sta notePitch,x
       bcc pitch_is_stored
@@ -864,7 +864,7 @@ instrument_id = pently_zptemp + 1
     asl a
     ora #$0C
     sta noteEnvVol,x
-    cpx #DRUM_TRACK
+    cpx #PENTLY_DRUM_TRACK
     bcs skipSustainPart
       .if ::PENTLY_USE_ARPEGGIO
         lda #%01000000
@@ -886,9 +886,9 @@ instrument_id = pently_zptemp + 1
     txa
     pha
     .if ::PENTLY_USE_ATTACK_TRACK
-      cpx #ATTACK_TRACK
+      cpx #PENTLY_ATTACK_TRACK
       bcc notAttackTrack
-        ldx attackChannel
+        ldx pentlyi_attackChn
         lda #$80  ; Disable arpeggio, vibrato, and legato until sustain
         ora arpPhase,x
         sta arpPhase,x
@@ -898,9 +898,9 @@ instrument_id = pently_zptemp + 1
     .endif
     
     lda pently_instruments+4,y
-    sta noteAttackPos+1,x
+    sta pentlyi_noteAttackPos+1,x
     lda pently_instruments+3,y
-    sta noteAttackPos,x
+    sta pentlyi_noteAttackPos,x
     lda pently_instruments+2,y
     and #$7F
     sta attack_remainlen,x
@@ -943,7 +943,7 @@ out_pitchadd = pently_zptemp + 4
   nograce:
 
 .if ::PENTLY_USE_ATTACK_TRACK
-  cpx #ATTACK_TRACK
+  cpx #PENTLY_ATTACK_TRACK
   bcs pently_play_note_rts
 .endif
   
@@ -953,7 +953,7 @@ out_pitchadd = pently_zptemp + 4
 .endif
 
 .if ::PENTLY_USE_PORTAMENTO
-  cpx #DRUM_TRACK
+  cpx #PENTLY_DRUM_TRACK
   bcs no_pitch_no_porta
     jsr update_portamento
   no_pitch_no_porta:
@@ -964,10 +964,10 @@ out_pitchadd = pently_zptemp + 4
   lda attack_remainlen,x
   beq sustain_phase
   dec attack_remainlen,x
-  lda (noteAttackPos,x)
-  inc noteAttackPos,x
+  lda (pentlyi_noteAttackPos,x)
+  inc pentlyi_noteAttackPos,x
   bne :+
-    inc noteAttackPos+1,x
+    inc pentlyi_noteAttackPos+1,x
   :
   .if ::PENTLY_USE_CHANNEL_VOLUME
     jsr write_out_volume
@@ -978,7 +978,7 @@ out_pitchadd = pently_zptemp + 4
   ldy chPitchHi,x
   .if ::PENTLY_USE_PORTAMENTO
     ; Use portamento pitch if not injected
-    cpx #DRUM_TRACK
+    cpx #PENTLY_DRUM_TRACK
     bcs attack_not_pitched_ch
       .if ::PENTLY_USE_ATTACK_TRACK
         lda arpPhase,x
@@ -998,10 +998,10 @@ porta_not_injected:
   cmp #$01  ; C true: use 0 instead of an envelope byte for pitch
   tya
   bcs :+
-  adc (noteAttackPos,x)
-  inc noteAttackPos,x
+  adc (pentlyi_noteAttackPos,x)
+  inc pentlyi_noteAttackPos,x
   bne :+
-    inc noteAttackPos+1,x
+    inc pentlyi_noteAttackPos+1,x
   :
 
   ; At this point, A is the note pitch with envelope modification,
@@ -1069,13 +1069,13 @@ porta_not_injected:
 
   ; Unless the next byte in the pattern is a tie or a legato enable,
   ; cut the note
-  lda (musicPatternPos,x)
-  cmp #LEGATO_ON
+  lda (pentlyi_chnPatternPos,x)
+  cmp #PENTLY_LEGATO_ON
   beq notCutNote
-  cmp #LEGATO_OFF
+  cmp #PENTLY_LEGATO_OFF
   beq set_ch_silent
   and #$F8
-  cmp #N_TIE
+  cmp #PENTLY_N_TIE
   beq notCutNote
   lda noteLegato,x
   beq set_ch_silent
@@ -1276,7 +1276,7 @@ not_vibrato = not_vibrato_rts
     rts
   chvol_nonzero:
 
-  cpy #MAX_CHANNEL_VOLUME
+  cpy #PENTLY_MAX_CHANNEL_VOLUME
   bcs chvol_unchanged
 
     pha
