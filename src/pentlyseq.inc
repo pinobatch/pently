@@ -30,7 +30,7 @@ PENTLYSEQ_INC = 1
 .globalzp PENTLY_NUM_SONGS
 
 ; Sound effect/drum definitions
-.macro sfxdef name, baseaddr, length, period, channel
+.macro PENTLY_sfxdef name, baseaddr, length, period, channel
 .exportzp name
 .assert * - pently_sfx_table < 256, error, "too many sound effects"
 name = <((* - pently_sfx_table) / 4)
@@ -52,7 +52,7 @@ name = <((* - pently_sfx_table) / 4)
 ;      |||| |    ++++- noise period class (3=high, F=low)
 ;      |||| +--------- noise waveform (0=hiss, 1=buzz)
 ;      ++++----------- volume (0=silent)
-.macro sfxframe duty, volume, pitch
+.macro PENTLY_sfxframe duty, volume, pitch
   .byte ((duty)<<6|(volume))
   .byte (pitch)
 .endmacro
@@ -63,7 +63,7 @@ name = <((* - pently_sfx_table) / 4)
 ; https://forums.nesdev.com/viewtopic.php?f=2&t=18610
 
 ; sfx2 is optional in ca65
-.macro drumdef name, sfx1, sfx2
+.macro PENTLY_drumdef name, sfx1, sfx2
 name = <(* - pently_drums) * 4
   .byte sfx1
   .ifnblank sfx2
@@ -75,7 +75,7 @@ name = <(* - pently_drums) * 4
 
 ; Instrument definitions
 ; decayrate and later are optional in ca65
-.macro instdef name, duty, volume, decayrate, earlycut, attackptr, attacklen
+.macro PENTLY_instdef name, duty, volume, decayrate, earlycut, attackptr, attacklen
 name = <(* - pently_instruments) / 5
   .scope
     .byte (((duty) << 6) | (volume))
@@ -105,7 +105,7 @@ name = <(* - pently_instruments) / 5
 .endmacro
 
 ; Song definition
-.macro songdef name, conductor_addr
+.macro PENTLY_songdef name, conductor_addr
   .assert * - pently_songs < 128, error, "too many songs"
 name = <((* - pently_songs) / 2)
   .addr (conductor_addr)
@@ -113,7 +113,7 @@ name = <((* - pently_songs) / 2)
 .endmacro
 
 ; Pattern definition
-.macro patdef name, pattern_addr
+.macro PENTLY_patdef name, pattern_addr
 name = (* - pently_patterns) / 2
   .addr (pattern_addr)
 .endmacro
@@ -133,76 +133,76 @@ PENTLY_CON_SETTEMPO = $30  ; low bits: bits 10-8 of tempo in rows/min; next: bit
 PENTLY_CON_SETBEAT = $38  ; low bits: duration type (D_something) corresponding to one beat
 
 ; Conductor macros
-.macro playPatSq1 patid, transpose, instrument
+.macro PENTLY_playPatSq1 patid, transpose, instrument
   .byt PENTLY_CON_PLAYPAT|0, patid, transpose, instrument
 .endmacro
-.macro playPatSq2 patid, transpose, instrument
+.macro PENTLY_playPatSq2 patid, transpose, instrument
   .byt PENTLY_CON_PLAYPAT|1, patid, transpose, instrument
 .endmacro
-.macro playPatTri patid, transpose, instrument
+.macro PENTLY_playPatTri patid, transpose, instrument
   .byt PENTLY_CON_PLAYPAT|2, patid, transpose, instrument
 .endmacro
-.macro playPatNoise patid, transpose, instrument
+.macro PENTLY_playPatNoise patid, transpose, instrument
   .byt PENTLY_CON_PLAYPAT|3, patid, 0, 0
 .endmacro
-.macro playPatAttack patid, transpose, instrument
+.macro PENTLY_playPatAttack patid, transpose, instrument
   .byt PENTLY_CON_PLAYPAT|4, patid, transpose, instrument
 .endmacro
-.macro stopPatSq1
+.macro PENTLY_stopPatSq1
   .byt PENTLY_CON_PLAYPAT|0, 255, 0, 0
 .endmacro
-.macro stopPatSq2
+.macro PENTLY_stopPatSq2
   .byt PENTLY_CON_PLAYPAT|1, 255, 0, 0
 .endmacro
-.macro stopPatTri
+.macro PENTLY_stopPatTri
   .byt PENTLY_CON_PLAYPAT|2, 255, 0, 0
 .endmacro
-.macro stopPatNoise
+.macro PENTLY_stopPatNoise
   .byt PENTLY_CON_PLAYPAT|3, 255, 0, 0
 .endmacro
-.macro stopPatAttack
+.macro PENTLY_stopPatAttack
   .byt PENTLY_CON_PLAYPAT|4, 255, 0, 0
 .endmacro
-.macro waitRows n
+.macro PENTLY_waitRows n
   .byt PENTLY_CON_WAITROWS, (n)-1
 .endmacro
-.macro fine
+.macro PENTLY_fine
   .byt PENTLY_CON_FINE
 .endmacro
-.macro segno
+.macro PENTLY_segno
   .byt PENTLY_CON_SEGNO
 .endmacro
-.macro dalSegno
+.macro PENTLY_dalSegno
   .byt PENTLY_CON_DALSEGNO
 .endmacro
-.macro setTempo rowsPerMin
+.macro PENTLY_setTempo rowsPerMin
   .scope
   irpm = rowsPerMin
     .byt PENTLY_CON_SETTEMPO|>irpm, <irpm
   .endscope
 .endmacro
-.macro setBeatDuration durCode
+.macro PENTLY_setBeatDuration durCode
   .byt PENTLY_CON_SETBEAT|(durCode)
 .endmacro
-.macro attackOnSq1
+.macro PENTLY_attackOnSq1
   .byt PENTLY_CON_ATTACK_SQ1
 .endmacro
-.macro attackOnSq2
+.macro PENTLY_attackOnSq2
   .byt PENTLY_CON_ATTACK_SQ2
 .endmacro
-.macro attackOnTri
+.macro PENTLY_attackOnTri
   .byt PENTLY_CON_ATTACK_TRI
 .endmacro
-.macro noteOnSq1 notenum, instrument
+.macro PENTLY_noteOnSq1 notenum, instrument
   .byt PENTLY_CON_NOTEON|0, notenum, instrument
 .endmacro
-.macro noteOnSq2 notenum, instrument
+.macro PENTLY_noteOnSq2 notenum, instrument
   .byt PENTLY_CON_NOTEON|1, notenum, instrument
 .endmacro
-.macro noteOnTri notenum, instrument
+.macro PENTLY_noteOnTri notenum, instrument
   .byt PENTLY_CON_NOTEON|2, notenum, instrument
 .endmacro
-.macro noteOnNoise notenum, instrument
+.macro PENTLY_noteOnNoise notenum, instrument
   .byt PENTLY_CON_NOTEON|3, notenum, instrument
 .endmacro
 
@@ -271,7 +271,7 @@ PENTLY_D_2  = 5
 PENTLY_D_D2 = 6
 PENTLY_D_1  = 7
 
-; Enable shortcuts for prefixed data only on request
+; Deprefix if enabled ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .ifndef PENTLY_USE_PREFIXED_DATA
 PENTLY_USE_PREFIXED_DATA = 0
 .endif
@@ -346,7 +346,94 @@ FASTARP     = PENTLY_FASTARP
 SLOWARP     = PENTLY_SLOWARP
 PATEND      = PENTLY_PATEND
 
+.macro sfxdef name, baseaddr, length, period, channel
+  PENTLY_sfxdef name, baseaddr, length, period, channel
+.endmacro
+.macro sfxframe duty, volume, pitch
+  PENTLY_sfxframe duty, volume, pitch
+.endmacro
+.macro drumdef name, sfx1, sfx2
+  PENTLY_drumdef name, sfx1, sfx2
+.endmacro
+.macro instdef name, duty, volume, decayrate, earlycut, attackptr, attacklen
+  PENTLY_instdef name, duty, volume, decayrate, earlycut, attackptr, attacklen
+.endmacro
+.macro songdef name, conductor_addr
+  PENTLY_songdef name, conductor_addr
+.endmacro
+.macro patdef name, pattern_addr
+  PENTLY_patdef name, pattern_addr
+.endmacro
+.macro playPatSq1 patid, transpose, instrument
+  PENTLY_playPatSq1 patid, transpose, instrument
+.endmacro
+.macro playPatSq2 patid, transpose, instrument
+  PENTLY_playPatSq2 patid, transpose, instrument
+.endmacro
+.macro playPatTri patid, transpose, instrument
+  PENTLY_playPatTri patid, transpose, instrument
+.endmacro
+.macro playPatNoise patid, transpose, instrument
+  PENTLY_playPatNoise patid, transpose, instrument
+.endmacro
+.macro playPatAttack patid, transpose, instrument
+  PENTLY_playPatAttack patid, transpose, instrument
+.endmacro
+.macro stopPatSq1
+  PENTLY_stopPatSq1
+.endmacro
+.macro stopPatSq2
+  PENTLY_stopPatSq2
+.endmacro
+.macro stopPatTri
+  PENTLY_stopPatTri
+.endmacro
+.macro stopPatNoise
+  PENTLY_stopPatNoise
+.endmacro
+.macro stopPatAttack
+  PENTLY_stopPatAttack
+.endmacro
+.macro waitRows n
+  PENTLY_waitRows n
+.endmacro
+.macro fine
+  PENTLY_fine
+.endmacro
+.macro segno
+  PENTLY_segno
+.endmacro
+.macro dalSegno
+  PENTLY_dalSegno
+.endmacro
+.macro setTempo rowsPerMin
+  PENTLY_setTempo rowsPerMin
+.endmacro
+.macro setBeatDuration durCode
+  PENTLY_setBeatDuration durCode
+.endmacro
+.macro attackOnSq1
+  PENTLY_attackOnSq1
+.endmacro
+.macro attackOnSq2
+  PENTLY_attackOnSq2
+.endmacro
+.macro attackOnTri
+  PENTLY_attackOnTri
+.endmacro
+.macro noteOnSq1 notenum, instrument
+  PENTLY_noteOnSq1 notenum, instrument
+.endmacro
+.macro noteOnSq2 notenum, instrument
+  PENTLY_noteOnSq2 notenum, instrument
+.endmacro
+.macro noteOnTri notenum, instrument
+  PENTLY_noteOnTri notenum, instrument
+.endmacro
+.macro noteOnNoise notenum, instrument
+  PENTLY_noteOnNoise notenum, instrument
+.endmacro
 
-.endif
+.endif  ; End of deprefixed constants and macros
 
 .endif
