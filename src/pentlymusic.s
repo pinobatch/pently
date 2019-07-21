@@ -23,7 +23,6 @@
 
 .include "pentlyseq.inc"
 .include "pently.inc"
-.out "before pentlybss.inc"
 .include "../obj/nes/pentlybss.inc"
 
 .importzp pently_zp_state
@@ -99,8 +98,8 @@ pentlyi_chnPatternPos = pently_zp_state + 2
 
 .bss
 ; Statically allocated so as not to be cleared by the clear loop
-conductorSegnoLo        = pentlyBSS + 16
-conductorSegnoHi        = pentlyBSS + 17
+pentlyi_conductorSegnoLo        = pentlyBSS + 16
+pentlyi_conductorSegnoHi        = pentlyBSS + 17
 
 ; The rest is allocated by pentlybss.py
 ; Noise envelope is NOT unused.  Conductor track cymbals use it.
@@ -155,10 +154,10 @@ pentlymusic_code_start = *
   tax
   lda pently_songs,x
   sta pentlyi_conductorPos
-  sta conductorSegnoLo
+  sta pentlyi_conductorSegnoLo
   lda pently_songs+1,x
   sta pentlyi_conductorPos+1
-  sta conductorSegnoHi
+  sta pentlyi_conductorSegnoHi
 
   ; Clear all music state except that shared with sound effects
   ldy #pentlymusicbase_size - 1
@@ -400,14 +399,14 @@ doConductor:
    .endif
   is_segno:
     lda pentlyi_conductorPos
-    sta conductorSegnoLo
+    sta pentlyi_conductorSegnoLo
     lda pentlyi_conductorPos+1
-    sta conductorSegnoHi
+    sta pentlyi_conductorSegnoHi
     jmp segno_round
   is_dalsegno:
-    lda conductorSegnoLo
+    lda pentlyi_conductorSegnoLo
     sta pentlyi_conductorPos
-    lda conductorSegnoHi
+    lda pentlyi_conductorSegnoHi
     sta pentlyi_conductorPos+1
     .if ::PENTLY_USE_ROW_CALLBACK
       sec
