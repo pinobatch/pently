@@ -564,7 +564,7 @@ class PentlyRenderable(object):
             parent_scope = parent_scope[0]
         return scoped_name
 
-    def render(self, scopes=None):
+    def render(self, scopes=None, prefix=''):
         raise NotImplementedError
 
 class PentlyEnvelopeContainer(PentlyRenderable):
@@ -731,7 +731,7 @@ This is equivalent to an "absolute" arpeggio envelope in FamiTracker.
             
         return bytes(out)
 
-    def render(self, scopes=None):
+    def render(self, scopes=None, prefix=''):
         timbre, volume, pitch, attackdata = self.render_tvp()
 
         # Drop the final (sustain) frame and compress the rest
@@ -745,8 +745,8 @@ This is equivalent to an "absolute" arpeggio envelope in FamiTracker.
 
         asmname = self.get_asmname(self.name)
         self.asmname = 'PI_'+asmname
-        self.asmdef = ("instdef PI_%s, %d, %d, %d, %d, %s, %d"
-                       % (asmname, sustaintimbre, sustainvolume, decay,
+        self.asmdef = ("%sinstdef PI_%s, %d, %d, %d, %d, %s, %d"
+                       % (prefix, asmname, sustaintimbre, sustainvolume, decay,
                           detached, 'PIDAT_'+asmname if attackdata else '0',
                           len(volume) - 1))
         self.asmdataname = 'PIDAT_'+asmname
@@ -802,7 +802,7 @@ This is equivalent to a "fixed" arpeggio envelope in FamiTracker.
             return 0x80 if t else 0
         return t << 14
 
-    def render(self, scopes=None):
+    def render(self, scopes=None, prefix=''):
         timbre, volume, pitch, attackdata = self.render_tvp()
         rate = self.rate or 1
 
@@ -816,8 +816,8 @@ This is equivalent to a "fixed" arpeggio envelope in FamiTracker.
 
         asmname = self.get_asmname(self.name)
         self.asmname = 'PE_'+asmname
-        self.asmdef = ("sfxdef PE_%s, PEDAT_%s, %d, %d, %d"
-                       % (asmname, asmname,
+        self.asmdef = ("%ssfxdef PE_%s, PEDAT_%s, %d, %d, %d"
+                       % (prefix, asmname, asmname,
                           len(volume), rate, self.channel_type))
         self.asmdataname = 'PEDAT_'+asmname
         self.asmdataprefix = '.byte '
@@ -837,7 +837,7 @@ class PentlyDrum(PentlyRenderable):
             raise ValueError("drum name must begin and end with letter or '_'")
         self.sfxnames = sfxnames
 
-    def render(self, scopes=None):
+    def render(self, scopes=None, prefix=''):
         # TODO: For drums defined in a song, check for effects in same song
         sfxnames = ['PE_'+self.get_asmname(sfxname)
                     for sfxname in self.sfxnames]
@@ -847,7 +847,8 @@ class PentlyDrum(PentlyRenderable):
         if len(sfxnames) < 2:
             sfxnames.append("$80")
         self.asmname = 'DR_'+PentlyRenderable.get_asmname(self.name)
-        self.asmdef = "drumdef %s,%s" % (self.asmname, ",".join(sfxnames))
+        self.asmdef = ("%sdrumdef %s,%s"
+                       % (prefix, self.asmname, ",".join(sfxnames)))
         self.bytesize = 2
 
 class PentlySong(PentlyRenderable):
@@ -886,7 +887,7 @@ class PentlySong(PentlyRenderable):
             except KeyError:
                 raise ValueError("no duration code for %d beats per row"
                                  % beat_length)
-            self.conductor.append('setBeatDuration %s' % durcode)
+            self.conductor.append(('setBeatDuration', durcode))
             self.bytesize += 1
             self.last_beatlen = beat_length
             
@@ -1011,13 +1012,17 @@ class PentlySong(PentlyRenderable):
         return ("song %s began at %s line %d and was not ended with fine or dal segno"
                 % (self.name, file, line))
 
-    def render(self, scopes):
+    def render(self, scopes, prefix=''):
         out = ['; title: '+self.title]
         if self.author:
             out.append('; author: '+self.author)
         for row in self.conductor:
-            if isinstance(row, str):
-                out.append(row)
+            if isinstance(row, str):  # already-rendered items
+                out.append(prefix + row)
+                continue
+            if row[0] == 'setBeatDuration':
+                out.append("%ssetBeatDuration %s%s"
+                           % (prefix, prefix if row[1] != '0' else '', row[1]))
                 continue
             if row[0] == 'playPat':
                 track, patname, transpose, instrument = row[1:5]
@@ -1037,7 +1042,7 @@ class PentlySong(PentlyRenderable):
                     if pat.track != 'drum':
                         raise ValueError('cannot play pitched pattern %s on drum track'
                                          % (patname,))
-                    out.append("playPatNoise %s" % pat.asmname)
+                    out.append("%splayPatNoise %s" % (prefix, pat.asmname))
                     continue
                 if pat.track == 'drum' and lowestnote is not None:
                     raise ValueError('%s: cannot play drum pattern %s on pitched track'
@@ -1058,24 +1063,25 @@ class PentlySong(PentlyRenderable):
                 instrument = self.resolve_scope(instrument, self.name, scopes.instruments)
                 instrument = scopes.instruments[instrument].asmname
                 suffix = track_suffixes[track]
-                out.append("playPat%s %s, %d, %s"
-                           % (suffix, pat.asmname, transpose, instrument))
+                out.append("%splayPat%s %s, %d, %s"
+                           % (prefix, suffix, pat.asmname,
+                              transpose, instrument))
                 continue
             if row[0] == 'stopPat':
-                out.append('stopPat%s' % track_suffixes[row[1]])
+                out.append('%sstopPat%s' % (prefix, track_suffixes[row[1]]))
                 continue
             if row[0] == 'noteOn':
                 ch, pitch, instrument = row[1:4]
                 instrument = self.resolve_scope(instrument, self.name, scopes.instruments)
                 instrument = scopes.instruments[instrument].asmname
-                out.append('noteOn%s %d, %s'
-                           % (track_suffixes[ch], pitch, instrument))
+                out.append('%snoteOn%s %d, %s'
+                           % (prefix, track_suffixes[ch], pitch, instrument))
                 continue
             raise ValueError(row)
 
         asmname = PentlyRenderable.get_asmname(self.name)
         self.asmname = 'PS_'+asmname
-        self.asmdef = 'songdef PS_%s, PSDAT_%s' % (asmname, asmname)
+        self.asmdef = '%ssongdef PS_%s, PSDAT_%s' % (prefix, asmname, asmname)
         self.asmdataname = 'PSDAT_'+asmname
         self.asmdataprefix = ''
         self.asmdata = out
@@ -1450,7 +1456,7 @@ tie_rests -- True if track has no concept of a "note off"
             yield ormask
             numrows -= dur
 
-    def render(self, scopes):
+    def render(self, scopes, prefix=''):
         is_drum = self.track == 'drum'
 
         bytedata = []
@@ -1473,14 +1479,15 @@ tie_rests -- True if track has no concept of a "note off"
                 and transpose_pos < len(transpose_runs)
                 and i >= transpose_runs[transpose_pos][0]):
                 new_transpose = transpose_runs[transpose_pos][1]
-                bytedata.append("TRANSPOSE,<%d" % (new_transpose - cur_transpose))
+                bytedata.append("%sTRANSPOSE,<%d"
+                                % (prefix, new_transpose - cur_transpose))
                 cur_transpose = new_transpose
                 transpose_pos += 1
             if isinstance(note, str):
                 if note.startswith('@'):
                     instname = self.resolve_scope(note[1:], self.name, scopes.instruments)
                     note = 'INSTRUMENT,' + scopes.instruments[instname].asmname
-                bytedata.append(note)
+                bytedata.append(prefix+note)
                 continue
             if len(note) != 3:
                 self.warn("internal: bad element count in "+repr(note))
@@ -1501,25 +1508,32 @@ tie_rests -- True if track has no concept of a "note off"
 
             if numrows < 0:
                 # Grace note of -numrows frames
-                bytedata.append('GRACE,%d' % -numrows)
-                bytedata.append(pitchcode)
+                bytedata.append('%sGRACE,%d' % (prefix, -numrows))
+                bytedata.append(''.join((prefix, pitchcode)))
             else:
                 for durcode in self.numrows_to_durations(numrows):
-                    bytedata.append(pitchcode+durcode)
+                    # All pitches except drums get a PENTLY_ prefix
+                    if not pitchcode.startswith('DR'):
+                        pitchcode = prefix + pitchcode
+                    if prefix and durcode:
+                        durcode = ''.join(("|", prefix, durcode[1:]))
+                    bytedata.append(''.join((pitchcode, durcode)))
                     pitchcode = 'N_TIE'
 
             slur = bool(slur)
             if slur != last_slur:
                 last_slur = slur
-                bytedata.append("LEGATO_ON" if slur else "LEGATO_OFF")
+                bytedata.append("%sLEGATO_%s"
+                                % (prefix, "ON" if slur else "OFF"))
 
         # Transpose back to start at end of pattern
         if transpose_runs and cur_transpose != self.transpose:
-            bytedata.append("TRANSPOSE,<%d" % (self.transpose - cur_transpose))
-        if not self.fallthrough: bytedata.append('PATEND')
+            bytedata.append("%sTRANSPOSE,<%d"
+                            % (prefix, self.transpose - cur_transpose))
+        if not self.fallthrough: bytedata.append(prefix + 'PATEND')
 
         asmname = self.get_asmname(self.name)
-        self.asmdef = 'patdef PP_%s, PPDAT_%s' % (asmname, asmname)
+        self.asmdef = '%spatdef PP_%s, PPDAT_%s' % (prefix, asmname, asmname)
         self.asmname = 'PP_'+asmname
         self.asmdataname = 'PPDAT_'+asmname
         self.asmdataprefix = '.byte '
@@ -2237,7 +2251,7 @@ n bytes: ASCII encoded rehearsal mark names, separated by $0A,
     ])
     return lines, exports
 
-def render_file(parser, segment='RODATA', asm6=False):
+def render_file(parser, segment='RODATA', asm6=False, prefix=''):
     if len(parser.songs) == 0:
         raise IndexError("no songs defined")
 
@@ -2321,7 +2335,7 @@ def render_file(parser, segment='RODATA', asm6=False):
     for ptpidx, row in enumerate(parts_to_print):
         things, deflabel, _, is_bytes = row
         for thingkey, thing in things.items():
-            thing.render(scopes=parser)
+            thing.render(scopes=parser, prefix=prefix)
             if thing.asmdata and is_bytes:
                 subseq_pool_directory.append(thing.asmdataname)
                 subseq_pool_data.append(thing.asmdata)
@@ -2629,6 +2643,8 @@ def parse_argv(argv):
                         help='enable warning options')
     parser.add_argument("--asm6", action='store_true',
                         help='produce output for ASM6 (default: ca65)')
+    parser.add_argument("--prefixed", action='store_true',
+                        help='add PENTLY_ prefix to song data labels and macros')
 
     args = parser.parse_args(argv[1:])
     args.warn = set(args.warn or [])
@@ -2673,7 +2689,8 @@ def main(argv=None):
             if parser.cur_song:
                 parser.warn(parser.cur_song.get_unclosed_msg())
             lines.append('; Music from ' + display_filename)
-            l, e = render_file(parser, args.segment, args.asm6)
+            l, e = render_file(parser, args.segment, args.asm6,
+                               "PENTLY_" if args.prefixed else "")
             lines.extend(l)
             exports.extend(e)
             if args.rehearse:
