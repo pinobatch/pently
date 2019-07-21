@@ -77,7 +77,7 @@ asm6_prefix = """; Generated for ASM6
 pentlyBSS: dsb 18
 sfx_rate = pentlyBSS + 0
 sfx_ratecd = pentlyBSS + 1
-ch_lastfreqhi = pentlyBSS + 2
+pentlyi_ch_lastfreqhi = pentlyBSS + 2
 sfx_remainlen = pentlyBSS + 3
 conductorSegnoLo = pentlyBSS + 16
 conductorSegnoHi = pentlyBSS + 17
