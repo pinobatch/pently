@@ -49,6 +49,10 @@ PENTLY_USE_NSF2 = 0
 ; 0-127; higher means quieter tri/noise
 PENTLY_INITIAL_4011 = 32
 
+; Nonzero to suppress prefix-free pentlyseq.s.  This is useful in
+; ASM6 programs so as not to pollute the main program's namespace.
+PENTLY_USE_PREFIXED_DATA = 1
+
 ; Five bytes of scratch space on zero page that need not be preserved
 ; across calls
 pently_zptemp = $0000

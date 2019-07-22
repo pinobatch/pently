@@ -50,7 +50,7 @@ PENTLY_USE_NSF_SOUND_FX = 1
 PENTLY_USE_NSF2 = 1
 
 ; 0-127; higher means quieter tri/noise
-PENTLY_INITIAL_4011 = 64
+PENTLY_INITIAL_4011 = 32
 
 ; Nonzero to suppress prefix-free pentlyseq.s.  This is useful in
 ; ASM6 programs so as not to pollute the main program's namespace.

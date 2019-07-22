@@ -199,7 +199,18 @@ def translate(filestoload):
                 dfnparts = words[1].split(None, 1)
                 word0 = dfnparts[0]
                 words = [word0, "equ %s" % (dfnparts[1])]
+                continue
+            if word0 == 'ifndef':
+                if words[1].startswith('PENTLY_USE_'):
+                    print("warning: PENTLY_USE default in",
+                          line, file=sys.stderr)
+                else:
+                    print("warning: ifndef in", line, file=sys.stderr)
+                seg_lines[cur_seg].append('if 0  ; was ifndef')
+                continue
             elif word0 in directive_translation:
+                if word0 in ('ifdef', 'ifndef'):
+                    print("warning: ifdef in", line, file=sys.stderr)
                 words[0] = directive_translation[word0]
                 word0 = words[0]
             else:
