@@ -22,7 +22,7 @@
 
 .include "pently.inc"
 .if PENTLY_USE_MUSIC
-  .import pently_update_music, pently_update_music_ch
+  .import pentlyi_update_music, pentlyi_update_music_ch
 .endif
 .import periodTableLo, periodTableHi, pently_sfx_table
 .if PENTLY_USE_PAL_ADJUST
@@ -177,12 +177,12 @@ sndrate   = pently_zptemp + 4
 ;
 .proc pently_update
   .if ::PENTLY_USE_MUSIC
-    jsr pently_update_music
+    jsr pentlyi_update_music
   .endif
   ldx #PENTLY_NOISE_CH
 loop:
   .if ::PENTLY_USE_MUSIC
-    jsr pently_update_music_ch
+    jsr pentlyi_update_music_ch
   .endif
   jsr pentlyi_mix_sfx
   dex
@@ -192,7 +192,7 @@ loop:
   bpl loop
   .if ::PENTLY_USE_ATTACK_TRACK
     ldx #PENTLY_ATTACK_TRACK
-    jmp pently_update_music_ch
+    jmp pentlyi_update_music_ch
   .else
     rts
   .endif
