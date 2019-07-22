@@ -33,8 +33,6 @@
 
 .assert (pently_zptemp + 5) <= $100, error, "pently_zptemp must be within zero page"
 
-SNDCHN = $4015
-
 PENTLY_PULSE1_CH = $00
 PENTLY_PULSE2_CH = $04
 PENTLY_TRI_CH = $08
@@ -72,6 +70,8 @@ pentlysound_code_start = *
 ; entering a long stretch of code where you don't call pently_update.
 ;
 .proc pently_init
+SNDCHN = $4015
+
   ; Turn on all channels
   lda #$0F
   sta SNDCHN
@@ -184,7 +184,7 @@ loop:
   .if ::PENTLY_USE_MUSIC
     jsr pently_update_music_ch
   .endif
-  jsr pently_update_one_ch
+  jsr pentlyi_mix_sfx
   dex
   dex
   dex
@@ -202,7 +202,7 @@ pentlyi_out_volume   = pently_zptemp + 2
 pentlyi_out_pitch    = pently_zptemp + 3
 pentlyi_out_pitchadd = pently_zptemp + 4
 
-.proc pently_update_one_ch
+.proc pentlyi_mix_sfx
 srclo        = pently_zptemp + 0
 srchi        = pently_zptemp + 1
 
@@ -217,7 +217,7 @@ srchi        = pently_zptemp + 1
       .if ::PENTLY_USE_VIS
         sta pently_vis_dutyvol,x
       .endif
-      bne update_channel_hw
+      bne pentlyi_write_psg_chn
     .endif
 
     ; Turn off the channel and force a reinit of the length counter.
@@ -266,7 +266,7 @@ srchi        = pently_zptemp + 1
       cmp pentlyi_out_volume
       pla
       sta pentlyi_out_volume
-      bcc update_channel_hw
+      bcc pentlyi_write_psg_chn
     .endif
     .if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
       sty pentlyi_out_pitchadd  ; sfx don't support fine pitch adjustment
@@ -281,10 +281,10 @@ srchi        = pently_zptemp + 1
   iny
   lda (srclo),y
   sta pentlyi_out_pitch
-  ; jmp update_channel_hw
+  ; jmp pentlyi_write_psg_chn
 .endproc
 
-.proc update_channel_hw
+.proc pentlyi_write_psg_chn
   ; XXX vis does not work with no-music
   .if ::PENTLY_USE_VIS
     lda pentlyi_out_pitch
@@ -306,12 +306,12 @@ srchi        = pently_zptemp + 1
   ; If triangle, keep linear counter load (bit 7) on while playing
   ; so that envelopes don't terminate prematurely
   .if ::PENTLY_USE_TRIANGLE_DUTY_FIX
-    cpx #8
-    bne :+
+    cpx #PENTLY_TRI_CH
+    bne nottri
     and #$0F
-    beq :+
+    beq nottri
       ora #$80  ; for triangle keep bit 7 (linear counter load) on
-    :
+    nottri:
   .endif
 
   sta $4000,x
@@ -320,9 +320,9 @@ srchi        = pently_zptemp + 1
     ; Correct pitch for PAL NES only, not NTSC (0) or PAL famiclone (2)
     lda tvSystem
     lsr a
-    bcc :+
+    bcc notpalnes
       iny
-  :
+    notpalnes:
   .endif
 
   lda periodTableLo,y
@@ -332,9 +332,9 @@ srchi        = pently_zptemp + 1
     sta $4002,x
     lda pentlyi_out_pitchadd
     and #$80
-    bpl :+
+    bpl pitchadd_positive
       lda #$FF
-    :
+    pitchadd_positive:
     adc periodTableHi,y
   .else
     sta $4002,x
