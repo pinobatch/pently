@@ -107,12 +107,12 @@ pentlymusicbase: .res pentlymusicbase_size
 
 ; Visualize particular notes within a playing score
 .if PENTLY_USE_ARPEGGIO || PENTLY_USE_ATTACK_TRACK
-  pently_vis_arpphase = arpPhase
+  pently_vis_arpphase = pentlyi_arpPhase
 .endif
 .if PENTLY_USE_PORTAMENTO
-  pently_vis_note = notePitch
+  pently_vis_note = pentlyi_notePitch
 .else
-  pently_vis_note = chPitchHi
+  pently_vis_note = pentlyi_chPitchHi
 .endif
 
 .segment PENTLY_RODATA
@@ -180,14 +180,14 @@ pentlymusic_code_start = *
     lda #>pentlyi_silent_pattern
     sta pentlyi_chnPatternPos+1,x
     tya  ; Y is $FF from the clear everything loop
-    sta musicPattern,x
+    sta pentlyi_musicPattern,x
     .if ::PENTLY_USE_CHANNEL_VOLUME
       .if ::PENTLY_USE_ATTACK_TRACK
         cpx #PENTLY_ATTACK_TRACK
         bcs :+
       .endif
         lda #PENTLY_MAX_CHANNEL_VOLUME
-        sta channelVolume,x
+        sta pentlyi_chVolScale,x
       :
     .endif
     dex
@@ -207,9 +207,9 @@ pentlymusic_code_start = *
     sta pently_rows_per_beat
   .endif
   lda #<PENTLY_INITIAL_TEMPO
-  sta music_tempoLo
+  sta pentlyi_tempoLo
   lda #>PENTLY_INITIAL_TEMPO
-  sta music_tempoHi
+  sta pentlyi_tempoHi
   ; Fall through
 .endproc
 .proc pently_resume_music
@@ -236,9 +236,9 @@ pentlymusic_code_start = *
   .if ::PENTLY_USE_REHEARSAL
 scaled_tempoHi  = pently_zptemp + 0
 
-    lda music_tempoHi
+    lda pentlyi_tempoHi
     sta scaled_tempoHi
-    lda music_tempoLo
+    lda pentlyi_tempoLo
     ldx pently_tempo_scale
     clc  ; allow have_scaled_tempoLo to round
     beq have_scaled_tempoLo
@@ -254,11 +254,11 @@ scaled_tempoHi  = pently_zptemp + 0
     sta pently_tempoCounterLo
     lda scaled_tempoHi
   .else
-    lda music_tempoLo
+    lda pentlyi_tempoLo
     clc
     adc pently_tempoCounterLo
     sta pently_tempoCounterLo
-    lda music_tempoHi
+    lda pentlyi_tempoHi
   .endif
   adc pently_tempoCounterHi
   sta pently_tempoCounterHi
@@ -309,9 +309,9 @@ music_not_playing:
 .endif
 
   ; If in middle of waitRows, don't process conductor
-  lda conductorWaitRows
+  lda pentlyi_songWaitRows
   beq doConductor
-  dec conductorWaitRows
+  dec pentlyi_songWaitRows
   jmp pentlyi_read_patterns
 
 doConductor:
@@ -349,17 +349,17 @@ doConductor:
     .else
       bcs skip3conductor
     .endif
-      sta noteLegato,x  ; start all patterns with legato off
+      sta pentlyi_noteLegato,x  ; start all patterns with legato off
     skipClearLegato:
 
     lda (pentlyi_conductorPos),y
-    sta musicPattern,x
+    sta pentlyi_musicPattern,x
     iny
     lda (pentlyi_conductorPos),y
-    sta patternTranspose,x
+    sta pentlyi_chBaseNote,x
     iny
     lda (pentlyi_conductorPos),y
-    sta noteInstrument,x
+    sta pentlyi_instrument,x
     jsr pentlyi_start_pattern
   skip3conductor:
     lda #3
@@ -374,7 +374,7 @@ doConductor:
   is_waitrows:
     ; 20 ww: Wait ww+1 rows
     lda (pentlyi_conductorPos),y
-    sta conductorWaitRows
+    sta pentlyi_songWaitRows
     inc pentlyi_conductorPos
     bne :+
       inc pentlyi_conductorPos+1
@@ -391,8 +391,8 @@ doConductor:
     ; 21: Fine (end playback; set playing and tempo to 0)
     lda #0
     sta pently_music_playing
-    sta music_tempoHi
-    sta music_tempoLo
+    sta pentlyi_tempoHi
+    sta pentlyi_tempoLo
     .if ::PENTLY_USE_ROW_CALLBACK
       clc
       jmp pently_dalsegno_callback
@@ -460,9 +460,9 @@ doConductor:
   bcs not_tempo_change
     ; 30-37 tt: Set tempo to (A & $07) * 256 + tt
     and #%00000111
-    sta music_tempoHi
+    sta pentlyi_tempoHi
     lda (pentlyi_conductorPos),y
-    sta music_tempoLo
+    sta pentlyi_tempoLo
   skipConductorByte:
     inc pentlyi_conductorPos
     bne :+
@@ -508,10 +508,10 @@ doConductor:
   .endif
 .endproc
 .proc pentlyi_read_pattern
-  lda noteRowsLeft,x
+  lda pentlyi_noteRowsLeft,x
   beq anotherPatternByte
 skipNote:
-  dec noteRowsLeft,x
+  dec pentlyi_noteRowsLeft,x
   rts
 
 anotherPatternByte:
@@ -547,7 +547,7 @@ isNoteCmd:
   and #$07
   tay
   lda pentlyi_durations,y
-  sta noteRowsLeft,x
+  sta pentlyi_noteRowsLeft,x
   pla
   .if ::PENTLY_USE_VARMIX
     ldy pently_mute_track,x
@@ -566,9 +566,9 @@ isNoteCmd:
       bcs notKeyOff
     .endif
     .if ::PENTLY_USE_ATTACK_PHASE
-      sta attack_remainlen,x
+      sta pentlyi_attackLen,x
     .endif
-    sta noteEnvVol,x
+    sta pentlyi_sustainVol,x
   notKeyOff:
   jmp skipNote
 
@@ -576,8 +576,8 @@ isNoteCmd:
     cpx #PENTLY_DRUM_TRACK
     beq isDrumNote
     clc
-    adc patternTranspose,x
-    ldy noteInstrument,x
+    adc pentlyi_chBaseNote,x
+    ldy pentlyi_instrument,x
     jsr pently_play_note
     jmp skipNote
 
@@ -622,7 +622,7 @@ num_patcmdhandlers = (* - patcmdhandlers) / 2
 
 set_fx_instrument:
   lda (pentlyi_chnPatternPos,x)
-  sta noteInstrument,x
+  sta pentlyi_instrument,x
 nextPatternByte:
   inc pentlyi_chnPatternPos,x
   bne :+
@@ -639,26 +639,26 @@ set_fx_arpeggio:
     lsr a
     lsr a
     lsr a
-    sta arpInterval1,x
+    sta pentlyi_arpInterval1,x
     lda (pentlyi_chnPatternPos,x)
     and #$0F
-    sta arpInterval2,x
+    sta pentlyi_arpInterval2,x
   :
   jmp nextPatternByte
 set_fx_fastarp:
   cpx #PENTLY_DRUM_TRACK
   bcs :+
     lda #%10111111
-    and arpPhase,x
-    sta arpPhase,x
+    and pentlyi_arpPhase,x
+    sta pentlyi_arpPhase,x
   :
   jmp anotherPatternByte
 set_fx_slowarp:
   cpx #PENTLY_DRUM_TRACK
   bcs :+
     lda #%01000000
-    ora arpPhase,x
-    sta arpPhase,x
+    ora pentlyi_arpPhase,x
+    sta pentlyi_arpPhase,x
   :
   jmp anotherPatternByte
 .else
@@ -672,7 +672,7 @@ set_fx_legato:
   bcs :+
     tya
     and #$02
-    sta noteLegato,x
+    sta pentlyi_noteLegato,x
   :
   jmp anotherPatternByte
 
@@ -686,13 +686,13 @@ set_fx_grace:
   ; 3: will read this row's pattern 2 frames from now
   clc
   adc #1
-  sta graceTime,x
+  sta pentlyi_graceTime,x
   jmp nextPatternByte
 
 set_fx_transpose:
-  lda patternTranspose,x
+  lda pentlyi_chBaseNote,x
   adc (pentlyi_chnPatternPos,x)
-  sta patternTranspose,x
+  sta pentlyi_chBaseNote,x
   jmp nextPatternByte
 
 .if ::PENTLY_USE_VIBRATO
@@ -701,7 +701,7 @@ set_fx_vibrato:
   bcs :+
     lda (pentlyi_chnPatternPos,x)
     and #$07
-    sta vibratoDepth,x
+    sta pentlyi_vibratoDepth,x
   :
   jmp nextPatternByte
 .else
@@ -713,7 +713,7 @@ set_fx_portamento:
   cpx #PENTLY_DRUM_TRACK
   bcs :+
     lda (pentlyi_chnPatternPos,x)
-    sta chPortamento,x
+    sta pentlyi_chPortamento,x
   :
   jmp nextPatternByte
 .else
@@ -730,7 +730,7 @@ set_fx_ch_volume:
     bcs :+
   .endif
     lda (pentlyi_chnPatternPos,x)
-    sta channelVolume,x
+    sta pentlyi_chVolScale,x
   :
   jmp nextPatternByte
 .else
@@ -741,9 +741,9 @@ set_fx_ch_volume:
 
 .proc pentlyi_start_pattern
   lda #0
-  sta graceTime,x
-  sta noteRowsLeft,x
-  lda musicPattern,x
+  sta pentlyi_graceTime,x
+  sta pentlyi_noteRowsLeft,x
+  lda pentlyi_musicPattern,x
   cmp #255
   bcc @notSilentPattern
     lda #<pentlyi_silent_pattern
@@ -778,10 +778,10 @@ set_fx_ch_volume:
   ; Fake out grace processing
   ldx #PENTLY_LAST_TRACK
   graceloop:
-    lda graceTime,x
+    lda pentlyi_graceTime,x
     beq noGraceThisCh
       lda #0
-      sta graceTime,x
+      sta pentlyi_graceTime,x
       jsr pentlyi_read_pattern
       jmp graceloop
     noGraceThisCh:
@@ -809,7 +809,7 @@ set_fx_ch_volume:
   ; When seeking, kill cymbals because they tend to leave an
   ; envelope hanging
   lda #0
-  sta noteEnvVol+PENTLY_DRUM_TRACK
+  sta pentlyi_sustainVol+PENTLY_DRUM_TRACK
   rts
 .endproc
 .endif
@@ -838,46 +838,46 @@ instrument_id = pently_zptemp + 1
 .if ::PENTLY_USE_ATTACK_TRACK
   cpx #PENTLY_ATTACK_TRACK
   bcs skipSustainPart
-    lda arpPhase,x  ; bit 7 set if attack is injected
+    lda pentlyi_arpPhase,x  ; bit 7 set if attack is injected
     bmi dont_legato_injected_attack
       lda notenum
-      sta attackPitch,x
+      sta pentlyi_attackPitch,x
 .endif
     dont_legato_injected_attack:
     lda notenum
 .if ::PENTLY_USE_PORTAMENTO
     cpx #PENTLY_DRUM_TRACK
     bcs bypass_notePitch
-      sta notePitch,x
+      sta pentlyi_notePitch,x
       bcc pitch_is_stored
     bypass_notePitch:
 .endif
-      sta chPitchHi,x
+      sta pentlyi_chPitchHi,x
     pitch_is_stored:
-    lda noteLegato,x
+    lda pentlyi_noteLegato,x
     bne skipAttackPart
     lda instrument_id
-    sta noteInstrument,x
+    sta pentlyi_instrument,x
     lda pently_instruments,y
     asl a
     asl a
     asl a
     asl a
     ora #$0C
-    sta noteEnvVol,x
+    sta pentlyi_sustainVol,x
     cpx #PENTLY_DRUM_TRACK
     bcs skipSustainPart
       .if ::PENTLY_USE_ARPEGGIO
         lda #%01000000
-        and arpPhase,x
-        sta arpPhase,x  ; keep only bit 6: is arp fast
+        and pentlyi_arpPhase,x
+        sta pentlyi_arpPhase,x  ; keep only bit 6: is arp fast
       .elseif ::PENTLY_USE_ATTACK_TRACK
         lda #0
-        sta arpPhase,x
+        sta pentlyi_arpPhase,x
       .endif
       .if ::PENTLY_USE_VIBRATO
         lda #PENTLY_VIBRATO_PERIOD + PENTLY_PREVIBRATO_PERIOD
-        sta vibratoPhase,x
+        sta pentlyi_vibratoPhase,x
       .endif
   skipSustainPart:
 
@@ -891,11 +891,11 @@ instrument_id = pently_zptemp + 1
       bcc notAttackTrack
         ldx pentlyi_attackChn
         lda #$80  ; Disable arpeggio, vibrato, and legato until sustain
-        ora arpPhase,x
-        sta arpPhase,x
+        ora pentlyi_arpPhase,x
+        sta pentlyi_arpPhase,x
       notAttackTrack:
       lda notenum
-      sta attackPitch,x
+      sta pentlyi_attackPitch,x
     .endif
     
     lda pently_instruments+4,y
@@ -904,7 +904,7 @@ instrument_id = pently_zptemp + 1
     sta pentlyi_noteAttackPos,x
     lda pently_instruments+2,y
     and #$7F
-    sta attack_remainlen,x
+    sta pentlyi_attackLen,x
     pla
     tax
 .endif
@@ -936,9 +936,9 @@ out_pitchadd = pently_zptemp + 4
     jmp pentlyi_set_ch_silent
   :
 
-  lda graceTime,x
+  lda pentlyi_graceTime,x
   beq nograce
-  dec graceTime,x
+  dec pentlyi_graceTime,x
   bne nograce
     jsr pentlyi_read_pattern
   nograce:
@@ -962,9 +962,9 @@ out_pitchadd = pently_zptemp + 4
 
 .if ::PENTLY_USE_ATTACK_PHASE
   ; Handle attack phase of envelope
-  lda attack_remainlen,x
+  lda pentlyi_attackLen,x
   beq pentlyi_calc_sustain
-  dec attack_remainlen,x
+  dec pentlyi_attackLen,x
   lda (pentlyi_noteAttackPos,x)
   inc pentlyi_noteAttackPos,x
   bne :+
@@ -976,19 +976,19 @@ out_pitchadd = pently_zptemp + 4
     sta out_volume
   .endif
 
-  ldy chPitchHi,x
+  ldy pentlyi_chPitchHi,x
   .if ::PENTLY_USE_PORTAMENTO
     ; Use portamento pitch if not injected
     cpx #PENTLY_DRUM_TRACK
     bcs attack_not_pitched_ch
       .if ::PENTLY_USE_ATTACK_TRACK
-        lda arpPhase,x
+        lda pentlyi_arpPhase,x
         bpl porta_not_injected
       .endif
     attack_not_pitched_ch:
   .endif
   .if ::PENTLY_USE_ATTACK_TRACK
-    ldy attackPitch,x
+    ldy pentlyi_attackPitch,x
   .endif
 porta_not_injected:
 
@@ -1010,7 +1010,7 @@ porta_not_injected:
   ; need to be applied to the same-track note, not injected attacks.
   sta out_pitch
   .if ::PENTLY_USE_ATTACK_TRACK
-    ldy arpPhase,x
+    ldy pentlyi_arpPhase,x
     bpl not_injected
       .if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
         lda #0
@@ -1027,7 +1027,7 @@ porta_not_injected:
 .endproc
 
 .proc pentlyi_calc_sustain
-  lda noteEnvVol,x
+  lda pentlyi_sustainVol,x
   lsr a
   lsr a
   lsr a
@@ -1038,27 +1038,27 @@ porta_not_injected:
   .else
     sta out_volume
   .endif
-  lda noteInstrument,x
+  lda pentlyi_instrument,x
   asl a
   asl a
-  adc noteInstrument,x
+  adc pentlyi_instrument,x
   tay
   lda out_volume
   eor pently_instruments,y
   and #$F0  ; keep instrument bits 7-4 and volume bits 3-0
   eor out_volume
   sta out_volume
-  lda noteEnvVol,x
+  lda pentlyi_sustainVol,x
   sec
   sbc pently_instruments+1,y
   bcc pentlyi_set_ch_silent
-  sta noteEnvVol,x
+  sta pentlyi_sustainVol,x
 
   ; Detached (instrument attribute 2 bit 7):
   ; Cut note when half a row remains
   lda pently_instruments+2,y
   bpl notCutNote
-  lda noteRowsLeft,x
+  lda pentlyi_noteRowsLeft,x
   bne notCutNote
 
   clc
@@ -1078,18 +1078,18 @@ porta_not_injected:
   and #$F8
   cmp #PENTLY_N_TIE
   beq notCutNote
-  lda noteLegato,x
+  lda pentlyi_noteLegato,x
   beq pentlyi_set_ch_silent
   notCutNote:
 
-  lda chPitchHi,x
+  lda pentlyi_chPitchHi,x
   sta out_pitch
   jmp pentlyi_calc_pitch_effects
 .endproc
 
 .proc pentlyi_set_ch_silent
   lda #0
-  sta noteEnvVol,x
+  sta pentlyi_sustainVol,x
   sta out_volume
   rts
 .endproc
@@ -1108,10 +1108,10 @@ porta_not_injected:
     ; 2-1: phase
     ; 0: phase low bit
     lda #$3F
-    cmp arpPhase,x
+    cmp pentlyi_arpPhase,x
     lda #0
     rol a  ; A = 0 for slow arp or 1 for fast arp
-    ora arpPhase,x
+    ora pentlyi_arpPhase,x
     and #$07  ; A[2:1]: arp phase; A[0]: need to increase
     tay
     and #$06
@@ -1120,11 +1120,11 @@ porta_not_injected:
     ; So we're in a nonzero phase.  Load the interval.
     and #$04  ; A=0 for phase 1, 4 for phase 2
     beq :+
-      lda #arpInterval2-arpInterval1
+      lda #pentlyi_arpInterval2-pentlyi_arpInterval1
     :
     adc xsave
     tax
-    lda arpInterval1,x
+    lda pentlyi_arpInterval1,x
 
     ; If phase 2's interval is 0, cycle through two phases (2, 4)
     ; or four (2-5) instead of three (0, 1, 2) or six (0-5).
@@ -1147,14 +1147,14 @@ porta_not_injected:
     tya
 
     ; Combine new arp phase and lack of injection with old arp rate
-    eor arpPhase,x
+    eor pentlyi_arpPhase,x
     and #%10000111
-    eor arpPhase,x
-    sta arpPhase,x
+    eor pentlyi_arpPhase,x
+    sta pentlyi_arpPhase,x
   .elseif ::PENTLY_USE_ATTACK_TRACK
     ; If arpeggio support is off, just clear the attack injection flag
     lda #0
-    sta arpPhase,x
+    sta pentlyi_arpPhase,x
   .endif
 
   .if ::PENTLY_USE_VIBRATO || ::PENTLY_USE_PORTAMENTO
@@ -1171,34 +1171,34 @@ porta_not_injected:
 ; Assumes NOT an injected attack.
 .proc pentlyi_calc_vibrato
   .if ::PENTLY_USE_PORTAMENTO
-    lda chPitchLo,x
+    lda pentlyi_chPitchLo,x
   .else
     lda #0
   .endif
 
   sta out_pitchadd
-  ora vibratoDepth,x  ; Skip calculation if depth is 0
+  ora pentlyi_vibratoDepth,x  ; Skip calculation if depth is 0
   beq not_vibrato_rts
   .if ::PENTLY_USE_PORTAMENTO
-    lda vibratoDepth,x
+    lda pentlyi_vibratoDepth,x
     beq have_instantaneous_amplitude
   .endif
 
   ; Clock vibrato
-  ldy vibratoPhase,x
+  ldy pentlyi_vibratoPhase,x
   bne :+
     ldy #PENTLY_VIBRATO_PERIOD
   :
   dey
   tya
-  sta vibratoPhase,x
+  sta pentlyi_vibratoPhase,x
   cpy #PENTLY_VIBRATO_PERIOD-1
   bcs not_vibrato
 
   lda pentlyi_vibrato_pattern,y
   cmp #$80              ; carry set if decrease
   php
-  ldy vibratoDepth,x
+  ldy pentlyi_vibratoDepth,x
   and #$0F
   vibratodepthloop:
     asl a
@@ -1213,7 +1213,7 @@ porta_not_injected:
 
   .if ::PENTLY_USE_PORTAMENTO
     clc
-    adc chPitchLo,x
+    adc pentlyi_chPitchLo,x
     bcc :+
       inc out_pitch
     :
@@ -1245,7 +1245,7 @@ not_vibrato = not_vibrato_rts
 .elseif ::PENTLY_USE_PORTAMENTO
 
 .proc pentlyi_calc_vibrato
-  lda chPitchLo,x
+  lda pentlyi_chPitchLo,x
   .if ::PENTLY_USE_VIS
     sta pently_vis_pitchlo,x
   .endif
@@ -1269,7 +1269,7 @@ not_vibrato = not_vibrato_rts
 ; @param A bits 7-6: duty; bits 0-3: volume
 .proc pentlyi_scale_volume
 
-  ldy channelVolume,x
+  ldy pentlyi_chVolScale,x
   bne chvol_nonzero
     and #$F0
     sta out_volume
@@ -1355,11 +1355,11 @@ loop:
 portaRateLo = pently_zptemp+0
 portaRateHi = pently_zptemp+1
 
-  lda chPortamento,x
+  lda pentlyi_chPortamento,x
   bne not_instant  ; $00: portamento disabled
-    sta chPitchLo,x
-    lda notePitch,x
-    sta chPitchHi,x
+    sta pentlyi_chPitchLo,x
+    lda pentlyi_notePitch,x
+    sta pentlyi_chPitchHi,x
     rts
   not_instant:
 
@@ -1393,10 +1393,10 @@ num_portamentocalc_funcs = (* - portamentocalc_funcs) / 2
 calc_tb303:
   ; Calculate the displacement to the final pitch
   sec
-  lda chPitchLo,x
+  lda pentlyi_chPitchLo,x
   sta portaRateLo
-  lda chPitchHi,x
-  sbc notePitch,x
+  lda pentlyi_chPitchHi,x
+  sbc pentlyi_notePitch,x
   sta portaRateHi
 
   ; Take its absolute value before scaling
@@ -1410,7 +1410,7 @@ calc_tb303:
   tb303_alreadyPositive:
 
   ; Scale based on approach time constant setting
-  lda chPortamento,x
+  lda pentlyi_chPortamento,x
   and #$0F
   tay
   lda portaRateLo
@@ -1435,42 +1435,42 @@ calc_tb303:
 calc_whole_semitone:
 ;  ldy #0  ; Y is 0, 2, or 4 at entry, and for this routine it's 0
   sty portaRateLo
-  lda chPortamento,x
+  lda pentlyi_chPortamento,x
   sta portaRateHi
   jmp portamento_add
 
 calc_fraction:
-  ldy chPortamento,x
+  ldy pentlyi_chPortamento,x
   lda pentlyi_porta1x_rates_lo-$10,y
   sta portaRateLo
   lda pentlyi_porta1x_rates_hi-$10,y
   sta portaRateHi
 portamento_add:
-  lda chPitchHi,x
-  cmp notePitch,x
+  lda pentlyi_chPitchHi,x
+  cmp pentlyi_notePitch,x
   bcs is_decrease
-  lda chPitchLo,x
+  lda pentlyi_chPitchLo,x
   adc portaRateLo
-  sta chPitchLo,x
-  lda chPitchHi,x
+  sta pentlyi_chPitchLo,x
+  lda pentlyi_chPitchHi,x
   adc portaRateHi
-  cmp notePitch,x
+  cmp pentlyi_notePitch,x
   bcc have_pitchHi
   at_target:
     lda #0
-    sta chPitchLo,x
-    lda notePitch,x
+    sta pentlyi_chPitchLo,x
+    lda pentlyi_notePitch,x
   have_pitchHi:
-  sta chPitchHi,x
+  sta pentlyi_chPitchHi,x
   rts
 
 is_decrease:
-  lda chPitchLo,x
+  lda pentlyi_chPitchLo,x
   sbc portaRateLo
-  sta chPitchLo,x
-  lda chPitchHi,x
+  sta pentlyi_chPitchLo,x
+  lda pentlyi_chPitchHi,x
   sbc portaRateHi
-  cmp notePitch,x
+  cmp pentlyi_notePitch,x
   bcs have_pitchHi
   bcc at_target
 .endproc
@@ -1483,10 +1483,10 @@ is_decrease:
 ; zero or one whole tick.
 .proc pentlyi_round_to_beat
   ; Calculate half a tick's worth of musical time
-  lda music_tempoHi
+  lda pentlyi_tempoHi
   lsr a
   tax
-  lda music_tempoLo
+  lda pentlyi_tempoLo
   ror a
   ; XXAA = half tick length
 
@@ -1512,8 +1512,8 @@ is_decrease:
   ldy #0
   tya
   bcs :+
-    lda music_tempoLo
-    ldy music_tempoHi
+    lda pentlyi_tempoLo
+    ldy pentlyi_tempoHi
     sec
   :
   sbc pently_fpmLo,x

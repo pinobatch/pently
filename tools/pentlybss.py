@@ -23,34 +23,34 @@ num_cols = 4  # spacing between channels' length counters
 
 specs = """
 # Pitch
-chPitchHi            PER_CHANNEL
+pentlyi_chPitchHi    PER_CHANNEL
 
 # Pitch effects
-arpPhase             PER_CHANNEL         ARPEGGIO|ATTACK_TRACK
-arpInterval1         PER_PITCHED_CHANNEL ARPEGGIO
-arpInterval2         PER_PITCHED_CHANNEL ARPEGGIO
-vibratoDepth         PER_PITCHED_CHANNEL VIBRATO
-vibratoPhase         PER_PITCHED_CHANNEL VIBRATO
-notePitch            PER_PITCHED_CHANNEL PORTAMENTO
-chPitchLo            PER_PITCHED_CHANNEL PORTAMENTO
-chPortamento         PER_PITCHED_CHANNEL PORTAMENTO
+pentlyi_arpPhase     PER_CHANNEL         ARPEGGIO|ATTACK_TRACK
+pentlyi_arpInterval1 PER_PITCHED_CHANNEL ARPEGGIO
+pentlyi_arpInterval2 PER_PITCHED_CHANNEL ARPEGGIO
+pentlyi_vibratoDepth PER_PITCHED_CHANNEL VIBRATO
+pentlyi_vibratoPhase PER_PITCHED_CHANNEL VIBRATO
+pentlyi_notePitch    PER_PITCHED_CHANNEL PORTAMENTO
+pentlyi_chPitchLo    PER_PITCHED_CHANNEL PORTAMENTO
+pentlyi_chPortamento PER_PITCHED_CHANNEL PORTAMENTO
 
 # Envelope
-attack_remainlen     PER_CHANNEL         ATTACK_PHASE
-attackPitch          PER_CHANNEL         ATTACK_TRACK
-noteEnvVol           PER_CHANNEL
-noteLegato           PER_CHANNEL
-channelVolume        PER_CHANNEL         CHANNEL_VOLUME
+pentlyi_attackLen    PER_CHANNEL         ATTACK_PHASE
+pentlyi_attackPitch  PER_CHANNEL         ATTACK_TRACK
+pentlyi_sustainVol   PER_CHANNEL
+pentlyi_noteLegato   PER_CHANNEL
+pentlyi_chVolScale   PER_CHANNEL         CHANNEL_VOLUME
 
 # Pattern reading
-noteRowsLeft         PER_TRACK
-graceTime            PER_TRACK
-noteInstrument       PER_TRACK
-musicPattern         PER_TRACK
-patternTranspose     PER_TRACK
-music_tempoLo        SINGLETON
-music_tempoHi        SINGLETON
-conductorWaitRows    SINGLETON
+pentlyi_noteRowsLeft PER_TRACK
+pentlyi_graceTime    PER_TRACK
+pentlyi_instrument   PER_TRACK
+pentlyi_musicPattern PER_TRACK
+pentlyi_chBaseNote   PER_TRACK
+pentlyi_tempoLo      SINGLETON
+pentlyi_tempoHi      SINGLETON
+pentlyi_songWaitRows SINGLETON
 pently_rows_per_beat SINGLETON           BPMMATH
 pently_row_beat_part SINGLETON           BPMMATH
 pently_mute_track    PER_TRACK           VARMIX
@@ -70,7 +70,7 @@ specs = [row.split() for row in specs if row and not row.startswith('#')]
 # Use of indexed addressing mode requires some fields of a given
 # heighttype to precede others in memory.
 must_ascend = [
-    ['arpInterval1', 'arpInterval2']
+    ['pentlyi_arpInterval1', 'pentlyi_arpInterval2']
 ]
 
 asm6_prefix = """; Generated for ASM6
