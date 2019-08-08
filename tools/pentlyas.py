@@ -1860,7 +1860,14 @@ Used to find the target of a time, scale, durations, or notenames command.
             sp = words[1].split('/', 1)
         if len(sp) != 2:
             raise ValueError("time signature must be a fraction separated by /")
-        timenum, timeden = int(sp[0]), int(sp[1])
+        timenum, timeden = sp[:2]
+
+        # 2/4. (Orff-inspired) means 6/8
+        dotdenom = timeden.endswith('.')
+        if dotdenom: timeden = timeden[:-1]
+        timenum, timeden = int(timenum), int(timeden)
+        if dotdenom: timenum, timeden = 3 * timenum, 2 * timeden
+
         rhyctx = self.get_pitchrhy_parent().rhyctx
         rhyctx.set_time_signature(timenum, timeden)
         if len(words) > 2:

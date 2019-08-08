@@ -918,7 +918,15 @@ song canon
 
 song bf98
   title Happy Flappy Crappy
-  time 9/8
+
+  # Carl Orff invented a different notation for time signatures.
+  # Top is beats per measure, bottom is the head and downward stem
+  # of a note that is 1 beat on the A (treble) or C (bass) space.
+  # Writing 9/8 as "3/(dotted quarter note)" makes compound
+  # prolation in particular easier to understand.
+  # We can't include pictures of notes in a score, but we can
+  # allow dotted durations in a denominator.
+  time 3/4.
   scale 8
   tempo 133.3
 
