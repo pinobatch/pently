@@ -362,12 +362,16 @@ The `time` command sets the **time signature**, which controls
 the number of beats per measure and the duration of one beat
 as a fraction of a whole note, separated by a slash (`/`).  The
 denominator (second number) must be a power of 2, no less than 2
-and no greater than 64. For example, `time 2/4` puts two quarter
-notes in each measure. The default is `time 4/4`, or common time.
-A `time` numerator that is a multiple of 3 greater than 3, such as
-6 or 9, triggers a special-case behavior for compound prolation,
-making the beat three times as long.  For example, each measure
-in `time 6/8` is two beats, each beat a dotted quarter note.
+and no greater than 64.  For example, `time 2/4` puts two beats in
+each measure, each as long as a quarter note.
+
+Pently recognizes two notations for compound prolation, meaning a
+beat divisible by three instead of two.  One, inspired by the music
+education work of _Carmina Burana_ composer Carl Orff, is a dotted
+denominator.  The other is a numerator that is a multiple of 3
+greater than 3, such as 6 or 9, which makes the the beat as long as
+three units of the denominator.  Both `time 2/4.` and `time 6/8`
+set the beat to a dotted quarter note and put two in each measure.
 
 A few time signatures have shortcut notations:
 
@@ -615,19 +619,6 @@ To play one pattern after the other, use an `at` command to wait for
 the pattern to end.  The pattern will loop until it is stopped or
 another pattern is played on the same track.
 
-Playing a pattern made of only rests and waits produces a warning on
-a pitched track or an error on a drum track.  In previous versions,
-it was an error on all tracks.  Since then, a use case for a pattern
-made of waits has arisen: improvisation by playing notes into the
-same track as a silent pattern, so that the built-in silent pattern
-(a looping whole rest) doesn't kill the note.
-
-To **stop the pattern** playing on a track, switch it to a built-in
-silent pattern using `stop pulse1`, `stop pulse2`, `stop triangle`,
-`stop drum`, or `stop attack`.  You can stop more than one track:
-
-    stop pulse1 pulse2 drum
-
 You can play a single pitch on a channel directly from the song:
 
     play 10 with crash_cymbal on noise
@@ -638,6 +629,17 @@ a pitch from 0 to 15.  They're good for crash cymbals and the like,
 as they can be interrupted by other drums.  But make sure to play
 single notes _after_ patterns in the same `at` block, or the
 instrument may change unexpectedly.
+
+To **stop the pattern** playing on a track, switch it to a built-in
+silent pattern using `stop pulse1`, `stop pulse2`, `stop triangle`,
+`stop drum`, or `stop attack`.  You can stop more than one track:
+
+    stop pulse1 pulse2 drum
+
+Playing a pattern made of only rests and waits produces a warning
+on a pitched track or an error on a drum track.  The only known use
+of a pattern made of waits, as opposed to using `stop`, is to let a
+program using Pently generate and play notes at runtime.
 
 The loop point is set with the **`segno`** (sen-yoh) command.  A song
 ends with the **`fine`** (fee-neh) command, which stops playback, or
