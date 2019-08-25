@@ -4,17 +4,17 @@
 ; where:
 ; Y is excess-128 offset of sprite top down from hotspot (128 is center)
 ; X is excess-128 offset to right of hotspot (128 is center)
-; attributes is a bitfield, where bits 4-0 go to OAM attribute 3
-; and 7-5 are the number of tiles to follow minus 1
+; attributes is a bitfield, where bits 1-0 go to OAM attribute 2
+; and 4-2 are the number of tiles to follow minus 1
 ; 7654 3210
 ;    | ||++- Palette ID
 ;    +-++--- Length of strip (0: 1 sprite/8 pixels; 7: 8 sprites/64 pixels)
-; tile bits 7-6 are flip, and 5-0 are data
+; tile bits 7-6 are flip, and 5-0 are tile IDs
 ; 7654 3210
 ; ||++-++++- offset from msprBaseTile
 ; |+-------- Flip this sprite horizontally
 ; +--------- Flip this tile vertically
-; and "+" means something is repeated 1 or more times
+; and "+" after something means it occurs 1 or more times
 ;
 ; @param hmsprYHi, hmsprYLo 16-bit Y coordinate of hotspot
 ; @param hmsprXHi, hmsprXLo 16-bit Y coordinate of hotspot
