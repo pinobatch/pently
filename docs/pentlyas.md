@@ -738,8 +738,8 @@ studied music theory and MIDI.
 * Prolation: The division of a beat into two parts (simple) or
   three parts (compound).
 * Rest: A musical event consisting of silence for a duration.
-* Row: The shortest rhythmically significant duration in a piece of
-  sequenced music.  Also called a subdivision, tick, or tatum (after
+* Row: The shortest rhythmically significant duration in a piece
+  of sequenced music.  Also called a subdivision or tatum (after
   American jazz pianist Art Tatum).
 * Semitone: A pitch difference of one-twelfth of an octave,
   corresponding to the frequency ratio 1.0595 (the twelfth root of 2)
