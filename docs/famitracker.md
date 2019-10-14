@@ -107,7 +107,8 @@ Pently features, many of which would fit a song in less ROM space.
 * Decay phase  
   If the timbre and pitch remain constant while the volume steadily
   decreases at the end of an envelope, the instrument can compress
-  the tail end to nothing.
+  the tail end to nothing.  ft2pently can sometimes detect and
+  convert this.
 * Attack track  
   Play an ostinato with a staccato instrument overlaid on the
   harmony on the same channel.  Or play a staccato melody or
@@ -162,20 +163,25 @@ FamiTracker, run the converter, and polish the result.  This Pently
 score then becomes the [single source of truth], or the authoritative
 version from which the entire sound team works.  And because it is
 text, it works well with the [diff] utility and [version control]
-systems such as Git.
+systems such as Git.  This works best if the composer is fluent in
+MML or LilyPond.
 
-On the one hand, use of a Pently score as authoritative may cause
-problems for composers who work only in trackers.  On the other hand,
-composers fluent in MML or LilyPond may be attracted to the model.
+On the other hand, use of a Pently score as authoritative may cause
+problems for composers who work only in trackers.  In this case,
+consider relying on automatic conversion for most of the project,
+and then at the end, bring in a specialist to optimize the score.
 
 To listen to ft2pently's conversion of an `.ftm` or `.0cc` module:
 
+1. Install GNU Make, cc65, Python, and Pillow as described in the
+   [nrom-template] `README` file.  (Pillow is required for `.nes`
+   output but not `.nsf`.)
 1. Edit `makefile` to reflect the paths to FamiTracker and ft2pently
    executables on your system.
 2. Save the module in the `audio` folder.
 3. Run `make <nameofmodule>.nsf` or `make <nameofmodule>.nes`.
 
-For example, `audio/Foothills.ftm` exists, `make Foothills.nes` or
+For example, if `audio/Foothills.ftm` exists, `make Foothills.nes` or
 `make Foothills.nsfe` will work.
 
 
@@ -187,3 +193,4 @@ For example, `audio/Foothills.ftm` exists, `make Foothills.nes` or
 [single source of truth]: https://en.wikipedia.org/wiki/Single_source_of_truth
 [diff]: https://en.wikipedia.org/wiki/Diff_utility
 [version control]: https://en.wikipedia.org/wiki/Version_control
+[nrom-template]: https://github.com/pinobatch/nrom-template/

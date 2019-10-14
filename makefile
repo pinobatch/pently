@@ -45,9 +45,9 @@ DEBUGEMU := ~/.wine/drive_c/Program\ Files\ \(x86\)/FCEUX/fceux.exe
 # Work around a quirk of how the Python 3 for Windows installer
 # sets up the PATH
 ifdef COMSPEC
-PY:=py
+PY:=py -3
 else
-PY:=
+PY:=python3
 endif
 
 
