@@ -155,7 +155,7 @@ translate everything.
   FamiTracker's [text export format] doesn't include row highlight,
   converters will likely write the default value of 4 to the score
   instead of the true value for the song's time signature.
-
+	
 Workflow implications
 ---------------------
 To take full advantage of these features, a composer can prototype in
@@ -183,6 +183,23 @@ To listen to ft2pently's conversion of an `.ftm` or `.0cc` module:
 
 For example, if `audio/Foothills.ftm` exists, `make Foothills.nes` or
 `make Foothills.nsfe` will work.
+
+Troubleshooting
+---------------
+Some problems that users have run into:
+
+* **Noise channel is missing**  
+  If you aren't using ft2pently's semantic drums, which map different
+  DPCM pitches to pairs of sound effects), add `auto noise` to the
+  module comments so that ft2pently can create sound effects from all
+  notes played on noise.
+* **The pulse width sounds incorrect**  
+  FamiTracker defaults to a duty setting of 0 (12.5% pulse width),
+  whereas Pently defaults to 2 (50% pulse width).  Fix your module
+  by specifying the `Duty / Noise` value for all pulse instruments.
+  In addition, some composers leave instrument duty blank and use the
+  `V00`, `V01`, or `V02` command to control duty from the pattern.
+  Pently currently does not support `V0x`.  Make more instruments.
 
 
 [ft2pently]: https://github.com/NovaSquirrel/ft2pently
