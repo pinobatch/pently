@@ -23,7 +23,9 @@
 
 ; This can be used to calculate the song position down to a fraction
 ; of a beat, for use to synchronize a cut scene or a rhythm game.
-; CAUTION:  Rhythm games will be a patent minefield until 2019.
+; CAUTION:  Rhythm games will be a patent minefield until sometime
+; in 2019, when patents such as U.S. Patent 6,410,835, asserted in
+; Konami v. Roxor (2006), begin to expire.
 
 .include "pentlyconfig.inc"
 .include "pently.inc"

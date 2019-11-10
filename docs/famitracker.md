@@ -186,11 +186,11 @@ For example, if `audio/Foothills.ftm` exists, `make Foothills.nes` or
 
 Troubleshooting
 ---------------
-Some problems that users have run into:
+Some problems that ft2pently users have run into:
 
 * **Noise channel is missing**  
   If you aren't using ft2pently's semantic drums, which map different
-  DPCM pitches to pairs of sound effects), add `auto noise` to the
+  DPCM pitches to pairs of sound effects, add `auto noise` to the
   module comments so that ft2pently can create sound effects from all
   notes played on noise.
 * **The pulse width sounds incorrect**  
