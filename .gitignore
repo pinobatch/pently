@@ -21,6 +21,7 @@ __pycache__/
 *.pyc
 /pently-*.zip
 /docs/future/
+/winbuild.bat
 
 /sfxed/sfxed.nes
 /sfxed/map.txt

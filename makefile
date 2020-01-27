@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 #
 # Makefile for Pently music engine
-# Copyright 2012-2015 Damian Yerrick
+# Copyright 2012-2020 Damian Yerrick
 #
 # Copying and distribution of this file, with or without
 # modification, are permitted in any medium without royalty
@@ -76,12 +76,18 @@ $(title)-$(version).zip: zip.in all CHANGES.txt \
 	zip -9 -u $@ -@ < $<
 
 # Build zip.in from the list of files in the Git tree
-zip.in:
+zip.in: winbuild.bat
 	git ls-files | grep -e "^[^.]" > $@
 	echo pently.nes >> $@
 	echo pently.nsf >> $@
 	echo pently.nsfe >> $@
 	echo zip.in >> $@
+	echo winbuild.bat >> $@
+
+# This recipe is not parallel-safe! Run make winbuild before make dist
+winbuild.bat: tools/makewinbuild.py makefile
+	$(MAKE) clean
+	$(MAKE) -n COMSPEC=cmd pently.nes | $(PY) $<
 
 $(objdir)/index.txt: makefile
 	echo "This file forces the creation of the folder for object files. You may delete it." > $@
