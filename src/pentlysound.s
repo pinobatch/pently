@@ -221,6 +221,8 @@ srchi        = pently_zptemp + 1
     .endif
 
     ; Turn off the channel and force a reinit of the length counter.
+    ; NSFID by Karmic uses this as part of its signature to detect
+    ; Pently.
     cpx #PENTLY_TRI_CH
     beq not_triangle_kill
       lda #$30
@@ -238,6 +240,9 @@ srchi        = pently_zptemp + 1
   sta srclo
 
   ; Advance if playback rate divider says so
+  ; NSFID by Karmic detected the version of this passage prior to the
+  ; following commit in the 0.05wip10 cycle:
+  ; 8ffefe9 fix dubious rate_divider_cancel behavior (2018-08-01)
   dec pentlyi_sfx_ratecd,x
   bpl no_next_word
     clc
