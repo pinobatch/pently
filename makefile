@@ -11,7 +11,7 @@
 
 # These are used in the title of the NES program and the zip file.
 title := pently
-version := 0.05wip11
+version := 0.05wip12
 
 # Name of Pently score for main targets "pently.nes" and "pently.nsf"
 # is audio/$(scorename).pently, such as audio/musicseq.pently.
@@ -59,7 +59,7 @@ debug: $(title).nes
 	$(DEBUGEMU) $<
 clean:
 	-rm $(objdir)/*.o $(objdir)/*.s $(objdir)/*.chr $(objdir)/*.inc
-	-rm $(objdir)/*.ftm.txt
+	-rm $(objdir)/*.ftm.txt $(objdir)/*.pently
 
 # Rule to create or update the distribution zipfile by adding all
 # files listed in zip.in.  Actually the zipfile depends on every

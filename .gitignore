@@ -10,6 +10,7 @@
 /*.nsfe
 /obj/nes/*.s
 /obj/nes/*.ftm.txt
+/obj/nes/*.pently
 /obj/nes/pentlybss.inc
 /obj/nes/*-titles.inc
 /zip.in
