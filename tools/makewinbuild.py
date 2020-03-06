@@ -25,9 +25,9 @@ for line in sys.stdin:
     if words[0] == "python3":
         words[0] = "py -3"
     if words[0] == "cat":
-        lpart, rpart = line.split(">", 1)
+        lpart, rpart = line.replace("/", "\\").split(">", 1)
         words = lpart.split()
-        words = ["copy", "+".join(words[1:]).replace("/", "\\"), rpart.strip()]
+        words = ["copy /b", "+".join(words[1:]), rpart.strip()]
     lines.append(" ".join(words) + linesuffix)
 lines.append(epilog)
 

@@ -9,19 +9,28 @@ Documentation can be found in `docs/` and example tracks can be found in `musics
 
 ### Prerequisites
 
-- Python 3
-- [ca65](https://cc65.github.io/cc65/)
-- GNU Make and Coreutils - on Windows, install MSYS through
-  [mingw-get](http://www.mingw.org/wiki/Getting_Started)
+- [Python] 3
+- [ca65]
+- GNU Make and Coreutils  
+  On Windows, install [Git for Windows], and then follow
+  [evanwill's instructions] to download GNU Make without Guile
+  from [ezwinports] and merge it into Git Bash.
 - For NES (not NSF) format: Pillow (Python imaging library)  
   UNIX: `python3 -m pip install pillow`  
   Windows: `py -3 -m pip install pillow`
-- For FamiTracker conversion:
-  [j0CC-FamiTracker](https://github.com/jimbo1qaz/j0CC-FamiTracker)
-  and [ft2pently](https://github.com/NovaSquirrel/ft2pently)
+- For FamiTracker conversion: [j0CC-FamiTracker] and [ft2pently]
 
 For help setting up Python, ca65, Make, and Coreutils, see the README
-file for [nrom-template](https://github.com/pinobatch/nrom-template).
+file for [nrom-template].
+
+[Python]: https://www.python.org/
+[ca65]: https://cc65.github.io/
+[Git for Windows]: https://git-scm.com/download/win
+[evanwill's instructions]: https://gist.github.com/evanwill/0207876c3243bbb6863e65ec5dc3f058
+[ezwinports]: https://sourceforge.net/projects/ezwinports/files/
+[j0CC-FamiTracker]: https://github.com/jimbo1qaz/j0CC-FamiTracker/releases
+[ft2pently]: https://github.com/NovaSquirrel/ft2pently/releases
+[nrom-template]: https://github.com/pinobatch/nrom-template
 
 ### Building
 
@@ -37,5 +46,5 @@ in `makefile` to reflect executable paths on your system, then run
 
 ## License
 
-Copyright © 2009-2018 Damian Yerrick.
+Copyright © 2009-2020 Damian Yerrick.
 Pently is free software, under the zlib License.
