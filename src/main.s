@@ -504,13 +504,20 @@ xpos = 3
 .endproc
 
 .segment "RODATA"
+.import pentlyseq_start, pentlyseq_end
+PENTLYSEQ_SIZE = pentlyseq_end - pentlyseq_start
 bytes_txt:
-  .byt "ROM:"
+  .byt "Drv:"
   .byt '0'|<((PENTLY_SIZE / 1000) .MOD 10)
   .byt '0'|<((PENTLY_SIZE / 100) .MOD 10)
   .byt '0'|<((PENTLY_SIZE / 10) .MOD 10)
   .byt '0'|<((PENTLY_SIZE / 1) .MOD 10)
-  .byt " bytes     Peak",0
+  .byt " Seq:"
+  .byt '0'|<((PENTLYSEQ_SIZE / 1000) .MOD 10)
+  .byt '0'|<((PENTLYSEQ_SIZE / 100) .MOD 10)
+  .byt '0'|<((PENTLYSEQ_SIZE / 10) .MOD 10)
+  .byt '0'|<((PENTLYSEQ_SIZE / 1) .MOD 10)
+  .byt "   max",0
 
 
 main_palette:

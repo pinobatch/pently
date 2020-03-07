@@ -2366,11 +2366,14 @@ def render_file(parser, segment='RODATA', asm6=False, prefix=''):
         lines.extend([
             '.include "../../src/pentlyseq.inc"',
             '.segment "%s"' % segment,
+            'pentlyseq_start:'
         ])
 
-    all_export = []
+    all_export = [
+        'pentlyseq_start', 'pentlyseq_end',
+    ]
     all_exportzp = [
-      'PENTLY_NUM_SONGS', 'PENTLY_NUM_SOUNDS', 'pently_resume_mute'
+        'PENTLY_NUM_SONGS', 'PENTLY_NUM_SOUNDS', 'pently_resume_mute',
     ]
     bytes_lines = []
     songbytes = {'': 0}
@@ -2434,6 +2437,7 @@ def render_file(parser, segment='RODATA', asm6=False, prefix=''):
     # Put all references to subsequences below the definitions of
     # said sequences in order to reduce forward references in ASM6
     lines.extend([
+        'pentlyseq_end:',
         '',
         '; references to subsequences'
     ])

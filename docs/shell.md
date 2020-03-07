@@ -7,9 +7,9 @@ two screens:
 Song selection screen
 ---------------------
 This shows the `title` value for each song in the score, the size
-of the driver with the options enabled in `pentlyconfig.inc` (but
-excluding instrument, song, and pattern data), and the current and
-peak CPU use for this song in cycles.
+of the driver with the options enabled in `pentlyconfig.inc`,
+the size of instrument, song, and pattern data, and the current
+and maximum CPU use for this song in cycles.
 
 * Up, Down: Navigate to songs
 * A: Go to visualization
