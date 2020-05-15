@@ -200,7 +200,9 @@ Some problems that ft2pently users have run into:
   In addition, some composers leave instrument duty blank and use the
   `V00`, `V01`, or `V02` command to control duty from the pattern.
   Pently currently does not support `V0x`.  Make more instruments.
-
+* **Conversion failure with "pitch requires at least one step"**  
+  Make sure you didn't leave any arpeggio sequences checked but
+  with size 0 steps.
 
 [ft2pently]: https://github.com/NovaSquirrel/ft2pently
 [FamiTracker effects]: http://famitracker.com/wiki/index.php?title=Effect_list

@@ -37,7 +37,7 @@ srcdir := src
 imgdir := tilesets
 
 FT2P := ../ft2pently/ft2p
-FAMITRACKER := wine '/home/pino/.wine/drive_c/Program Files (x86)/FamiTracker/j0CC-Famitracker-j0.6.1.exe'
+FAMITRACKER := wine '/home/pino/.wine/drive_c/Program Files (x86)/FamiTracker/j0CC-Famitracker-j0.6.2.exe'
 EMU := fceux --input1 GamePad.0
 DEBUGEMU := ~/.wine/drive_c/Program\ Files\ \(x86\)/FCEUX/fceux.exe
 # other options for EMU are start (Windows) or xdg-open (*n?x)
