@@ -678,6 +678,19 @@ that depends on macros in `pentlyseq.inc`.  It contains definitions
 of all objects, as well as comments stating the size of each object,
 the size of all objects of a particular type, and the size of objects
 associated with each song.
+
+If you are using the included makefile to iterate on a composition,
+keep in mind that Make deletes certain intermediate files after the
+ROM is built.  Thus if you're interested in the assembly language
+output, you'll need to tell Make to build it and not delete it.
+For example, if the `audio` folder contains `Example.pently` or
+`Example.ftm`, try this:
+
+    make obj/nes/Example.s
+
+(Keep in mind that Make is sensitive to uppercase and lowercase
+letters in filenames, even if run on a Windows system that otherwise
+is not.)
   
 Glossary
 ========
