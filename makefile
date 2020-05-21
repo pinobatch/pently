@@ -36,11 +36,25 @@ objdir := obj/nes
 srcdir := src
 imgdir := tilesets
 
-FT2P := ../ft2pently/ft2p
-FAMITRACKER := wine '/home/pino/.wine/drive_c/Program Files (x86)/FamiTracker/j0CC-Famitracker-j0.6.2.exe'
-EMU := fceux --input1 GamePad.0
-DEBUGEMU := ~/.wine/drive_c/Program\ Files\ \(x86\)/FCEUX/fceux.exe
-# other options for EMU are start (Windows) or xdg-open (*n?x)
+DEFAULT_FAMITRACKER := wine "$(HOME)"'/.wine/drive_c/Program Files (x86)/FamiTracker/j0CC-Famitracker-j0.6.2.exe'
+DEFAULT_FT2P := ../ft2pently/ft2p
+DEFAULT_EMU := fceux --input1 GamePad.0
+DEFAULT_DEBUGEMU := wine "$(HOME)"'/.wine/drive_c/Program Files (x86)/FCEUX/fceux.exe'
+# other options for EMU are start "" (Windows) or xdg-open (*n?x) or Mesen.exe
+
+# Allow overriding these with environment variables
+# Example 1:
+#     EMU=Mesen.exe make
+# Example 2:
+#     make EMU=Mesen.exe
+# Example 3:
+#     export FAMITRACKER='C:\Program Files\FamiTracker\0CC-FamiTracker.exe'
+#     make
+# FAMITRACKER and FT2P are needed for automatic .ftm/.0cc to .pently conversion
+FAMITRACKER := $(if $(FAMITRACKER),$(FAMITRACKER),$(DEFAULT_FAMITRACKER))
+FT2P := $(if $(FT2P),$(FT2P),$(DEFAULT_FT2P))
+EMU := $(if $(EMU),$(EMU),$(DEFAULT_EMU))
+DEBUGEMU := $(if $(DEBUGEMU),$(DEBUGEMU),$(DEFAULT_DEBUGEMU))
 
 # Work around a quirk of how the Python 3 for Windows installer
 # sets up the PATH
@@ -162,6 +176,8 @@ $(objdir)/tracknames-%.s: $(objdir)/%-titles.inc $(srcdir)/tracknames.s
 
 # Translate FamiTracker music project
 
+$(objdir)/%.ftm.txt: audio/%.0cc
+	$(FAMITRACKER) $< -export $@
 $(objdir)/%.ftm.txt: audio/%.ftm
 	$(FAMITRACKER) $< -export $@
 $(objdir)/%.ftm.txt: audio/%.0cc
