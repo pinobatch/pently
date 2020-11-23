@@ -503,10 +503,10 @@ every 1 frame (fast), use `ENP1`; to make it change every 2 frames
 The `MP` (modulate period) command controls vibrato: `MP1` through
 `MP4` set depth between 1 (9 cents, very subtle) and 4 (75 cents,
 very strong), and `MP0` or `MPOF` disables it.  Only the depth can be
-controlled, not the rate (which is fixed to a musically sane 12 frame
-period).  Because of a 2A03 quirk, a few pitches played with vibrato
-on a pulse channel may cause audible jitter: `a'`, `a`, `d`, `a,`,
-`f,`, `d,`, and `h,,`.
+controlled, not the rate (which is fixed to a musically practical
+12-frame period).  Because of a 2A03 quirk, a few pitches played with
+vibrato on a pulse channel may cause audible jitter: `a'`, `a`, `d`,
+`a,`, `f,`, `d,`, and `h,,`.
 
 **Portamento**, also called **pitch bend** or **pitch slide**, causes
 a channel's pitch to approach a played note gradually rather than
