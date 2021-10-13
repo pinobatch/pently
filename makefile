@@ -36,7 +36,7 @@ objdir := obj/nes
 srcdir := src
 imgdir := tilesets
 
-DEFAULT_FAMITRACKER := wine "$(HOME)"'/.wine/drive_c/Program Files (x86)/FamiTracker/j0CC-Famitracker-j0.6.2.exe'
+DEFAULT_FAMITRACKER := wine "$(HOME)"'/.wine/drive_c/Program Files/Dn-FamiTracker/Dn_FamiTracker.exe'
 DEFAULT_FT2P := ../ft2pently/ft2p
 DEFAULT_EMU := fceux --input1 GamePad.0
 DEFAULT_DEBUGEMU := wine "$(HOME)"'/.wine/drive_c/Program Files (x86)/FCEUX/fceux.exe'
@@ -51,7 +51,7 @@ DEFAULT_DEBUGEMU := wine "$(HOME)"'/.wine/drive_c/Program Files (x86)/FCEUX/fceu
 #     export FAMITRACKER='C:\Program Files\FamiTracker\0CC-FamiTracker.exe'
 #     make
 # FAMITRACKER and FT2P are needed for automatic .ftm/.0cc to .pently conversion
-FAMITRACKER := $(if $(FAMITRACKER),$(FAMITRACKER),$(DEFAULT_FAMITRACKER))
+FAMITRACKER := $(if $(FAMITRACKER),"$(FAMITRACKER)",$(DEFAULT_FAMITRACKER))
 FT2P := $(if $(FT2P),$(FT2P),$(DEFAULT_FT2P))
 EMU := $(if $(EMU),$(EMU),$(DEFAULT_EMU))
 DEBUGEMU := $(if $(DEBUGEMU),$(DEBUGEMU),$(DEFAULT_DEBUGEMU))
