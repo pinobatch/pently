@@ -31,9 +31,16 @@ notenames english
 include Pino_drumkit.inc
 
 sfx quiethat on noise
-  volume 2 1
+  volume 2
   pitch 12
-  timbre | 0 1
+  timbre 0
+
+# If I could make it shorter, I would.  The original s3m version
+# had a single HPF'd step response for this
+sfx shorthat on noise
+  volume 4
+  pitch 12
+  timbre 0
 
 sfx tubfloorA on pulse
   volume 12 10 8 7 6 5 4 4 3 3 2 1
@@ -66,6 +73,7 @@ sfx longsnare on noise
 drum tubkick kick tubfloorA
 drum arghatbuzz arghatbuzz
 drum quiethat quiethat
+drum shorthat shorthat
 drum stickskick stickskick
 drum stickshatlo stickshatlo
 drum lkick longkick trikick
@@ -210,9 +218,9 @@ song argument
 
   at 1
   pattern drum34
-    tubkick4 clhat clhat
+    tubkick4 shorthat shorthat
   pattern drum34_8
-    tubkick8 quiethat clhat arghatbuzz clhat quiethat
+    tubkick8 quiethat shorthat arghatbuzz shorthat quiethat
   play drum34
 
   at 9
@@ -362,7 +370,7 @@ song argument
     tkick8 quiethat quiethat
     fallthrough
   pattern drum68nokick
-    clhat8 quiethat quiethat
+    shorthat8 quiethat quiethat
   pattern drum68allkick
     tkick8 quiethat quiethat
   pattern drum68top with tubbass on attack
