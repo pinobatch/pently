@@ -56,7 +56,8 @@ converters may warn about their use:
 * Detune (`Pxx`)
 * Timbre override (`Vxx`)
 
-Nor are most features added in [0CC-FamiTracker] supported:
+Nor are most features added in [0CC-FamiTracker] or its successor
+Dn-FamiTracker supported:
 
 * Grooves (speed sequences)
 * Detune settings other than global tuning
@@ -136,15 +137,15 @@ translate everything.
 * Pitch slides and vibrato  
   FamiTracker traditionally measures pitch slide rate and vibrato
   depth in frequency or period units of the underlying chip, causing
-  vibrato to be weaker and pitch slides slower at some pitches than
-  others.  0CC-FamiTracker optionally uses a "linear pitch" model
+  vibrato to be weaker and pitch slides slower at some pitches
+  than others.  0CC and Dn offer an optional "linear pitch" model
   that divides each semitone into 32 steps.  Pently also uses
   linear pitch.  If you export from FamiTracker 0.4.6 or from
-  0CC-FamiTracker with linear pitch turned off, slides well above
+  0CC or Dn with linear pitch turned off, slides well above
   `A-2` will play slower and slides well below `A-2` faster.
 * Half-speed arpeggio  
   Pently supports full-speed (60 Hz) and half-speed (30 Hz) `0xy`
-  arpeggios, which correspond to 0CC-FamiTracker arpeggio schemes
+  arpeggios, which correspond to 0CC/Dn arpeggio schemes
   `| 0 x y` and `| 0 0 x x y y`.  But these are selected as an
   effect, not as part of an instrument.
 * Rows per beat  
@@ -171,7 +172,8 @@ problems for composers who work only in trackers.  In this case,
 consider relying on automatic conversion for most of the project,
 and then at the end, bring in a specialist to optimize the score.
 
-To listen to ft2pently's conversion of an `.ftm` or `.0cc` module:
+To listen to ft2pently's conversion of an `.ftm`, `.0cc`,
+or `.dnm` module:
 
 1. Install GNU Make, cc65, Python, and Pillow as described in the
    [nrom-template] `README` file.  (Pillow is required for `.nes`
@@ -207,6 +209,7 @@ Some problems that ft2pently users have run into:
 [ft2pently]: https://github.com/NovaSquirrel/ft2pently
 [FamiTracker effects]: http://famitracker.com/wiki/index.php?title=Effect_list
 [0CC-FamiTracker]: https://github.com/HertzDevil/0CC-FamiTracker
+[Dn-FamiTracker]: https://github.com/Dn-Programming-Core-Management/Dn-FamiTracker
 [Roland TB-303]: https://en.wikipedia.org/wiki/Roland_TB-303
 [text export format]: https://github.com/HertzDevil/famitracker-all/blob/master/hlp/text_export.htm
 [single source of truth]: https://en.wikipedia.org/wiki/Single_source_of_truth
