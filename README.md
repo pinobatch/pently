@@ -18,7 +18,7 @@ Documentation can be found in `docs/` and example tracks can be found in `musics
 - For NES (not NSF) format: Pillow (Python imaging library)  
   UNIX: `python3 -m pip install pillow`  
   Windows: `py -3 -m pip install pillow`
-- For FamiTracker conversion: [j0CC-FamiTracker] and [ft2pently]
+- For FamiTracker conversion: [Dn-FamiTracker] and [ft2pently]
 
 For help setting up Python, ca65, Make, and Coreutils, see the README
 file for [nrom-template].
@@ -28,7 +28,7 @@ file for [nrom-template].
 [Git for Windows]: https://git-scm.com/download/win
 [evanwill's instructions]: https://gist.github.com/evanwill/0207876c3243bbb6863e65ec5dc3f058
 [ezwinports]: https://sourceforge.net/projects/ezwinports/files/
-[j0CC-FamiTracker]: https://github.com/jimbo1qaz/j0CC-FamiTracker/releases
+[Dn-FamiTracker]: https://github.com/Dn-Programming-Core-Management/Dn-FamiTracker/releases
 [ft2pently]: https://github.com/NovaSquirrel/ft2pently/releases
 [nrom-template]: https://github.com/pinobatch/nrom-template
 
