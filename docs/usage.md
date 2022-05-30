@@ -43,13 +43,13 @@ The following methods, declared in the assembly language include file
   Instrument is an element of the `pently_instruments` table.
 * `pently_skip_to_row` skips to row X*256+A.  This row must be on
   or after the current position; otherwise, behavior is undefined.
-  This method is available only if `PENTLY_USE_REHEARSE` is enabled.
+  This method is available only if `PENTLY_USE_REHEARSAL` is enabled.
 * `getTVSystem`, defined in `paldetect.s`, waits for the PPU to
   stabilize and counts the time between vertical blanking periods
   to determine which TV system is in use.  It returns a region
   value in A: 0 means NTSC, 1 means PAL NES, and 2 means PAL
   famiclones such as [Dendy].  It should be called with NMI off
-  and can replace the PPU wait spin loop in your game's init code.
+  and can replace the PPU warmup spin loop in your game's init code.
 * `pently_get_beat_fraction`, defined in `bpmmath.s`, reads the
   fraction of the current beat. Returns a value from 0 to 95 in A.
 
