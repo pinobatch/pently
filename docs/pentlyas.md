@@ -1,9 +1,12 @@
+Pently score
+============
+
 This document describes Pently's text-based music description
 language.  It should be straightforward for a user of LilyPond
 notation software or MML tools such as PPMCK to pick up.
 
 Invoking
-========
+--------
 The Pently assembler takes a score file and produces an assembly
 language file suitable for ca65.  Like other command-line programs,
 it should be run from a Terminal or Command Prompt.  Double-clicking
@@ -55,7 +58,7 @@ Optional arguments:
   is `-Werror`, which treats warnings as errors.
 
 Overall structure
-=================
+-----------------
 An **object** is a sound effect, drum, instrument, or pattern.  Each
 object has a name, which must follow identifier rules: begin with a
 letter and use only ASCII letters, digits, and the underscore `_`.
@@ -89,7 +92,7 @@ corresponding field of the NSF or NSFe file.  Traditionally, the
 You can use `artist` as a synonym for `author`.
 
 Defining pitches
-================
+----------------
 Pently works by setting the period of a tone generator to periods
 associated with musical pitches.  On the pulse and triangle channels,
 both sound effects and musical notes are defined on a logarithmic
@@ -151,12 +154,12 @@ and Famitracker.  For example, `o1`, `o2`, and `o3` correspond to
 pitches `f,`, `f`, and `f'`.
 
 Sound effects
-=============
+-------------
 Each sound effect has a name and channel type, such as
 `sfx player_jump on pulse` or `sfx closed_hihat on noise`.
 
-Envelopes
----------
+### Envelopes
+
 The pitch, volume, and timbre may vary over the course of a sound
 effect.  The available changes differ based on whether an effect is
 for a `pulse`, `triangle`, or `noise` channel type.
@@ -211,8 +214,8 @@ Examples:
     volume 15:3 2 2
     pitch e' c' a f# e
 
-Drums
------
+### Drums
+
 Even if you are making an NSF or a music-only ROM, sound effects are
 used for percussion.  Each of up to 25 drums in the drum kit plays
 one or two sound effects.  It's common on the NES to build drums
@@ -233,7 +236,7 @@ the last two characters be a digit and `g`, so as not to be confused
 with a grace note command.
 
 Instruments
-===========
+-----------
 Like sound effects, instruments are built out of envelopes.  They
 have the same `volume` and `timbre` settings as pulse sound effects.
 But their `pitch` settings differ: instead of being a list of
@@ -295,7 +298,7 @@ Example:
     volume 8 0
 
 Chords
-======
+------
 Arpeggio is rapid alternation among two or three pitches to create a
 warbly chord on one pulse or triangle channel.  It can be specified
 using a nibble pair, or two hexadecimal digits representing semitone
@@ -343,15 +346,15 @@ Inversion requires both intervals to be less than an octave.
 It is an error to invert a chord containing `C`, `D`, `E`, or `F`.
 
 Patterns
-========
+--------
 These are where the notes go.
 
 A pattern contains a musical phrase that repeats until stopped.
 A single pattern can be reused with different instruments or on
 different channels (except noise vs. non-noise).
 
-Pattern header
---------------
+### Pattern header
+
 A **pattern** starts with `pattern some_name`.  The compiler detects
 whether a pattern is a pitched pattern or a drum pattern by whether
 the first note looks like a pitch or a drum name.  Optionally a
@@ -386,8 +389,8 @@ shortest duration, or `scale 32`, which sets thirty-seconds as the
 shortest duration.  A larger `scale` will cause durations of 24 rows
 or longer to use more bytes.  The default is `scale 16`.
 
-Notes
------
+### Notes
+
 Each note command consists of up to six parts:
 
 * Note name
@@ -477,8 +480,8 @@ modify durations in compound prolation for a swing feel.
 **TODO:** A future version of Pently may introduce a command to
 automatically introduce rests between notes for staccato feel.
 
-Pattern effects
----------------
+## Pattern effects
+
 To change the **instrument** within a pitched pattern, use `@`
 followed by the instrument name, such as `@piano`.  Notes before the
 first change use the instrument specified in the song's play command.
@@ -530,7 +533,7 @@ respectively.  Volume is set to 100% at the start of a piece.
 Drums and other sound effects are unaffected.
 
 Songs
-=====
+-----
 Like patterns, songs also have `time` and `scale`.  They are used
 to interpret the `tempo` and `at` commands.
 
@@ -649,8 +652,8 @@ the `da capo` command also works.
 
 The included `musicseq.pently` file contains examples of complete songs.
 
-Rehearsal
----------
+### Rehearsal
+
 The following commands primarily control playback in the NES ROM
 player (`pently.nes`).  They make the edit-build-listen cycle more
 convenient, but they're not quite as useful in games or NSF output.
@@ -672,7 +675,7 @@ but mutes all tracks other than those specified.  A score can contain
 only one `resume` and only one `mute` or `solo`.
 
 Output file
-===========
+-----------
 The result of the Pently assembler is a ca65 assembly language file
 that depends on macros in `pentlyseq.inc`.  It contains definitions
 of all objects, as well as comments stating the size of each object,
@@ -693,7 +696,7 @@ letters in filenames, even if run on a Windows system that otherwise
 is not.)
   
 Glossary
-========
+--------
 Many of the following terms will be familiar to somebody who has
 studied music theory and MIDI.
 
@@ -717,6 +720,9 @@ studied music theory and MIDI.
 * Channel type: A set of channels with the same behavior.  The 2A03
   has three channel types: `pulse`, `triangle`, and `noise`.
 * Downbeat: The first beat of a measure.
+* DPCM: Delta pulse code modulation, representing a waveform as a
+  series of samples increasing or decreasing by 1/63 of full scale
+  from the previous sample.  Used for drums in some NES games.
 * Drum: A sound effect played to express rhythm.  Usually represents
   unpitched percussion.
 * Envelope: The change in pitch, volume, or timbre over the course

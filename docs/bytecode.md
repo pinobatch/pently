@@ -8,6 +8,7 @@ to an MML-like language processed by a Python program called
 `pentlyas` (described in [pentlyas.md]), and NovaSquirrel has created
 an experimental tool called [ft2pently] to convert FamiTracker music.
 
+[pentlyas.md]: pentlyas.md
 [ft2pently]: https://github.com/NovaSquirrel/ft2pently
 
 Sound effects
@@ -191,16 +192,16 @@ Each note's pitch is relative to the transposition base in the `playPat` command
 Code             | Note       | Interval name  | Semitones
 ---------------- | ---------- | -------------- | --------:
 `N_C`            | C          | Unison         | 0
-`N_CS`, `N_DB`   | C#/D♭            | Minor second   | 1
+`N_CS`, `N_DB`   | C#/D♭      | Minor second   | 1
 `N_D`            | D          | Major second   | 2
-`N_DS`, `N_EB`   | D#/E♭            | Minor third    | 3
+`N_DS`, `N_EB`   | D#/E♭      | Minor third    | 3
 `N_E`            | E          | Major third    | 4
 `N_F`            | F          | Perfect fourth | 5
-`N_FS`, `N_GB`   | F#/G♭            | Tritone        | 6
+`N_FS`, `N_GB`   | F#/G♭      | Tritone        | 6
 `N_G`            | G          | Perfect fifth  | 7
-`N_GS`, `N_AB`   | G#/A♭            | Minor sixth    | 8
+`N_GS`, `N_AB`   | G#/A♭      | Minor sixth    | 8
 `N_A`            | A          | Major sixth    | 9
-`N_AS`, `N_BB`   | A#/B♭            | Minor seventh  | 10
+`N_AS`, `N_BB`   | A#/B♭      | Minor seventh  | 10
 `N_B`            | B          | Major seventh  | 11
 `N_CH`           | High C     | Octave         | 12
 `N_CSH`, `N_DBH` | High C#/D♭ |                | 13
@@ -218,9 +219,9 @@ Code             | Note       | Interval name  | Semitones
 
 (The "Note" column above assumes the transposition base is a C.)
 
-To stop a note without playing another, use a `REST`.  This makes
-sense only on pulse or triangle channels and is treated the same as
-a tie on the drum or attack track.
+To stop a note on a pulse or triangle track without playing
+another, use a `REST`.  The drum and attack tracks treat `REST`
+the same as `N_TIE`.
 
 Each note or rest is OR'd with a duration, or the number of rows to
 wait after the note is played.  The durations are in fractions of
@@ -323,14 +324,14 @@ For example, to play a short C note for 4 frames followed by a
 B flat that is as long as a quarter note minus 4 frames, do this:
 `GRACE,4,N_CH,N_BB|D_Q4`.
 
-The bend command controls pitch bend, also called portamento or pitch
-slide.  In `BEND,$xy`, `x` chooses the rate scale, and `y` chooses
-the rate.  Because of the wide range of speeds expected of
+The `BEND` command controls pitch bend, also called portamento or
+pitch slide.  In `BEND,$xy`, `x` chooses the rate scale, and `y`
+chooses the rate.  Because of the wide range of speeds expected of
 portamento, Pently provides three rate scales:
 
 * Rates $00-$0F  
-  0 means snap immediately to the target pitch, while 1-F mean change
-  the pitch by 1 to 15 semitones per frame.
+  0 (default) means snap immediately to the target pitch, while
+  1-F mean change the pitch by 1 to 15 semitones per frame.
 * Rates $10-$1B  
   Fractional rates in 256ths of a semitone per frame, where $10 to
   $1B set the numerator to 4, 8, 12, 16, 24, 32, 48, 64, 96, 128,
@@ -375,8 +376,9 @@ The following are all the symbols that are valid in pattern code:
 
 Low-level data formats
 ----------------------
-If generating Pently bytecode without use of macros, the low-level
-data formats accepted by Pently versions 3, 4, and 5 are as follows:
+If generating Pently bytecode without the macros in `pentlyseq.inc`,
+the low-level data formats accepted by Pently versions 3, 4, and 5
+are as follows:
 
 ### Definition tables
 
