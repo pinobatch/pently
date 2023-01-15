@@ -1,8 +1,9 @@
 Pently bytecode
 ===============
 This document describes the format of the music data that Pently
-reads.  Before Pently 0.05, specifying bytecode was the only way to
-create music.  Since then, Pently's primary input format has changed
+reads.  Before Pently 0.05, specifying bytecode using the macros
+in `pentlyseq.inc` was the only way to create music.
+Since then, Pently's primary input format has changed
 to an MML-like language processed by a Python program called
 `pentlyas` (described in [pentlyas.md]), and NovaSquirrel has created
 an experimental tool called [ft2pently] to convert FamiTracker music.

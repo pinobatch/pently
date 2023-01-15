@@ -25,6 +25,8 @@
 PENTLYSEQ_INC = 1
 .include "pentlyconfig.inc"
 
+; For a full explanation of these macros, see docs/bytecode.md
+
 .global pently_sfx_table, pently_drums
 .global pently_instruments, pently_patterns, pently_songs
 .globalzp PENTLY_NUM_SONGS
