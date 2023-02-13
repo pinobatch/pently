@@ -34,6 +34,9 @@ def main():
     for i, period in enumerate(noiseperiods):
         updatefreq = 39375000/22/period
         fundamental = updatefreq/93
+
+        # MIDI note 69 corresponds to 440 Hz, and an octave spans
+        # 12 MIDI notes (1200 cents).
         cts = int(round(1200 * log(fundamental/440, 2) + 6900))
         notefloor, ctsdiff = cts // 100, cts % 100
         row = (
@@ -45,7 +48,8 @@ def main():
         )
         lines.append("|-\n| " + " || ".join(row))
 
-        # Lowest note in Pently is 3300 cents
+        # The lowest note supported by Pently is the lowest pulse
+        # note on 2A03, or 55 Hz. This corresponds to MIDI note 33.
         pentlycts = cts - 3300
         xpositions.append(16 + int(round(pentlycts * 3 / 100)))
 
