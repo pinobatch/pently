@@ -1089,8 +1089,13 @@ porta_not_injected:
 
 .proc pentlyi_set_ch_silent
   lda #0
-  sta pentlyi_sustainVol,x
   sta out_volume
+  .if ::PENTLY_USE_ATTACK_TRACK
+    cpx #PENTLY_ATTACK_TRACK
+    bcs track_is_not_channel
+  .endif
+    sta pentlyi_sustainVol,x
+  track_is_not_channel:
   rts
 .endproc
 
