@@ -36,7 +36,7 @@ objdir := obj/nes
 srcdir := src
 imgdir := tilesets
 
-DEFAULT_FAMITRACKER := wine "$(HOME)"'/.wine/drive_c/Program Files/Dn-FamiTracker/Dn_FamiTracker.exe'
+DEFAULT_FAMITRACKER := wine "$(HOME)"'/.wine/drive_c/Program Files/FamiTracker/Dn-FamiTracker.exe'
 DEFAULT_FT2P := ../ft2pently/ft2p
 DEFAULT_EMU := fceux --input1 GamePad.0
 DEFAULT_DEBUGEMU := wine "$(HOME)"'/.wine/drive_c/Program Files (x86)/FCEUX/fceux.exe'

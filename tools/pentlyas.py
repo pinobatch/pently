@@ -937,7 +937,12 @@ class PentlySong(PentlyRenderable):
             try:
                 track = pitched_tracks[track]
             except KeyError:
-                raise ValueError('unknown track ' + track)
+                # allow playing an all-wait pattern on drum to make a
+                # cymbal audible
+                if track == 'drum':
+                    track = 3
+                else:
+                    raise ValueError('unknown track ' + track)
         abstract_cmd = ('playPat', track, patname, transpose, instrument)
         self.bytesize += 4
         self.conductor.append(abstract_cmd)
@@ -1057,6 +1062,9 @@ class PentlySong(PentlyRenderable):
                     raise ValueError("%s: %s: trying to play %d semitones below lowest pitch"
                                      % (self.name, patname, -transpose))
                 if instrument is None: instrument = pat.instrument
+                if instrument is None and track == 3:
+                    # playing waits-only drum track
+                    instrument = next(iter(scopes.instruments))
                 if instrument is None:
                     raise ValueError("%s: no instrument for pattern %s"
                                      % (self.name, patname))
@@ -1388,7 +1396,9 @@ tie_rests -- True if track has no concept of a "note off"
             if tie_rests and pitch == 'r':
                 pitch = 'w'
             # Initial wait becomes a rest
-            if pitch == 'w' and not out:
+            # 2024-01-16: Removing, as it might have caused the
+            # problems I observed in Mega Mountain
+            if False and pitch == 'w' and not out:
                 pitch = 'r'
             # If match and not grace, combine notes
             if (lastwasnote
