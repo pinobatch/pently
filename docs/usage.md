@@ -131,6 +131,11 @@ pulse sound effect to pulse 2 if pulse 2 is idle or has less sound
 effect data left to play than pulse 1.  If this is disabled, it plays
 all pulse sound effects on pulse 1.
 
+`PENTLY_USE_NOISE_POOLING` is similar.  It moves a playing full-rate
+sound effect from the noise channel's sound effect envelope to its
+attack envelope before starting a new sound effect.  The two sound
+effects will mix using the `PENTLY_USE_MUSIC_IF_LOUDER` setting.
+
 If `PENTLY_USE_MUSIC_IF_LOUDER` is enabled, and a sound effect and
 musical instrument are playing at the same time on the same channel,
 Pently switches between the two frame by frame based on which is

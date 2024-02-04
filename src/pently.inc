@@ -103,6 +103,11 @@ PENTLY_USE_303_PORTAMENTO = PENTLY_USE_PORTAMENTO
 PENTLY_USE_ATTACK_PHASE = 1
 .endif
 
+; Move noise sound effects to noise attack envelope if possible
+.ifndef PENTLY_USE_NOISE_POOLING
+PENTLY_USE_NOISE_POOLING = PENTLY_USE_MUSIC && PENTLY_USE_ATTACK_PHASE
+.endif
+
 ; Enable a fifth track that can inject attacks on top of the
 ; pulse 1, pulse 2, or triangle channel
 .ifndef PENTLY_USE_ATTACK_TRACK

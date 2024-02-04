@@ -22,6 +22,7 @@ PENTLY_USE_VARMIX = 1
 ; Features that affect policy more than ROM space, such as
 ; sound effect interruption
 PENTLY_USE_SQUARE_POOLING = 1
+PENTLY_USE_NOISE_POOLING = 1
 PENTLY_USE_MUSIC_IF_LOUDER = 1
 PENTLY_USE_PAL_ADJUST = 1
 PENTLY_USE_TRIANGLE_DUTY_FIX = 1
