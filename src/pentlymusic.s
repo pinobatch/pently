@@ -30,7 +30,8 @@
 .import periodTableLo, periodTableHi
 .export pentlyi_update_music, pentlyi_update_music_ch
 .if PENTLY_USE_ATTACK_PHASE && PENTLY_USE_NOISE_POOLING
-  .export pentlyi_attackPitch, pentlyi_attackLen, pentlyi_noteAttackPos
+  .export pentlyi_attackPitch, pentlyi_attackLen
+  .exportzp pentlyi_noteAttackPos
 .endif
 .if PENTLY_USE_PAL_ADJUST
 .importzp tvSystem

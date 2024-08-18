@@ -23,7 +23,8 @@
 .include "pently.inc"
 .if PENTLY_USE_MUSIC
   .import pentlyi_update_music, pentlyi_update_music_ch
-  .import pentlyi_attackPitch, pentlyi_attackLen, pentlyi_noteAttackPos
+  .import pentlyi_attackPitch, pentlyi_attackLen
+  .importzp pentlyi_noteAttackPos
 .endif
 .import periodTableLo, periodTableHi, pently_sfx_table
 .if PENTLY_USE_PAL_ADJUST
@@ -150,11 +151,14 @@ sndrate   = pently_zptemp + 4
     bne not_ch0to4  ; if not ch 0, don't try moving it
       lda pentlyi_sfx_remainlen+4
       cmp pentlyi_sfx_remainlen
-      bcs not_ch0to4
+      bcs sfx_pooling_ineligible
       ldx #4
     not_ch0to4:
   .endif 
 
+  ; If a noise sound effect without a rate modifier is already
+  ; playing, move it to the attack track of the (usually unused)
+  ; noise instrument.  This helps drums coexist with sound effects.
   .if ::PENTLY_USE_NOISE_POOLING
     .assert ::PENTLY_USE_MUSIC, error, "PENTLY_USE_NOISE_POOLING requires PENTLY_USE_MUSIC"
     .assert ::PENTLY_USE_ATTACK_PHASE, error, "PENTLY_USE_NOISE_POOLING requires PENTLY_USE_ATTACK_PHASE"
@@ -162,9 +166,9 @@ sndrate   = pently_zptemp + 4
     bne not_12toattack
     lda pentlyi_attackLen+PENTLY_NOISE_CH
     ora pentlyi_sfx_rate+PENTLY_NOISE_CH
-    bne not_12toattack
+    bne sfx_pooling_ineligible
     lda pentlyi_sfx_remainlen+PENTLY_NOISE_CH
-    beq not_12toattack
+    beq sfx_pooling_ineligible
       sta pentlyi_attackLen+PENTLY_NOISE_CH
       lda pentlyi_sfx_datalo+PENTLY_NOISE_CH
       sta pentlyi_noteAttackPos+PENTLY_NOISE_CH
@@ -175,6 +179,8 @@ sndrate   = pently_zptemp + 4
       sta pentlyi_attackPitch+PENTLY_NOISE_CH
     not_12toattack:
   .endif
+  sfx_pooling_ineligible:
+
   ; If this sound effect is no shorter than the existing effect
   ; on the same channel, replace the current effect if any
   lda sndlen
