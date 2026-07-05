@@ -3,13 +3,17 @@ Pently bytecode
 This document describes the format of the music data that Pently
 reads.  Before Pently 0.05, specifying bytecode using the macros
 in `pentlyseq.inc` was the only way to create music.
-Since then, Pently's primary input format has changed
-to an MML-like language processed by a Python program called
-`pentlyas` (described in [pentlyas.md]), and NovaSquirrel has created
-an experimental tool called [ft2pently] to convert FamiTracker music.
+Since then, Pently's primary input format has changed to an
+MML-like language processed by a Python program called `pentlyas`
+(described in [pentlyas.md]), and NovaSquirrel has created an
+experimental tool called [ft2pently] to convert FamiTracker music.
 
-[pentlyas.md]: pentlyas.md
+Compare the format of music data in Commodore 64 games by
+[Rob Hubbard].
+
+[pentlyas.md]: ./pentlyas.md
 [ft2pently]: https://github.com/NovaSquirrel/ft2pently
+[Rob Hubbard]: ./rob_hubbard.md
 
 Sound effects
 -------------
@@ -436,7 +440,7 @@ Pattern bytes $D8 and up set effects:
 ### Historical notes
 
 - In Pently 2, the drum table did not exist.  The driver supported
-  drums with one sound effect, but the only publicly released game
+  drums with one sound effect, but the only widely released game
   with Pently 2 (_Concentration Room_) used no drums.
 - Through Pently 3, `instdef` was 4 bytes:  duty and volume, decay
   rate, early cut enable, and an unused byte.  Attack was not

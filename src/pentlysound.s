@@ -295,7 +295,7 @@ srchi        = pently_zptemp + 1
       and #$0F
 
       ; At this point: A = sfx volume; pentlyi_out_volume = music volume
-      cmp pentlyi_out_volume
+      cmp pentlyi_out_volume  ; CF set if sfx louder or equal
       pla
       sta pentlyi_out_volume
       bcc pentlyi_write_psg_chn
