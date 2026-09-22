@@ -158,7 +158,7 @@ Sound effects
 Each sound effect has a name and channel type, such as
 `sfx player_jump on pulse` or `sfx closed_hihat on noise`.
 
-### Envelopes
+### `Envelopes`
 
 The pitch, volume, and timbre may vary over the course of a sound
 effect.  The available changes differ based on whether an effect is
@@ -185,16 +185,19 @@ as pulse.  In `timbre 0`, the top three pitches (13 to 15) sound the
 same as 12 but quieter on authentic NES hardware.  They may sound
 more problematic on clones and emulators.
 
-The pitch and timbre in a sound effect may loop, but the volume
-cannot, as it controls the length of the sound effect.  Place a
-vertical line (`|`, Shift+backslash) before the part of the pitch or
-timbre that you want to loop.  Otherwise, the last step is looped.
-
-Steps of an envelope are separated by spaces is one word.  A step
-can be repeated with a colon and an integer: `8:3` means `8 8 8`.
-By default, a sound effect plays one step every frame, which is 60
+Steps of an envelope are separated by whitespace.  A step can be
+repeated with a colon and an integer: `8:3` means `8 8 8`.  By
+default, a sound effect plays one step every frame, which is 60
 steps per second on NTSC or 50 on PAL.  To slow this down, use
 `rate 2` through `rate 16`
+
+The volume envelope's length controls the length of the sound effect
+as a whole.  It cannot loop.  If a pitch or timbre envelope is longer
+than the volume envelope, the extra data is disregarded.  Pitch and
+timbre envelopes can include a looping portion.  Place a vertical
+line (`|`, Shift+backslash) before the part of the pitch or timbre
+that you want to loop.  Otherwise, the last step loops until the
+volume envelope ends.
 
 Sound effect names are exported with the `PE_` prefix, such as
 `PE_closed_hihat`. Use these values with `pently_start_sound`.
@@ -205,7 +208,7 @@ Examples:
     volume 4 2 2 1
     timbre | 0 1
     pitch 12
-    
+
     sfx noise_kick on noise
     volume 10 10 8 6 4 3 2 1
     pitch 10 0
