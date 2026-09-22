@@ -176,7 +176,9 @@ sndrate   = pently_zptemp + 4
       sta pentlyi_noteAttackPos+1+PENTLY_NOISE_CH
       lda #0
       sta pentlyi_sfx_remainlen+PENTLY_NOISE_CH
-      sta pentlyi_attackPitch+PENTLY_NOISE_CH
+      .if ::PENTLY_USE_ATTACK_TRACK
+        sta pentlyi_attackPitch+PENTLY_NOISE_CH
+      .endif
     not_12toattack:
   .endif
   sfx_pooling_ineligible:
